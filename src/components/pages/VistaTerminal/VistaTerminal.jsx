@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react';
 import { productService } from '../../../services/productService';
 import ReactorLoader from '../../ReactorLoader';
+import PromoModal from '../../PromoModal/PromoModal';
 import './VistaTerminal.css';
 
 export default function VistaTerminal() {
   const [productos, setProductos] = useState([]);
   const [carrito, setCarrito] = useState([]);
+  const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pedidoFinalizado, setPedidoFinalizado] = useState(null);
   const [error, setError] = useState(null);
+
+  // Precio rebajado del grabado
+  const PRECIO_GRABADO_REBAJADO = 3.00;
 
   useEffect(() => {
     let montado = true;
@@ -33,31 +38,56 @@ export default function VistaTerminal() {
     };
   }, []);
 
-  const agregarAlCarrito = (producto) => {
-    setCarrito((prev) => {
-      const existe = prev.find((item) => item.id === producto.id);
-      if (existe) {
-        return prev.map((item) =>
-          item.id === producto.id ? { ...item, cantidad: item.cantidad + 1 } : item
-        );
-      }
-      return [...prev, { ...producto, cantidad: 1, textoPersonalizado: '' }];
-    });
+  // Función para agregar al carrito de forma limpia
+ const agregarAlCarrito = (producto) => {
+    setCarrito((prev) => [
+      ...prev,
+      {
+        ...producto,
+        idUnico: `${producto.id}_item_${prev.length + 1}_${Date.now()}`,
+        textoPersonalizado: '',
+      },
+    ]);
   };
 
-  const actualizarTextoPersonalizado = (productoId, texto) => {
+  const actualizarTextoPersonalizado = (idUnico, texto) => {
     setCarrito((prev) =>
       prev.map((item) =>
-        item.id === productoId ? { ...item, textoPersonalizado: texto } : item
+        item.idUnico === idUnico ? { ...item, textoPersonalizado: texto } : item
       )
     );
   };
 
+  const eliminarDelCarrito = (idUnico) => {
+    setCarrito((prev) => prev.filter((item) => item.idUnico !== idUnico));
+  };
+
+  const esPersonalizable = (item) => {
+    const categoria = item.categoriaNombre || item.categoria || '';
+    const nombre = item.nombre || '';
+
+    if (
+      categoria.toLowerCase().includes('figura') ||
+      nombre.toLowerCase().includes('figura')
+    ) {
+      return false;
+    }
+    return true;
+  };
+
+  const calcularPrecioUnidad = (item) => {
+    const precioBase = Number(item.precio) || 0;
+    const tieneGrabado = esPersonalizable(item) && item.textoPersonalizado?.trim().length > 0;
+    return precioBase + (tieneGrabado ? PRECIO_GRABADO_REBAJADO : 0);
+  };
+
   const calcularTotal = () => {
     return carrito
-      .reduce((acc, item) => acc + (Number(item.precio) || 0) * item.cantidad, 0)
+      .reduce((acc, item) => acc + calcularPrecioUnidad(item), 0)
       .toFixed(2);
   };
+
+  const totalUnidades = carrito.length;
 
   const finalizarPedido = async () => {
     if (carrito.length === 0) return;
@@ -69,13 +99,14 @@ export default function VistaTerminal() {
       for (const item of carrito) {
         await productService.agregarProductoAPedido(nuevoPedido.id, {
           productoId: item.id,
-          cantidad: item.cantidad,
-          textoPersonalizado: item.textoPersonalizado,
+          cantidad: 1,
+          textoPersonalizado: esPersonalizable(item) ? item.textoPersonalizado : null,
         });
       }
 
       setPedidoFinalizado(nuevoPedido?.codigo || `AV-${nuevoPedido?.id || 1}`);
       setCarrito([]);
+      setMostrarCarrito(false);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -110,6 +141,18 @@ export default function VistaTerminal() {
 
   return (
     <div className="terminal-layout">
+      {/* Modal Popup Especial Apertura */}
+      <PromoModal />
+
+      {/* Botón Flotante para Abrir Carrito */}
+      <button 
+        className="btn-carrito-flotante" 
+        onClick={() => setMostrarCarrito(!mostrarCarrito)}
+      >
+        🛒
+        {totalUnidades > 0 && <span className="badge-carrito">{totalUnidades}</span>}
+      </button>
+
       {/* Catálogo de Productos */}
       <section className="catalogo-section">
         <h2>Catálogo de Equipamiento</h2>
@@ -138,47 +181,80 @@ export default function VistaTerminal() {
         </div>
       </section>
 
-      {/* Comanda Lateral */}
-      <aside className="carrito-section">
-        <h2>Comanda Activa</h2>
-        {carrito.length === 0 ? (
-          <p className="carrito-vacio">No has seleccionado suministros.</p>
-        ) : (
-          <>
-            <ul className="comanda-items">
-              {carrito.map((item) => (
-                <li key={item.id} className="comanda-item">
-                  <div className="comanda-item-header">
-                    <span>
-                      <strong className="comanda-item-cant">{item.cantidad}x</strong>
-                      {item.nombre}
-                    </span>
-                    <span className="comanda-item-subtotal">
-                      {((Number(item.precio) || 0) * item.cantidad).toFixed(2)} €
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Grabado / texto personalizado..."
-                    value={item.textoPersonalizado}
-                    onChange={(e) => actualizarTextoPersonalizado(item.id, e.target.value)}
-                    className="comanda-custom-input"
-                  />
-                </li>
-              ))}
-            </ul>
-
-            <div className="comanda-total-container">
-              <span className="comanda-total-label">Total a abonar</span>
-              <span className="comanda-total-monto">{calcularTotal()} €</span>
+      {/* Desplegable Lateral del Carrito */}
+      {mostrarCarrito && (
+        <div className="carrito-overlay" onClick={() => setMostrarCarrito(false)}>
+          <aside className="carrito-drawer" onClick={(e) => e.stopPropagation()}>
+            <div className="carrito-header">
+              <h2>Comanda Activa</h2>
+              <button className="btn-cerrar" onClick={() => setMostrarCarrito(false)}>✕</button>
             </div>
 
-            <button className="btn-finalizar" onClick={finalizarPedido}>
-              ⚡ Confirmar Suministros
-            </button>
-          </>
-        )}
-      </aside>
+            {carrito.length === 0 ? (
+              <p className="carrito-vacio">No has seleccionado suministros.</p>
+            ) : (
+              <>
+                <ul className="comanda-items">
+                  {carrito.map((item, index) => (
+                    <li key={item.idUnico} className="comanda-item">
+                      <div className="comanda-item-header">
+                        <span>
+                          <strong className="comanda-item-cant">Unidad #{index + 1}: </strong>
+                          {item.nombre}
+                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span className="comanda-item-subtotal">
+                            {calcularPrecioUnidad(item).toFixed(2)} €
+                          </span>
+                          <button 
+                            onClick={() => eliminarDelCarrito(item.idUnico)}
+                            style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}
+                            title="Eliminar esta unidad"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Personalización individual por unidad */}
+                      {esPersonalizable(item) ? (
+                        <>
+                          <input
+                            type="text"
+                            placeholder="Grabado / texto para esta unidad..."
+                            value={item.textoPersonalizado}
+                            onChange={(e) => actualizarTextoPersonalizado(item.idUnico, e.target.value)}
+                            className="comanda-custom-input"
+                          />
+
+                          {item.textoPersonalizado?.trim().length > 0 && (
+                            <div className="aviso-descuento-grabado">
+                              ⚡ Grabado Especial Apertura: <strong>+3.00 €</strong> <span className="precio-tachado">5.00 €</span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <small style={{ color: '#64748b', fontSize: '0.78rem', fontStyle: 'italic', marginTop: '0.2rem' }}>
+                          🚫 Este artículo no admite grabado personalizado
+                        </small>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="comanda-total-container">
+                  <span className="comanda-total-label">Total a abonar</span>
+                  <span className="comanda-total-monto">{calcularTotal()} €</span>
+                </div>
+
+                <button className="btn-finalizar" onClick={finalizarPedido}>
+                  ⚡ Confirmar Suministros
+                </button>
+              </>
+            )}
+          </aside>
+        </div>
+      )}
     </div>
   );
 }

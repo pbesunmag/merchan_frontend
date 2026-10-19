@@ -1,0 +1,98 @@
+.promo-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(3, 7, 18, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.promo-modal {
+  background: radial-gradient(circle at center, #111827 0%, #030712 100%);
+  border: 2px solid #00e5ff;
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 0 35px rgba(0, 229, 255, 0.4);
+}
+
+.btn-cerrar-modal {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.promo-badge {
+  background: #dc2626;
+  color: #ffffff;
+  display: inline-block;
+  padding: 0.2rem 0.8rem;
+  font-weight: 800;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.8rem;
+}
+
+.promo-modal h2 {
+  color: #ffffff;
+  font-size: 1.8rem;
+  margin: 0 0 0.5rem 0;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.6);
+}
+
+.promo-subtitulo {
+  color: #fbbf24;
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 1.2rem;
+}
+
+.promo-detalles {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+
+.promo-categorias {
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+  margin: 0.8rem 0;
+  font-weight: 700;
+  color: #00e5ff;
+}
+
+.btn-entendido {
+  width: 100%;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border: 1px solid #38bdf8;
+  padding: 0.8rem;
+  font-weight: 800;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+}
+
+.btn-entendido:hover {
+  background: #00e5ff;
+  color: #000;
+}
