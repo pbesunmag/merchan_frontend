@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { productService } from '../../../services/productService';
 import ReactorLoader from '../../ReactorLoader';
 import PromoModal from '../../PromoModal/PromoModal';
+import DetalleProductoModal from '../../DetalleProductoModal/DetalleProductoModal';
 import './VistaTerminal.css';
 
 export default function VistaTerminal() {
@@ -11,6 +12,11 @@ export default function VistaTerminal() {
   const [loading, setLoading] = useState(true);
   const [pedidoFinalizado, setPedidoFinalizado] = useState(null);
   const [error, setError] = useState(null);
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+
+  // Control de paginación / visualización inicial (8 productos = 2 filas)
+  const LIMITE_INICIAL = 8;
+  const [mostrarTodos, setMostrarTodos] = useState(false);
 
   // Precio rebajado del grabado
   const PRECIO_GRABADO_REBAJADO = 3.00;
@@ -22,7 +28,8 @@ export default function VistaTerminal() {
       try {
         const data = await productService.obtenerProductos();
         if (montado) {
-          setProductos(data?.content || data || []);
+          const lista = data?.content || data || [];
+          setProductos(lista);
         }
       } catch (err) {
         if (montado) setError(err.message);
@@ -38,8 +45,7 @@ export default function VistaTerminal() {
     };
   }, []);
 
-  // Función para agregar al carrito de forma limpia
- const agregarAlCarrito = (producto) => {
+  const agregarAlCarrito = (producto) => {
     setCarrito((prev) => [
       ...prev,
       {
@@ -63,7 +69,7 @@ export default function VistaTerminal() {
   };
 
   const esPersonalizable = (item) => {
-    const categoria = item.categoriaNombre || item.categoria || '';
+    const categoria = item.nombreCategoria || item.categoriaNombre || item.categoria || '';
     const nombre = item.nombre || '';
 
     if (
@@ -139,9 +145,12 @@ export default function VistaTerminal() {
     );
   }
 
+  // Lista calculada según el estado del botón
+  const productosVisibles = mostrarTodos ? productos : productos.slice(0, LIMITE_INICIAL);
+
   return (
     <div className="terminal-layout">
-      {/* Modal Popup Especial Apertura */}
+      {/* Modal Promocional Especial Apertura */}
       <PromoModal />
 
       {/* Botón Flotante para Abrir Carrito */}
@@ -155,30 +164,73 @@ export default function VistaTerminal() {
 
       {/* Catálogo de Productos */}
       <section className="catalogo-section">
-        <h2>Catálogo de Equipamiento</h2>
+        <div className="catalogo-header-bar">
+          <h2>Catálogo de Equipamiento</h2>
+          <span className="contador-suministros">
+            Mostrando {productosVisibles.length} de {productos.length} suministros
+          </span>
+        </div>
+
         {error && <p style={{ color: '#ef4444' }}>{error}</p>}
 
         <div className="productos-grid">
-          {productos.map((prod) => (
-            <article key={prod.id} className="producto-card">
-              <div>
-                <h3>{prod.nombre}</h3>
-                <p>{prod.descripcion}</p>
-              </div>
-              <div>
-                <div className="producto-precio">
-                  {(Number(prod.precio) || 0).toFixed(2)} €
-                </div>
-                <button
-                  className="btn-agregar"
-                  onClick={() => agregarAlCarrito(prod)}
+          {productosVisibles.map((prod) => {
+            const rutaFoto = prod.imagenUrl || prod.imagen_url || '/imagenes/camisetas/avengers.jpg';
+
+            return (
+              <article key={prod.id} className="producto-card">
+                <div
+                  className="producto-img-container"
+                  onClick={() => setProductoSeleccionado(prod)}
+                  title="Haz clic para ver la galería completa"
                 >
-                  Añadir a la Cesta
-                </button>
-              </div>
-            </article>
-          ))}
+                  <img
+                    src={rutaFoto}
+                    alt={prod.nombre}
+                    className="producto-img"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/imagenes/camisetas/avengers.jpg';
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <h3>{prod.nombre}</h3>
+                  <p>{prod.descripcion}</p>
+                </div>
+
+                <div>
+                  <div className="producto-precio">
+                    {(Number(prod.precio) || 0).toFixed(2)} €
+                  </div>
+                  <button
+                    className="btn-agregar"
+                    onClick={() => agregarAlCarrito(prod)}
+                  >
+                    Añadir a la Cesta
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
+
+        {/* Botón Mostrar Todo / Reducir */}
+        {productos.length > LIMITE_INICIAL && (
+          <div className="ver-mas-container">
+            <button
+              className="btn-ver-todo-stark"
+              onClick={() => setMostrarTodos(!mostrarTodos)}
+            >
+              {mostrarTodos ? (
+                <>▲ Reducir Catálogo</>
+              ) : (
+                <>▼ Desplegar Catálogo Completo ({productos.length - LIMITE_INICIAL} restantes)</>
+              )}
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Desplegable Lateral del Carrito */}
@@ -216,7 +268,6 @@ export default function VistaTerminal() {
                         </div>
                       </div>
                       
-                      {/* Personalización individual por unidad */}
                       {esPersonalizable(item) ? (
                         <>
                           <input
@@ -255,6 +306,13 @@ export default function VistaTerminal() {
           </aside>
         </div>
       )}
+
+      {/* Modal Detalle / Galería Estilo Amazon */}
+      <DetalleProductoModal
+        producto={productoSeleccionado}
+        alCerrar={() => setProductoSeleccionado(null)}
+        alAgregar={agregarAlCarrito}
+      />
     </div>
   );
 }

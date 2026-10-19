@@ -2,8 +2,11 @@ import { request } from './api';
 
 export const productService = {
   // Trae los productos (o sólo los activos si usas el filtro)
-  obtenerProductos: () => request('/productos'),
-  
+  obtenerProductos: async () => {
+    return await request ('/productos?size=20');
+    
+  },
+
   // Crea el pedido nuevo en la terminal
   crearPedido: (terminalId = 1) =>
     request('/pedidos', {
