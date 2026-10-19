@@ -9,17 +9,16 @@ export default function VistaPreparacion() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Función reutilizable para el botón "Actualizar Tablero" y tras cambiar estado
   const cargarPedidos = useCallback(async () => {
     try {
+      setError(null);
       const [creadosRes, enProcesoRes] = await Promise.all([
         pedidoService.obtenerPorEstado('CREADO'),
         pedidoService.obtenerPorEstado('EN_PREPARACION'),
       ]);
 
-      setPedidosCreados(creadosRes.content || creadosRes);
-      setPedidosEnProceso(enProcesoRes.content || enProcesoRes);
-      setError(null);
+      setPedidosCreados(creadosRes?.content || creadosRes || []);
+      setPedidosEnProceso(enProcesoRes?.content || enProcesoRes || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -27,50 +26,21 @@ export default function VistaPreparacion() {
     }
   }, []);
 
-  // Carga inicial al montar el componente
   useEffect(() => {
-    let montado = true;
-
-    const iniciarCarga = async () => {
-      try {
-        const [creadosRes, enProcesoRes] = await Promise.all([
-          pedidoService.obtenerPorEstado('CREADO'),
-          pedidoService.obtenerPorEstado('EN_PREPARACION'),
-        ]);
-
-        if (montado) {
-          setPedidosCreados(creadosRes.content || creadosRes);
-          setPedidosEnProceso(enProcesoRes.content || enProcesoRes);
-        }
-      } catch (err) {
-        if (montado) {
-          setError(err.message);
-        }
-      } finally {
-        if (montado) {
-          setLoading(false);
-        }
-      }
-    };
-
-    iniciarCarga();
-
-    return () => {
-      montado = false;
-    };
-  }, []);
+    cargarPedidos();
+  }, [cargarPedidos]);
 
   const cambiarEstado = async (pedidoId, nuevoEstado) => {
     try {
       await pedidoService.actualizarEstado(pedidoId, nuevoEstado);
-      await cargarPedidos();
+      cargarPedidos();
     } catch (err) {
       setError(err.message);
     }
   };
 
   if (loading) {
-    return <ReactorLoader size={140} text="Cargando pedidos de almacén..." />;
+    return <ReactorLoader size={140} text="Cargando pedidos del almacén..." />;
   }
 
   return (
@@ -85,10 +55,10 @@ export default function VistaPreparacion() {
       {error && <div className="error-banner">{error}</div>}
 
       <div className="tablero-columnas">
-        {/* Columna: Nuevos / Pendientes */}
+        {/* Columna 1: Pedidos Nuevos */}
         <section className="columna">
           <div className="columna-titulo">
-            <span>Pendientes (CREADO)</span>
+            <span>Nuevos (CREADO)</span>
             <span>{pedidosCreados.length}</span>
           </div>
 
@@ -128,7 +98,7 @@ export default function VistaPreparacion() {
           </div>
         </section>
 
-        {/* Columna: En Proceso */}
+        {/* Columna 2: Pedidos En Preparación */}
         <section className="columna">
           <div className="columna-titulo">
             <span>En Proceso (EN_PREPARACION)</span>
