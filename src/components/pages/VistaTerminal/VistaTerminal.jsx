@@ -3,6 +3,7 @@ import { productService } from '../../../services/productService';
 import ReactorLoader from '../../ReactorLoader';
 import PromoModal from '../../PromoModal/PromoModal';
 import DetalleProductoModal from '../../DetalleProductoModal/DetalleProductoModal';
+import BannerSuperior from '../../BannerSuperior/BannerSuperior';
 import './VistaTerminal.css';
 
 export default function VistaTerminal() {
@@ -13,6 +14,20 @@ export default function VistaTerminal() {
   const [pedidoFinalizado, setPedidoFinalizado] = useState(null);
   const [error, setError] = useState(null);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+
+  const [codigoCupon, setCodigoCupon] = useState('');
+  const [cuponAplicado, setCuponAplicado] = useState(null);
+  const [errorCupon, setErrorCupon] = useState('');
+
+  // Control para mostrar el popup solo 1 vez por sesión (Paso 4)
+  const [mostrarPromo, setMostrarPromo] = useState(() => {
+    return !sessionStorage.getItem('promo_mostrada');
+  });
+
+  const cerrarPromo = () => {
+    sessionStorage.setItem('promo_mostrada', 'true');
+    setMostrarPromo(false);
+  };
 
   // Control de paginación / visualización inicial (8 productos = 2 filas)
   const LIMITE_INICIAL = 8;
@@ -87,10 +102,18 @@ export default function VistaTerminal() {
     return precioBase + (tieneGrabado ? PRECIO_GRABADO_REBAJADO : 0);
   };
 
-  const calcularTotal = () => {
-    return carrito
-      .reduce((acc, item) => acc + calcularPrecioUnidad(item), 0)
-      .toFixed(2);
+  const subtotalSinCupon = carrito.reduce((acc, item) => acc + calcularPrecioUnidad(item), 0);
+  const montoDescuento = cuponAplicado ? subtotalSinCupon * (cuponAplicado.porcentaje / 100) : 0;
+  const totalConDescuento = (subtotalSinCupon - montoDescuento).toFixed(2);
+
+  const aplicarCupon = (e) => {
+    e.preventDefault();
+    if (codigoCupon.trim().toUpperCase() === 'STARK10') {
+      setCuponAplicado({ codigo: 'STARK10', porcentaje: 10 });
+      setErrorCupon('');
+    } else {
+      setErrorCupon('⚠️ Código no válido o caducado');
+    }
   };
 
   const totalUnidades = carrito.length;
@@ -112,6 +135,8 @@ export default function VistaTerminal() {
 
       setPedidoFinalizado(nuevoPedido?.codigo || `AV-${nuevoPedido?.id || 1}`);
       setCarrito([]);
+      setCuponAplicado(null);
+      setCodigoCupon('');
       setMostrarCarrito(false);
     } catch (err) {
       setError(err.message);
@@ -150,8 +175,9 @@ export default function VistaTerminal() {
 
   return (
     <div className="terminal-layout">
-      {/* Modal Promocional Especial Apertura */}
-      <PromoModal />
+      <BannerSuperior />
+      {/* Modal Promocional Especial Apertura con control de visibilidad */}
+      {mostrarPromo && <PromoModal alCerrar={cerrarPromo} />}
 
       {/* Botón Flotante para Abrir Carrito */}
       <button 
@@ -175,7 +201,10 @@ export default function VistaTerminal() {
 
         <div className="productos-grid">
           {productosVisibles.map((prod) => {
-            const rutaFoto = prod.imagenUrl || prod.imagen_url || '/imagenes/camisetas/avengers.jpg';
+            const rutaCruda = prod.imagenUrl || prod.imagen_url;
+            const rutaFoto = rutaCruda && rutaCruda.trim() !== '' 
+              ? (rutaCruda.startsWith('/') ? rutaCruda : `/${rutaCruda}`) 
+              : '/imagenes/camisetas/avengers.jpg';
 
             return (
               <article key={prod.id} className="producto-card">
@@ -293,9 +322,51 @@ export default function VistaTerminal() {
                   ))}
                 </ul>
 
+                <div style={{ marginTop: '1rem', borderTop: '1px dashed #334155', paddingTop: '0.8rem' }}>
+                  {!cuponAplicado ? (
+                    <form onSubmit={aplicarCupon} style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        placeholder="Introduce tu código..."
+                        value={codigoCupon}
+                        onChange={(e) => {
+                          setCodigoCupon(e.target.value);
+                          if (errorCupon) setErrorCupon('');
+                        }}
+                        className="comanda-custom-input"
+                        style={{ flex: 1 }}
+                      />
+                      <button 
+                        type="submit" 
+                        style={{ background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', padding: '0.4rem 0.8rem', cursor: 'pointer', fontWeight: 'bold' }}
+                      >
+                        Aplicar
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="aviso-descuento-grabado" style={{ justifyContent: 'space-between' }}>
+                      <span>🎉 Cupón <strong>{cuponAplicado.codigo}</strong> aplicado (-10%)</span>
+                      <button 
+                        onClick={() => setCuponAplicado(null)} 
+                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                  {errorCupon && <small style={{ color: '#f87171', display: 'block', marginTop: '0.3rem', fontSize: '0.78rem' }}>{errorCupon}</small>}
+                </div>
+
                 <div className="comanda-total-container">
-                  <span className="comanda-total-label">Total a abonar</span>
-                  <span className="comanda-total-monto">{calcularTotal()} €</span>
+                  <span className="comanda-total-label">Total a abonار</span>
+                  <div style={{ textAlign: 'right' }}>
+                    {cuponAplicado && (
+                      <div style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.9rem' }}>
+                        {subtotalSinCupon.toFixed(2)} €
+                      </div>
+                    )}
+                    <span className="comanda-total-monto">{totalConDescuento} €</span>
+                  </div>
                 </div>
 
                 <button className="btn-finalizar" onClick={finalizarPedido}>

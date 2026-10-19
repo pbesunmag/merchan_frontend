@@ -1,0 +1,32 @@
+.banner-promocional-top {
+  background: radial-gradient(circle at center, #0f172a 0%, #030712 100%);
+  color: #00e5ff;
+  text-align: center;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border-bottom: 2px solid #00e5ff;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.25);
+  width: 100%;
+  position: relative;
+  z-index: 100;
+  text-transform: uppercase;
+}
+
+.banner-promocional-contenido {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.banner-codigo {
+  background: rgba(0, 229, 255, 0.1);
+  padding: 0.15rem 0.6rem;
+  border-radius: 4px;
+  border: 1px dashed #00e5ff;
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
