@@ -1,0 +1,306 @@
+/* ==========================================================================
+   AVENGERS SHOP - TERMINAL HUD STYLING
+   ========================================================================== */
+
+.terminal-layout {
+  display: grid;
+  grid-template-columns: 1fr 390px;
+  gap: 2.5rem;
+  padding: 2.5rem 3rem;
+  max-width: 1550px;
+  margin: 0 auto;
+  color: #f8fafc;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+@media (max-width: 980px) {
+  .terminal-layout {
+    grid-template-columns: 1fr;
+    padding: 1.5rem;
+  }
+}
+
+/* Encabezados de sección con look Stark Industries */
+.catalogo-section h2,
+.carrito-section h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #ffffff;
+  margin-top: 0;
+  margin-bottom: 1.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 2px solid #b91c1c;
+  padding-bottom: 0.6rem;
+  text-shadow: 0 0 12px rgba(220, 38, 38, 0.4);
+}
+
+.catalogo-section h2::before {
+  content: "◈";
+  color: #00e5ff;
+  font-size: 1.2rem;
+  text-shadow: 0 0 8px #00e5ff;
+}
+
+/* Grid del catálogo */
+.productos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.8rem;
+}
+
+/* Tarjeta de producto: armadura Stark */
+.producto-card {
+  background: linear-gradient(145deg, #18181b 0%, #09090b 100%);
+  border: 1px solid #3f3f46;
+  border-left: 4px solid #dc2626;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.producto-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, transparent 50%, #dc2626 50%);
+  opacity: 0.7;
+}
+
+.producto-card:hover {
+  transform: translateY(-5px);
+  border-color: #00e5ff;
+  border-left-color: #00e5ff;
+  box-shadow: 0 12px 25px rgba(0, 229, 255, 0.15);
+}
+
+.producto-card h3 {
+  margin: 0 0 0.6rem 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.03em;
+}
+
+.producto-card p {
+  color: #a1a1aa;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  margin-bottom: 1.2rem;
+  flex-grow: 1;
+}
+
+/* Precio en oro Stark */
+.producto-precio {
+  font-family: 'Consolas', monospace;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fbbf24;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+}
+
+/* Botón Añadir a la comanda */
+.btn-agregar {
+  width: 100%;
+  background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%);
+  color: #ffffff;
+  border: 1px solid #ef4444;
+  padding: 0.75rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.88rem;
+  transition: all 0.2s ease;
+}
+
+.btn-agregar:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  border-color: #f87171;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.5);
+  transform: scale(1.02);
+}
+
+/* ==========================================================================
+   PANEL LATERAL: COMANDA / S.H.I.E.L.D. TERMINAL
+   ========================================================================== */
+
+.carrito-section {
+  background: linear-gradient(180deg, #111827 0%, #0a0e17 100%);
+  border: 1px solid #1f2937;
+  border-top: 4px solid #00e5ff;
+  border-radius: 10px;
+  padding: 1.8rem;
+  height: fit-content;
+  position: sticky;
+  top: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.carrito-vacio {
+  color: #64748b;
+  font-style: italic;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.comanda-items {
+  list-style: none;
+  padding: 0;
+  margin: 1.2rem 0;
+  max-height: 380px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #334155 #0f172a;
+}
+
+.comanda-item {
+  display: flex;
+  flex-direction: column;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid #1f2937;
+  font-size: 0.95rem;
+}
+
+.comanda-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.comanda-item-cant {
+  color: #00e5ff;
+  font-weight: 800;
+  margin-right: 0.4rem;
+}
+
+.comanda-item-subtotal {
+  font-family: monospace;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+/* Campo para texto personalizado */
+.comanda-custom-input {
+  background: #090d16;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.comanda-custom-input:focus {
+  border-color: #00e5ff;
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.3);
+}
+
+/* Total comanda */
+.comanda-total-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1.5rem 0;
+  padding-top: 1rem;
+  border-top: 1px dashed #374151;
+}
+
+.comanda-total-label {
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+}
+
+.comanda-total-monto {
+  font-family: 'Consolas', monospace;
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #00e5ff;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+/* Botón Finalizar Pedido */
+.btn-finalizar {
+  width: 100%;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  color: #ffffff;
+  border: 1px solid #38bdf8;
+  padding: 0.9rem;
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(2, 132, 199, 0.4);
+  transition: all 0.2s ease;
+}
+
+.btn-finalizar:hover {
+  background: linear-gradient(135deg, #00e5ff 0%, #0284c7 100%);
+  color: #041019;
+  border-color: #ffffff;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.7);
+  transform: translateY(-2px);
+}
+
+/* ==========================================================================
+   MODAL DE CONFIRMACIÓN (HOLOGRAMA VENGADORES)
+   ========================================================================== */
+
+.modal-exito {
+  background: radial-gradient(circle at center, #111827 0%, #030712 100%);
+  border: 2px solid #00e5ff;
+  padding: 3rem 2rem;
+  border-radius: 12px;
+  text-align: center;
+  box-shadow: 0 0 35px rgba(0, 229, 255, 0.25);
+  animation: modal-glow 2s infinite alternate ease-in-out;
+}
+
+.modal-exito h2 {
+  color: #ffffff;
+  font-size: 1.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 0;
+}
+
+.codigo-destacado {
+  font-family: 'Consolas', monospace;
+  font-size: 3rem;
+  font-weight: 900;
+  color: #fbbf24;
+  letter-spacing: 0.18em;
+  margin: 1.5rem 0;
+  text-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+}
+
+@keyframes modal-glow {
+  from {
+    border-color: #00e5ff;
+    box-shadow: 0 0 25px rgba(0, 229, 255, 0.25);
+  }
+  to {
+    border-color: #ef4444;
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.35);
+  }
+}

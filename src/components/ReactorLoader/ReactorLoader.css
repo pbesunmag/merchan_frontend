@@ -1,0 +1,46 @@
+.arc-loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.arc-coils-spin {
+  transform-origin: 100px 100px;
+  animation: spin-clockwise 4s linear infinite;
+}
+
+.arc-core-pulse {
+  animation: arc-pulse 1.8s ease-in-out infinite alternate;
+}
+
+.arc-loader-text {
+  margin-top: 1rem;
+  color: #00e5ff;
+  font-family: monospace, sans-serif;
+  font-weight: bold;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+}
+
+@keyframes spin-clockwise {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes arc-pulse {
+  0% {
+    opacity: 0.6;
+    filter: drop-shadow(0 0 4px #00e5ff);
+  }
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 16px #00e5ff);
+  }
+}
