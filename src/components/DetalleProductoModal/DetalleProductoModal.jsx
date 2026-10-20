@@ -65,9 +65,9 @@ const fotosEstandar = {
     '/imagenes/figuras/doctor_doom/71CUw2Z4AVL._AC_SL1000_.jpg'
   ],
   7: [
-    '/imagenes/figuras/groot/71c4Yr-N4IL._AC_SL1500_.jpg',
-    '/imagenes/figuras/groot/71g61VxIEvL._AC_SL1500_.jpg',
-    '/imagenes/figuras/groot/512HG9k5WeL._AC_SL1500_.jpg'
+    '/imagenes/figuras/groot/primera.jpg',
+    '/imagenes/figuras/groot/segunda.jpg',
+    '/imagenes/figuras/groot/tercera.jpg'
   ],
   8: [
     '/imagenes/figuras/guantelete_ironman/51BLOHXicCL._AC_SL1200_.jpg',
@@ -93,9 +93,8 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
   const [tallaSeleccionada, setTallaSeleccionada] = useState(null);
   const [imagenManual, setImagenManual] = useState(null);
   const [productoAnteriorId, setProductoAnteriorId] = useState(producto?.id);
-
-  // Estado para la ampliación a pantalla completa
   const [pantallaCompleta, setPantallaCompleta] = useState(false);
+  const [imagenRota, setImagenRota] = useState(false);
 
   const esCamiseta =
     producto &&
@@ -118,6 +117,7 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
 
     setImagenManual(null);
     setPantallaCompleta(false);
+    setImagenRota(false);
   }
 
   if (!producto) return null;
@@ -127,15 +127,21 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
 
   const fotos = configVariantes
     ? configVariantes.opciones.map((o) => o.imagen)
-    : (fotosEstandar[producto.id] || [producto.imagenUrl || '/imagenes/camisetas/avengers.jpg']);
+    : (fotosEstandar[producto.id] || [producto.imagenUrl || producto.imagen_url || '']);
 
   const imagenActiva =
     imagenManual ||
-    (varianteSeleccionada ? varianteSeleccionada.imagen : fotos[0]);
+    (varianteSeleccionada ? varianteSeleccionada.imagen : (fotos[0] || producto.imagenUrl || ''));
 
   const seleccionarOpcion = (opcion) => {
     setVarianteSeleccionada(opcion);
     setImagenManual(opcion.imagen);
+    setImagenRota(false);
+  };
+
+  const seleccionarFotoManual = (img) => {
+    setImagenManual(img);
+    setImagenRota(false);
   };
 
   const manejarAgregar = () => {
@@ -174,7 +180,7 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
           </button>
 
           <div className="modal-grid-detalle">
-            {/* COLUMNA IZQUIERDA: GALERÍA DE IMÁGENES */}
+            {/* COLUMNA IZQUIERDA: GALERÍA Y VISOR */}
             <div className="galeria-amazon">
               <div className="miniaturas-columna">
                 {configVariantes
@@ -185,42 +191,64 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                         onClick={() => seleccionarOpcion(opc)}
                         title={opc.etiqueta}
                       >
-                        <img src={opc.imagen} alt={opc.etiqueta} />
+                        <img
+                          src={opc.imagen}
+                          alt={opc.etiqueta}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
                       </button>
                     ))
                   : fotos.map((img, idx) => (
                       <button
                         key={idx}
                         className={`miniatura-btn ${imagenActiva === img ? 'activa' : ''}`}
-                        onClick={() => setImagenManual(img)}
+                        onClick={() => seleccionarFotoManual(img)}
                       >
-                        <img src={img} alt={`${producto.nombre} ${idx + 1}`} />
+                        <img
+                          src={img}
+                          alt={`${producto.nombre} ${idx + 1}`}
+                          onError={(e) => {
+                            e.currentTarget.parentElement.style.opacity = '0.35';
+                          }}
+                        />
                       </button>
                     ))}
               </div>
 
-              {/* VISOR PRINCIPAL GRANDE CON CLICK PARA AMPLIAR */}
+              {/* VISOR PRINCIPAL */}
               <div
                 className="visor-principal"
-                onClick={() => setPantallaCompleta(true)}
-                title="Haz clic para ver en pantalla completa"
+                onClick={() => !imagenRota && setPantallaCompleta(true)}
+                title={imagenRota ? 'Imagen no disponible' : 'Haz clic para ver en pantalla completa'}
               >
-                <img
-                  src={imagenActiva}
-                  alt={producto.nombre}
-                  className="imagen-destacada"
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = '/imagenes/camisetas/avengers.jpg';
-                  }}
-                />
-                <span className="indicador-click-zoom">
-                  <span className="icono-zoom">⛶</span> Clic para ampliar a pantalla completa
-                </span>
+                {!imagenRota ? (
+                  <img
+                    src={imagenActiva}
+                    alt={producto.nombre}
+                    className="imagen-destacada"
+                    onError={() => {
+                      setImagenRota(true);
+                    }}
+                  />
+                ) : (
+                  <div className="placeholder-sin-imagen">
+                    <span className="icono-sin-foto">🛡️</span>
+                    <p className="texto-sin-foto">Vista previa no disponible</p>
+                    <span className="subtexto-sin-foto">{producto.nombre}</span>
+                  </div>
+                )}
+
+                {!imagenRota && (
+                  <span className="indicador-click-zoom">
+                    <span className="icono-zoom">⛶</span> Clic para ampliar a pantalla completa
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* COLUMNA DERECHA: INFORMACIÓN DEL ARTÍCULO */}
+            {/* COLUMNA DERECHA: INFORMACIÓN */}
             <div className="info-producto-detalle">
               <div>
                 <span className="categoria-badge">{producto.nombreCategoria || 'EQUIPAMIENTO'}</span>
@@ -228,7 +256,7 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                 <p className="descripcion-detalle">{producto.descripcion}</p>
               </div>
 
-              {/* SELECTOR DE COLORES / MODELO */}
+              {/* VARIANTES */}
               {configVariantes && (
                 <div className="selector-variantes-bloque">
                   <span className="label-variante">
@@ -256,7 +284,7 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                 </div>
               )}
 
-              {/* SELECTOR DE TALLAS PARA CAMISETAS */}
+              {/* TALLAS SI ES CAMISETA */}
               {esCamiseta && (
                 <div className="selector-variantes-bloque selector-tallas-bloque">
                   <div className="header-selector-tallas">
@@ -290,14 +318,14 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                 </div>
               )}
 
-              {/* ESPECIFICACIONES EN FILA */}
+              {/* ESPECIFICACIONES */}
               <div className="especificaciones-stark">
                 <p><strong>Personaje</strong> {producto.personaje || 'Vengadores'}</p>
-                <p><strong>Personalizable</strong> {producto.personalizable}</p>
+                <p><strong>Personalizable</strong> {producto.personalizable ? 'Sí' : 'No'}</p>
                 <p><strong>Disponibilidad</strong> {producto.activo ? 'En existencias' : 'Agotado'}</p>
               </div>
 
-              {/* FOOTER CON PRECIO Y BOTÓN */}
+              {/* FOOTER PRECIO Y BOTÓN */}
               <div className="footer-compra-detalle">
                 <div className="precio-detalle">
                   {(Number(producto.precio) || 0).toFixed(2)} €
@@ -311,8 +339,8 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
         </div>
       </div>
 
-      {/* MODAL PANTALLA COMPLETA (LIGHTBOX) */}
-      {pantallaCompleta && (
+      {/* LIGHTBOX */}
+      {pantallaCompleta && !imagenRota && (
         <div className="lightbox-overlay" onClick={() => setPantallaCompleta(false)}>
           <button
             className="lightbox-btn-cerrar"
