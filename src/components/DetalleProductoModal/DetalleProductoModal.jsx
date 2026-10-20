@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './DetalleProductoModal.css';
 
-// Diccionario de variantes principales (color/modelo/héroe)
+// Diccionario de variantes con soporte de precios específicos
 const catalogoVariantes = {
   1: {
     tipo: 'Color',
@@ -34,11 +34,11 @@ const catalogoVariantes = {
   17: {
     tipo: 'Héroe',
     opciones: [
-      { id: 'casco_ironman', etiqueta: 'Casco Iron Man', imagen: '/imagenes/tazas/tazas_vengadores/taza_casco_ironman.jpg' },
-      { id: 'escudo_america', etiqueta: 'Escudo Capitán', imagen: '/imagenes/tazas/tazas_vengadores/taza_escudo_america.jpg' },
-      { id: 'punyo_hulk', etiqueta: 'Puño de Hulk', imagen: '/imagenes/tazas/tazas_vengadores/taza_punyo_hulk.jpg' },
-      { id: 'spiderman', etiqueta: 'Spiderman 3D', imagen: '/imagenes/tazas/tazas_vengadores/taza_spiderman.jpg' },
-      { id: 'thor_martillo', etiqueta: 'Martillo Mjolnir', imagen: '/imagenes/tazas/tazas_vengadores/taza_thor_martillo.jpg' }
+      { id: 'casco_ironman', etiqueta: 'Casco Iron Man', imagen: '/imagenes/tazas/tazas_vengadores/taza_casco_ironman.jpg', precio: 13.50 },
+      { id: 'escudo_america', etiqueta: 'Escudo Capitán', imagen: '/imagenes/tazas/tazas_vengadores/taza_escudo_america.jpg', precio: 13.50 },
+      { id: 'punyo_hulk', etiqueta: 'Puño de Hulk', imagen: '/imagenes/tazas/tazas_vengadores/taza_punyo_hulk.jpg', precio: 14.50 },
+      { id: 'spiderman', etiqueta: 'Spiderman 3D', imagen: '/imagenes/tazas/tazas_vengadores/taza_spiderman.jpg', precio: 15.00 },
+      { id: 'thor_martillo', etiqueta: 'Martillo Mjolnir', imagen: '/imagenes/tazas/tazas_vengadores/taza_thor_martillo.jpg', precio: 15.50 }
     ]
   }
 };
@@ -66,8 +66,8 @@ const fotosEstandar = {
   ],
   7: [
     '/imagenes/figuras/groot/primera.jpg',
-    '/imagenes/figuras/groot/segunda.jpg',
-    '/imagenes/figuras/groot/tercera.jpg'
+    '/imagenes/figuras/groot/71g61VxIEvL._AC_SL1500_.jpg',
+    '/imagenes/figuras/groot/512HG9k5WeL._AC_SL1500_.jpg'
   ],
   8: [
     '/imagenes/figuras/guantelete_ironman/51BLOHXicCL._AC_SL1200_.jpg',
@@ -86,6 +86,15 @@ const fotosEstandar = {
   18: ['/imagenes/tazas/taza_deadpool.jpg'],
   19: ['/imagenes/tazas/taza_loki.jpg'],
   20: ['/imagenes/tazas/taza_marvel_695.jpg']
+};
+
+// 1. FUNCIÓN QUE LIMPIA LAS BARRAS BAJAS Y CAPITALIZA: 'DOCTOR_DOOM' -> 'Doctor Doom'
+const formatearPersonaje = (texto) => {
+  if (!texto) return 'Vengadores';
+  return texto
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
 export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) {
@@ -125,6 +134,10 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
   const configVariantes = catalogoVariantes[producto.id];
   const stockTallas = stockTallasPorProducto[producto.id] || {};
 
+  // 2. CÁLCULO DE PRECIO REACTIVO SEGÚN VARIANTE
+  const precioBase = Number(producto.precio) || 0;
+  const precioActivo = Number(varianteSeleccionada?.precio ?? precioBase);
+
   const fotos = configVariantes
     ? configVariantes.opciones.map((o) => o.imagen)
     : (fotosEstandar[producto.id] || [producto.imagenUrl || producto.imagen_url || '']);
@@ -161,6 +174,8 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
 
     const productoParaCarrito = {
       ...producto,
+      precio: precioActivo,
+      subtotal: precioActivo,
       nombre: nombreFinal,
       variante: varianteSeleccionada ? varianteSeleccionada.etiqueta : null,
       talla: esCamiseta ? tallaSeleccionada : null,
@@ -180,13 +195,48 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
           </button>
 
           <div className="modal-grid-detalle">
-            {/* COLUMNA IZQUIERDA: GALERÍA Y VISOR */}
+            {/* COLUMNA IZQUIERDA: GALERÍA VERTICAL (FOTO ARRIBA, MINIATURAS EN FILA HORIZONTAL ABAJO) */}
             <div className="galeria-amazon">
-              <div className="miniaturas-columna">
+              {/* 1. VISOR PRINCIPAL ARRIBA */}
+              <div
+                className="visor-principal"
+                onClick={() => !imagenRota && setPantallaCompleta(true)}
+                title={imagenRota ? 'Imagen no disponible' : 'Haz clic para ver en pantalla completa'}
+              >
+                {!imagenRota ? (
+                  <img
+                    src={imagenActiva}
+                    alt={producto.nombre}
+                    className="imagen-destacada"
+                    onError={() => setImagenRota(true)}
+                  />
+                ) : (
+                  <div className="placeholder-sin-imagen">
+                    <span className="icono-sin-foto">🛡️</span>
+                    <p className="texto-sin-foto">Vista previa no disponible</p>
+                    <span className="subtexto-sin-foto">{producto.nombre}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. TEXTO ENLACE EN EL MEDIO */}
+              {!imagenRota && (
+                <button
+                  type="button"
+                  className="btn-ver-vista-completa"
+                  onClick={() => setPantallaCompleta(true)}
+                >
+                  Haz clic para ver la vista completa
+                </button>
+              )}
+
+              {/* 3. FILA HORIZONTAL DE MINIATURAS ABAJO */}
+              <div className="miniaturas-fila">
                 {configVariantes
                   ? configVariantes.opciones.map((opc, idx) => (
                       <button
                         key={idx}
+                        type="button"
                         className={`miniatura-btn ${imagenActiva === opc.imagen ? 'activa' : ''}`}
                         onClick={() => seleccionarOpcion(opc)}
                         title={opc.etiqueta}
@@ -203,6 +253,7 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                   : fotos.map((img, idx) => (
                       <button
                         key={idx}
+                        type="button"
                         className={`miniatura-btn ${imagenActiva === img ? 'activa' : ''}`}
                         onClick={() => seleccionarFotoManual(img)}
                       >
@@ -216,39 +267,9 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                       </button>
                     ))}
               </div>
-
-              {/* VISOR PRINCIPAL */}
-              <div
-                className="visor-principal"
-                onClick={() => !imagenRota && setPantallaCompleta(true)}
-                title={imagenRota ? 'Imagen no disponible' : 'Haz clic para ver en pantalla completa'}
-              >
-                {!imagenRota ? (
-                  <img
-                    src={imagenActiva}
-                    alt={producto.nombre}
-                    className="imagen-destacada"
-                    onError={() => {
-                      setImagenRota(true);
-                    }}
-                  />
-                ) : (
-                  <div className="placeholder-sin-imagen">
-                    <span className="icono-sin-foto">🛡️</span>
-                    <p className="texto-sin-foto">Vista previa no disponible</p>
-                    <span className="subtexto-sin-foto">{producto.nombre}</span>
-                  </div>
-                )}
-
-                {!imagenRota && (
-                  <span className="indicador-click-zoom">
-                    <span className="icono-zoom">⛶</span> Clic para ampliar a pantalla completa
-                  </span>
-                )}
-              </div>
             </div>
 
-            {/* COLUMNA DERECHA: INFORMACIÓN */}
+            {/* COLUMNA DERECHA: INFORMACIÓN DEL PRODUCTO */}
             <div className="info-producto-detalle">
               <div>
                 <span className="categoria-badge">{producto.nombreCategoria || 'EQUIPAMIENTO'}</span>
@@ -256,7 +277,7 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                 <p className="descripcion-detalle">{producto.descripcion}</p>
               </div>
 
-              {/* VARIANTES */}
+              {/* VARIANTES (COLOR / MODELO / HÉROE) */}
               {configVariantes && (
                 <div className="selector-variantes-bloque">
                   <span className="label-variante">
@@ -269,6 +290,8 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                   <div className="botones-variantes-grid">
                     {configVariantes.opciones.map((opc) => {
                       const estaSeleccionada = varianteSeleccionada?.id === opc.id;
+                      const sobrecoste = opc.precio && opc.precio !== precioBase ? opc.precio - precioBase : 0;
+
                       return (
                         <button
                           key={opc.id}
@@ -276,7 +299,10 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                           className={`btn-variante-chip ${estaSeleccionada ? 'seleccionado' : ''}`}
                           onClick={() => seleccionarOpcion(opc)}
                         >
-                          {opc.etiqueta}
+                          <span>{opc.etiqueta}</span>
+                          {sobrecoste > 0 && (
+                            <span className="chip-sobrecoste">+{sobrecoste.toFixed(2)}€</span>
+                          )}
                         </button>
                       );
                     })}
@@ -307,7 +333,6 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                           disabled={!disponible}
                           className={`btn-talla-chip ${seleccionada ? 'seleccionado' : ''} ${!disponible ? 'sin-stock' : ''}`}
                           onClick={() => setTallaSeleccionada(talla)}
-                          title={disponible ? `Talla ${talla} disponible` : `Talla ${talla} agotada temporalmente`}
                         >
                           {talla}
                           {!disponible && <span className="linea-agotado"></span>}
@@ -318,17 +343,28 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                 </div>
               )}
 
-              {/* ESPECIFICACIONES */}
+              {/* ESPECIFICACIONES CON EL PERSONAJE FORMATEADO Y VALIDACIÓN ESTRICTA DE PERSONALIZABLE */}
               <div className="especificaciones-stark">
-                <p><strong>Personaje</strong> {producto.personaje || 'Vengadores'}</p>
-                <p><strong>Personalizable</strong> {producto.personalizable ? 'Sí' : 'No'}</p>
-                <p><strong>Disponibilidad</strong> {producto.activo ? 'En existencias' : 'Agotado'}</p>
+                <p>
+                  <strong>Personaje</strong>
+                  {formatearPersonaje(producto.personaje)}
+                </p>
+                <p>
+                  <strong>Personalizable</strong>
+                  {producto.personalizable === 'Sí' || producto.personalizable === true || producto.personalizable === 1
+                    ? 'Sí'
+                    : 'No'}
+                </p>
+                <p>
+                  <strong>Disponibilidad</strong>
+                  {producto.activo ? 'En existencias' : 'Agotado'}
+                </p>
               </div>
 
-              {/* FOOTER PRECIO Y BOTÓN */}
+              {/* FOOTER PRECIO DINÁMICO Y BOTÓN AÑADIR */}
               <div className="footer-compra-detalle">
                 <div className="precio-detalle">
-                  {(Number(producto.precio) || 0).toFixed(2)} €
+                  {precioActivo.toFixed(2)} €
                 </div>
                 <button className="btn-agregar-detalle" onClick={manejarAgregar}>
                   + Añadir a la Cesta
@@ -339,7 +375,7 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
         </div>
       </div>
 
-      {/* LIGHTBOX */}
+      {/* LIGHTBOX DE PANTALLA COMPLETA */}
       {pantallaCompleta && !imagenRota && (
         <div className="lightbox-overlay" onClick={() => setPantallaCompleta(false)}>
           <button

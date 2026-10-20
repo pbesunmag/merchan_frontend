@@ -571,3 +571,75 @@
 .btn-categoria:hover {
   border-color: #00e5ff;
 }
+
+/* ==========================================================================
+   PARCHE: AJUSTE DE ESPACIADOS Y TEXTOS EN TARJETAS DE PRODUCTO
+   ========================================================================== */
+
+/* 1. Tarjeta: forzar distribución vertical uniforme */
+.producto-card,
+.card-producto,
+.terminal-card {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+/* 2. Título: unir los renglones dispersos y reservar 2 líneas */
+.producto-card h3,
+.card-producto h3,
+.terminal-card h3,
+.producto-titulo {
+  font-size: 1.15rem !important;
+  font-weight: 800 !important;
+  line-height: 1.25 !important; /* Reduce la separación excesiva entre líneas */
+  margin-top: 0.6rem !important;
+  margin-bottom: 0.4rem !important;
+  min-height: 2.8rem !important; /* Mantiene la misma altura si el título ocupa 1 o 2 líneas */
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+/* 3. Descripción: texto más compacto y recortado a 3 líneas */
+.producto-card p,
+.card-producto p,
+.terminal-card p,
+.producto-descripcion {
+  font-size: 0.84rem !important;
+  line-height: 1.35 !important;
+  color: #94a3b8 !important;
+  margin-bottom: 1rem !important;
+  flex-grow: 1 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
+
+/* 4. Pie de la tarjeta: precio y botón siempre abajo y alineados */
+.producto-precio,
+.precio {
+  margin-top: auto !important;
+  margin-bottom: 0.8rem !important;
+  line-height: 1 !important;
+}
+
+/* Botón especial para el filtro de Personalizables */
+.btn-filtro-personalizables {
+  border-color: #fbbf24 !important;
+  color: #fbbf24 !important;
+}
+
+.btn-filtro-personalizables:hover {
+  background: rgba(251, 191, 36, 0.15) !important;
+  box-shadow: 0 0 10px rgba(251, 191, 36, 0.35) !important;
+}
+
+.btn-filtro-personalizables.activo {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25) 0%, rgba(217, 119, 6, 0.3) 100%) !important;
+  border-color: #fbbf24 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.45) !important;
+}

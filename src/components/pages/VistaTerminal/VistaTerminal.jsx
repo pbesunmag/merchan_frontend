@@ -23,7 +23,7 @@ export default function VistaTerminal() {
   const [busqueda, setBusqueda] = useState('');
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('TODOS');
 
-  // Control para mostrar el popup solo 1 vez por sesión (Paso 4)
+  // Control para mostrar el popup solo 1 vez por sesión
   const [mostrarPromo, setMostrarPromo] = useState(() => {
     return !sessionStorage.getItem('promo_mostrada');
   });
@@ -87,7 +87,27 @@ export default function VistaTerminal() {
     setCarrito((prev) => prev.filter((item) => item.idUnico !== idUnico));
   };
 
+  // Comprueba si un producto admite personalización / grabado
   const esPersonalizable = (item) => {
+    if (!item) return false;
+    
+    // Comprobación flexible para el backend (booleano, número 1 o texto "Sí")
+    if (
+      item.personalizable === true ||
+      item.personalizable === 1 ||
+      item.personalizable === 'Sí' ||
+      item.personalizable === 'true'
+    ) {
+      return true;
+    }
+    if (
+      item.personalizable === 'No' ||
+      item.personalizable === false ||
+      item.personalizable === 0
+    ) {
+      return false;
+    }
+
     const categoria = item.nombreCategoria || item.categoriaNombre || item.categoria || '';
     const nombre = item.nombre || '';
 
@@ -97,7 +117,7 @@ export default function VistaTerminal() {
     ) {
       return false;
     }
-    return true;
+    return false;
   };
 
   const calcularPrecioUnidad = (item) => {
@@ -194,16 +214,26 @@ export default function VistaTerminal() {
     return catOriginal || 'Otros';
   };
 
-  const categoriasUnicas = ['TODOS', ...new Set(productos.map(p => {
+  // Extraemos las categorías base (excluyendo TODOS y PERSONALIZABLES)
+  const categoriasBase = [...new Set(productos.map(p => {
     const cat = obtenerCategoriaProducto(p);
     return cat.trim().toUpperCase();
-  }))];
+  }))].filter(c => c && c !== 'TODOS' && c !== 'PERSONALIZABLES');
+
+  // Construimos la botonera con TODOS, categorías y el nuevo filtro PERSONALIZABLES
+  const categoriasBotones = ['TODOS', ...categoriasBase, 'PERSONALIZABLES'];
 
   const productosFiltrados = productos.filter((prod) => {
     const categoriaProd = normalizarTexto(obtenerCategoriaProducto(prod));
     const categoriaSeleccionadaNorm = normalizarTexto(categoriaSeleccionada);
     
-    const coincideCategoria = categoriaSeleccionada === 'TODOS' || categoriaProd === categoriaSeleccionadaNorm;
+// Lógica de selección de categoría o personalizables
+    const coincideCategoria =
+      categoriaSeleccionada === 'TODOS'
+        ? true
+        : categoriaSeleccionada === 'PERSONALIZABLES'
+        ? esPersonalizable(prod)
+        : categoriaProd === categoriaSeleccionadaNorm;
 
     const textoBusquedaNormalizado = normalizarTexto(busqueda);
     const nombreNormalizado = normalizarTexto(prod.nombre);
@@ -224,8 +254,8 @@ export default function VistaTerminal() {
       <BannerSuperior />
       {mostrarPromo && <PromoModal alCerrar={cerrarPromo} />}
 
-      {/* Banner deslizante con transición suave y controles de navegación */}
-      <BannerSlider />
+      {/* Banner deslizante */}
+      <BannerSlider onSeleccionarCategoria={(cat) => setCategoriaSeleccionada(cat)} />
 
       {/* Botón Flotante para Abrir Carrito */}
       <button 
@@ -254,13 +284,13 @@ export default function VistaTerminal() {
           />
 
           <div className="categorias-botones-grid">
-            {categoriasUnicas.map((cat) => (
+            {categoriasBotones.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setCategoriaSeleccionada(cat)}
-                className={`btn-categoria ${normalizarTexto(categoriaSeleccionada) === normalizarTexto(cat) ? 'activo' : ''}`}
+                className={`btn-categoria ${categoriaSeleccionada === cat ? 'activo' : ''} ${cat === 'PERSONALIZABLES' ? 'btn-filtro-personalizables' : ''}`}
               >
-                {cat}
+                {cat === 'PERSONALIZABLES' ? '⚡ PERSONALIZABLES' : cat}
               </button>
             ))}
           </div>
@@ -293,12 +323,12 @@ export default function VistaTerminal() {
                   />
                 </div>
 
-                <div>
+                <div className="producto-info-cuerpo">
                   <h3>{prod.nombre}</h3>
                   <p>{prod.descripcion}</p>
                 </div>
 
-                <div>
+                <div className="producto-pie-accion">
                   <div className="producto-precio">
                     {(Number(prod.precio) || 0).toFixed(2)} €
                   </div>
