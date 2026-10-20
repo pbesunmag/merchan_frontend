@@ -20,6 +20,9 @@ export default function VistaTerminal() {
   const [cuponAplicado, setCuponAplicado] = useState(null);
   const [errorCupon, setErrorCupon] = useState('');
 
+  const [busqueda, setBusqueda] = useState('');
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('TODOS');
+
   // Control para mostrar el popup solo 1 vez por sesión (Paso 4)
   const [mostrarPromo, setMostrarPromo] = useState(() => {
     return !sessionStorage.getItem('promo_mostrada');
@@ -171,13 +174,54 @@ export default function VistaTerminal() {
     );
   }
 
-  // Lista calculada según el estado del botón
-  const productosVisibles = mostrarTodos ? productos : productos.slice(0, LIMITE_INICIAL);
+  const normalizarTexto = (texto) => {
+    if (!texto) return '';
+    return texto
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  };
+
+  const obtenerCategoriaProducto = (prod) => {
+    const nombre = (prod.nombre || '').toLowerCase();
+    const catOriginal = prod.nombreCategoria || prod.categoriaNombre || prod.categoria || '';
+    
+    if (nombre.includes('taza')) return 'Tazas';
+    if (nombre.includes('gorra')) return 'Gorras';
+    if (nombre.includes('figura')) return 'Figuras';
+    if (nombre.includes('camiseta') || nombre.includes('remera')) return 'Camisetas';
+
+    return catOriginal || 'Otros';
+  };
+
+  const categoriasUnicas = ['TODOS', ...new Set(productos.map(p => {
+    const cat = obtenerCategoriaProducto(p);
+    return cat.trim().toUpperCase();
+  }))];
+
+  const productosFiltrados = productos.filter((prod) => {
+    const categoriaProd = normalizarTexto(obtenerCategoriaProducto(prod));
+    const categoriaSeleccionadaNorm = normalizarTexto(categoriaSeleccionada);
+    
+    const coincideCategoria = categoriaSeleccionada === 'TODOS' || categoriaProd === categoriaSeleccionadaNorm;
+
+    const textoBusquedaNormalizado = normalizarTexto(busqueda);
+    const nombreNormalizado = normalizarTexto(prod.nombre);
+    const descripcionNormalizada = normalizarTexto(prod.descripcion);
+
+    const coincideTexto = 
+      nombreNormalizado.includes(textoBusquedaNormalizado) ||
+      descripcionNormalizada.includes(textoBusquedaNormalizado) ||
+      categoriaProd.includes(textoBusquedaNormalizado);
+
+    return coincideCategoria && coincideTexto;
+  });
+
+  const productosVisibles = mostrarTodos ? productosFiltrados : productosFiltrados.slice(0, LIMITE_INICIAL);
 
   return (
     <div className="terminal-layout">
       <BannerSuperior />
-      {/* Modal Promocional Especial Apertura con control de visibilidad */}
       {mostrarPromo && <PromoModal alCerrar={cerrarPromo} />}
 
       {/* Banner deslizante con transición suave y controles de navegación */}
@@ -192,13 +236,34 @@ export default function VistaTerminal() {
         {totalUnidades > 0 && <span className="badge-carrito">{totalUnidades}</span>}
       </button>
 
-      {/* Catálogo de Productos */}
       <section className="catalogo-section">
         <div className="catalogo-header-bar">
           <h2>Catálogo de Equipamiento</h2>
           <span className="contador-suministros">
-            Mostrando {productosVisibles.length} de {productos.length} suministros
+            Mostrando {productosVisibles.length} de {productosFiltrados.length} suministros
           </span>
+        </div>
+
+        <div className="buscador-filtros-container">
+          <input
+            type="text"
+            placeholder="Buscar por nombre, personaje, descripción..."
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            className="comanda-custom-input buscador-input"
+          />
+
+          <div className="categorias-botones-grid">
+            {categoriasUnicas.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setCategoriaSeleccionada(cat)}
+                className={`btn-categoria ${normalizarTexto(categoriaSeleccionada) === normalizarTexto(cat) ? 'activo' : ''}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
 
         {error && <p style={{ color: '#ef4444' }}>{error}</p>}
@@ -249,8 +314,7 @@ export default function VistaTerminal() {
           })}
         </div>
 
-        {/* Botón Mostrar Todo / Reducir */}
-        {productos.length > LIMITE_INICIAL && (
+        {productosFiltrados.length > LIMITE_INICIAL && (
           <div className="ver-mas-container">
             <button
               className="btn-ver-todo-stark"
@@ -259,14 +323,13 @@ export default function VistaTerminal() {
               {mostrarTodos ? (
                 <>▲ Reducir Catálogo</>
               ) : (
-                <>▼ Desplegar Catálogo Completo ({productos.length - LIMITE_INICIAL} restantes)</>
+                <>▼ Desplegar Catálogo Completo ({productosFiltrados.length - LIMITE_INICIAL} restantes)</>
               )}
             </button>
           </div>
         )}
       </section>
 
-      {/* Desplegable Lateral del Carrito */}
       {mostrarCarrito && (
         <div className="carrito-overlay" onClick={() => setMostrarCarrito(false)}>
           <aside className="carrito-drawer" onClick={(e) => e.stopPropagation()}>
@@ -362,7 +425,7 @@ export default function VistaTerminal() {
                 </div>
 
                 <div className="comanda-total-container">
-                  <span className="comanda-total-label">Total a abonار</span>
+                  <span className="comanda-total-label">Total a abonar</span>
                   <div style={{ textAlign: 'right' }}>
                     {cuponAplicado && (
                       <div style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.9rem' }}>
@@ -382,7 +445,6 @@ export default function VistaTerminal() {
         </div>
       )}
 
-      {/* Modal Detalle / Galería Estilo Amazon */}
       <DetalleProductoModal
         producto={productoSeleccionado}
         alCerrar={() => setProductoSeleccionado(null)}
