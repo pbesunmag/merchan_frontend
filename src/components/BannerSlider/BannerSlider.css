@@ -1,15 +1,14 @@
 /* ==========================================================================
-   HERO BANNER SLIDER - GRAN FORMATO IMPACTANTE (720px ALTURA)
+   HERO BANNER SLIDER - GRAN FORMATO IMPACTANTE
    ========================================================================== */
 
 .hero-slider-contenedor {
   position: relative;
-  /* Extensión 100% full-width de borde a borde de la pantalla */
   width: 100vw;
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
-  height: 920px;
-  min-height: 700px;
+  height: 820px;
+  min-height: 650px;
   overflow: hidden;
   margin-top: 0.5rem;
   margin-bottom: 3.5rem;
@@ -24,7 +23,8 @@
 
 @media (max-width: 900px) {
   .hero-slider-contenedor {
-    height: 520px;
+    height: 540px;
+    min-height: 480px;
   }
 }
 
@@ -116,7 +116,7 @@
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1rem;
   backdrop-filter: blur(6px);
   box-shadow: 0 0 15px rgba(0, 229, 255, 0.25);
 }
@@ -143,6 +143,28 @@
   font-weight: 900;
   margin-left: 0.4rem;
   letter-spacing: 0.05em;
+}
+
+/* Contenedor e Imagen del Logo Promocional (Funko) */
+.hero-logo-promocional-contenedor {
+  margin: 0.3rem auto 0.9rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-logo-promocional {
+  max-width: 240px;
+  max-height: 95px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 18px rgba(0, 229, 255, 0.45));
+  transition: transform 0.3s ease;
+  animation: logoFlotante 3.2s ease-in-out infinite alternate;
+}
+
+@keyframes logoFlotante {
+  from { transform: translateY(0px) scale(1); }
+  to { transform: translateY(-5px) scale(1.03); }
 }
 
 .hero-titulo {

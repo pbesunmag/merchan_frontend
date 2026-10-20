@@ -1,0 +1,198 @@
+/* ==========================================================================
+   FOOTER STARK - ESTÉTICA MARVEL HUD Y ALINEACIÓN DE ENLACES
+   ========================================================================== */
+
+.footer-stark {
+  background-color: #050811;
+  border-top: 1px solid #1e293b;
+  color: #94a3b8;
+  padding-top: 3.5rem;
+  font-family: inherit;
+  position: relative;
+  width: 100%;
+}
+
+.footer-contenedor {
+  max-width: 1350px;
+  margin: 0 auto;
+  padding: 0 2.5rem 3rem 2.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.35fr;
+  gap: 3.5rem;
+}
+
+@media (max-width: 992px) {
+  .footer-contenedor {
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+  }
+  .footer-tienda-col {
+    grid-column: span 2;
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-top: 1px dashed #1e293b;
+    padding-top: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .footer-contenedor {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .footer-tienda-col {
+    grid-column: span 1;
+  }
+}
+
+/* Títulos de sección */
+.footer-titulo {
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 0;
+  margin-bottom: 1.6rem;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+}
+
+/* Lista de enlaces con chevron alineado a la izquierda */
+.footer-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.footer-lista li a {
+  color: #94a3b8;
+  text-decoration: none;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  transition: all 0.2s ease;
+}
+
+.footer-lista li a:hover {
+  color: #00e5ff;
+  transform: translateX(4px);
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}
+
+.chevron {
+  color: #64748b;
+  font-size: 1.15rem;
+  line-height: 1;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.footer-lista li a:hover .chevron {
+  color: #00e5ff;
+}
+
+/* Columna de tienda con línea divisoria lateral */
+.footer-tienda-col {
+  border-left: 1px dotted #1e293b;
+  padding-left: 3rem;
+}
+
+.tienda-dato {
+  display: flex;
+  gap: 1.1rem;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.tienda-icono {
+  font-size: 1.35rem;
+  color: #00e676;
+  filter: drop-shadow(0 0 8px rgba(0, 230, 118, 0.5));
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tienda-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.tienda-texto strong {
+  color: #f1f5f9;
+  font-size: 0.98rem;
+  letter-spacing: 0.04em;
+}
+
+.tienda-texto p {
+  margin: 0;
+  color: #cbd5e1;
+}
+
+.tienda-link-contacto {
+  color: #00e5ff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.05em;
+  transition: color 0.2s ease;
+}
+
+.tienda-link-contacto:hover {
+  color: #38bdf8;
+  text-decoration: underline;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+}
+
+.tienda-subtexto {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Barra de Copyright inferior */
+.footer-bottom {
+  background-color: #03060c;
+  border-top: 1px solid #111827;
+  padding: 1.3rem 2.5rem;
+}
+
+.footer-bottom-contenido {
+  max-width: 1350px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.84rem;
+  color: #64748b;
+}
+
+.footer-bottom-contenido p {
+  margin: 0;
+}
+
+.footer-pasarelas {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.badge-pago {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  color: #cbd5e1;
+  font-family: 'Consolas', monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
