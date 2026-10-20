@@ -65,9 +65,9 @@ const fotosEstandar = {
     '/imagenes/figuras/doctor_doom/71CUw2Z4AVL._AC_SL1000_.jpg'
   ],
   7: [
-    '/imagenes/figuras/groot/71c4Yr-N4IL._AC_SL1500_.jpg',
-    '/imagenes/figuras/groot/71g61VxIEvL._AC_SL1500_.jpg',
-    '/imagenes/figuras/groot/512HG9k5WeL._AC_SL1500_.jpg'
+    '/imagenes/figuras/groot/primera.jpg',
+    '/imagenes/figuras/groot/segunda.jpg',
+    '/imagenes/figuras/groot/tercera.jpg'
   ],
   8: [
     '/imagenes/figuras/guantelete_ironman/51BLOHXicCL._AC_SL1200_.jpg',
