@@ -5,6 +5,7 @@ import PromoModal from '../../PromoModal/PromoModal';
 import DetalleProductoModal from '../../DetalleProductoModal/DetalleProductoModal';
 import BannerSuperior from '../../BannerSuperior/BannerSuperior';
 import './VistaTerminal.css';
+import BannerSlider from '../../BannerSlider/BannerSlider';
 
 export default function VistaTerminal() {
   const [productos, setProductos] = useState([]);
@@ -178,6 +179,9 @@ export default function VistaTerminal() {
       <BannerSuperior />
       {/* Modal Promocional Especial Apertura con control de visibilidad */}
       {mostrarPromo && <PromoModal alCerrar={cerrarPromo} />}
+
+      {/* Banner deslizante con transición suave y controles de navegación */}
+      <BannerSlider />
 
       {/* Botón Flotante para Abrir Carrito */}
       <button 

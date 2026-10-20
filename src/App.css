@@ -46,6 +46,18 @@
   box-shadow: var(--glow-red);
 }
 
+.img-logo-tienda {
+  height: 118px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.4));
+  transition: transform 0.25s ease;
+}
+
+.img-logo-tienda:hover {
+  transform: scale(1.05);
+}
+
 .nav-menu {
   display: flex;
   list-style: none;
