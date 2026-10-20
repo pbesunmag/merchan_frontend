@@ -1,9 +1,23 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
 import VistaPreparacion from './components/pages/VistaPreparacion/VistaPreparacion';
 import VistaTerminal from './components/pages/VistaTerminal/VistaTerminal';
 import PantallaRecogida from './components/pages/PantallaRecogida/PantallaRecogida';
+import Logo from './assets/logo_tienda.png';
 
 export default function App() {
+  // 1. Asigna el logo de assets como favicon de la pestaña
+  useEffect(() => {
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.type = 'image/png';
+    link.href = Logo;
+  }, []);
+
   const getNavClass = ({ isActive }) =>
     isActive
       ? { color: '#00e5ff', borderBottom: '2px solid #00e5ff', textShadow: '0 0 10px #00e5ff' }
@@ -15,14 +29,24 @@ export default function App() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '1rem 3rem',
+        padding: '0.8rem 3rem',
         background: 'linear-gradient(90deg, #090d16 0%, #18181b 100%)',
         borderBottom: '2px solid #b91c1c',
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.7)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-          <span style={{ fontSize: '1.6rem', color: '#dc2626' }}>✪</span>
-          <span style={{ fontWeight: 900, letterSpacing: '0.15em', color: '#ffffff', textTransform: 'uppercase' }}>
+        {/* 2. Logo integrado junto al nombre de la tienda */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <img
+            src={Logo}
+            alt="Avengers Shop Logo"
+            style={{
+              height: '118px',
+              width: 'auto',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 0 8px rgba(0, 229, 255, 0.35))'
+            }}
+          />
+          <span style={{ fontWeight: 900, letterSpacing: '0.15em', color: '#ffffff', textTransform: 'uppercase', fontSize: '1.25rem' }}>
             AVENGERS <span style={{ color: '#00e5ff' }}>SHOP</span>
           </span>
         </div>
