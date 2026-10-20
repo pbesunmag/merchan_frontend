@@ -530,3 +530,44 @@
     box-shadow: 0 0 30px rgba(239, 68, 68, 0.35);
   }
 }
+
+.buscador-filtros-container {
+  margin: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.buscador-input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  font-size: 0.95rem;
+}
+
+.categorias-botones-grid {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-categoria {
+  background: #1e293b;
+  color: #fff;
+  border: 1px solid #334155;
+  padding: 0.4rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  fontSize: 0.85rem;
+  transition: all 0.2s;
+}
+
+.btn-categoria.activo {
+  background: #0284c7;
+  border-color: #00e5ff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+
+.btn-categoria:hover {
+  border-color: #00e5ff;
+}
