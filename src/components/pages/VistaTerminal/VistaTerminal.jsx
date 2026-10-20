@@ -108,10 +108,14 @@ export default function VistaTerminal() {
 
   const calcularPrecioUnidad = (item) => {
     const precioBase = Number(item.precio) || 0;
-    const categoria = obtenerCategoriaProducto(item);
-    const esFigura = categoria.toLowerCase().includes('figura');
+    const nombre = (item.nombre || '').trim();
     
-    const precioConDescuentoFigura = esFigura ? precioBase * 0.75 : precioBase;
+    let precioConDescuentoFigura = precioBase;
+    if (nombre === 'Figura Groot Guardianes') {
+      precioConDescuentoFigura = precioBase * 0.75; // 25% descuento
+    } else if (nombre === 'Figura Thor Dios del Trueno') {
+      precioConDescuentoFigura = precioBase * 0.90; // 10% descuento
+    }
 
     const tieneGrabado = esPersonalizable(item) && item.textoPersonalizado?.trim().length > 0;
     return precioConDescuentoFigura + (tieneGrabado ? PRECIO_GRABADO_REBAJADO : 0);
@@ -305,13 +309,20 @@ export default function VistaTerminal() {
               ? (rutaCruda.startsWith('/') ? rutaCruda : `/${rutaCruda}`) 
               : '/imagenes/camisetas/avengers.jpg';
 
-            const esFiguraProd = obtenerCategoriaProducto(prod).toLowerCase().includes('figura');
+            const nombreProd = (prod.nombre || '').trim();
+            const esGroot = nombreProd === 'Figura Groot Guardianes';
+            const esThor = nombreProd === 'Figura Thor Dios del Trueno';
             const precioNum = Number(prod.precio) || 0;
-            const precioFinalProd = esFiguraProd ? precioNum * 0.75 : precioNum;
+            
+            let precioFinalProd = precioNum;
+            if (esGroot) precioFinalProd = precioNum * 0.75;
+            if (esThor) precioFinalProd = precioNum * 0.90;
+
+            const tieneDto = esGroot || esThor;
 
             return (
               <article key={prod.id} className="producto-card">
-                {esFiguraProd && <span className="product-badge gold">-25% DTO</span>}
+                {tieneDto && <span className="product-badge gold">{esGroot ? '-25% DTO' : '-10% DTO'}</span>}
                 <div
                   className="producto-img-container"
                   onClick={() => setProductoSeleccionado(prod)}
@@ -335,7 +346,7 @@ export default function VistaTerminal() {
 
                 <div>
                   <div className="producto-precio">
-                    {esFiguraProd ? (
+                    {tieneDto ? (
                       <>
                         <span style={{ textDecoration: 'line-through', fontSize: '1.1rem', color: '#94a3b8', marginRight: '0.4rem' }}>
                           {precioNum.toFixed(2)} €
@@ -388,14 +399,22 @@ export default function VistaTerminal() {
               <>
                 <ul className="comanda-items">
                   {carrito.map((item, index) => {
-                    const esFiguraItem = obtenerCategoriaProducto(item).toLowerCase().includes('figura');
+                    const nombreItem = (item.nombre || '').trim();
+                    const esGrootItem = nombreItem === 'Figura Groot Guardianes';
+                    const esThorItem = nombreItem === 'Figura Thor Dios del Trueno';
+                    const tieneDtoItem = esGrootItem || esThorItem;
+
                     return (
                       <li key={item.idUnico} className="comanda-item">
                         <div className="comanda-item-header">
                           <span>
                             <strong className="comanda-item-cant">Unidad #{index + 1}: </strong>
                             {item.nombre}
-                            {esFiguraItem && <span style={{ color: '#fbbf24', fontSize: '0.75rem', display: 'block' }}>⚡ 25% Descuento Aplicado</span>}
+                            {tieneDtoItem && (
+                              <span style={{ color: '#fbbf24', fontSize: '0.75rem', display: 'block' }}>
+                                ⚡ {esGrootItem ? '25%' : '10%'} Descuento Aplicado
+                              </span>
+                            )}
                           </span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <span className="comanda-item-subtotal">
