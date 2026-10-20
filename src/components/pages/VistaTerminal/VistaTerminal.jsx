@@ -23,7 +23,6 @@ export default function VistaTerminal() {
   const [busqueda, setBusqueda] = useState('');
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('TODOS');
 
-  // Control para mostrar el popup solo 1 vez por sesión
   const [mostrarPromo, setMostrarPromo] = useState(() => {
     return !sessionStorage.getItem('promo_mostrada');
   });
@@ -33,12 +32,12 @@ export default function VistaTerminal() {
     setMostrarPromo(false);
   };
 
-  // Control de paginación / visualización inicial (8 productos = 2 filas)
   const LIMITE_INICIAL = 8;
   const [mostrarTodos, setMostrarTodos] = useState(false);
 
-  // Precio rebajado del grabado
   const PRECIO_GRABADO_REBAJADO = 3.00;
+  const COSTO_ENVIO_BASE = 4.95;
+  const UMBRAL_ENVIO_GRATIS = 70.00;
 
   useEffect(() => {
     let montado = true;
@@ -87,53 +86,60 @@ export default function VistaTerminal() {
     setCarrito((prev) => prev.filter((item) => item.idUnico !== idUnico));
   };
 
-  // Comprueba si un producto admite personalización / grabado
-  const esPersonalizable = (item) => {
-    if (!item) return false;
+  const obtenerCategoriaProducto = (prod) => {
+    const nombre = (prod.nombre || '').toLowerCase();
+    const catOriginal = prod.nombreCategoria || prod.categoriaNombre || prod.categoria || '';
     
-    // Comprobación flexible para el backend (booleano, número 1 o texto "Sí")
-    if (
-      item.personalizable === true ||
-      item.personalizable === 1 ||
-      item.personalizable === 'Sí' ||
-      item.personalizable === 'true'
-    ) {
-      return true;
-    }
-    if (
-      item.personalizable === 'No' ||
-      item.personalizable === false ||
-      item.personalizable === 0
-    ) {
+    if (nombre.includes('taza')) return 'Tazas';
+    if (nombre.includes('gorra')) return 'Gorras';
+    if (nombre.includes('figura')) return 'Figuras';
+    if (nombre.includes('camiseta') || nombre.includes('remera')) return 'Camisetas';
+
+    return catOriginal || 'Otros';
+  };
+
+  const esPersonalizable = (item) => {
+    const categoria = obtenerCategoriaProducto(item);
+    if (categoria.toLowerCase().includes('figura')) {
       return false;
     }
-
-    const categoria = item.nombreCategoria || item.categoriaNombre || item.categoria || '';
-    const nombre = item.nombre || '';
-
-    if (
-      categoria.toLowerCase().includes('figura') ||
-      nombre.toLowerCase().includes('figura')
-    ) {
-      return false;
-    }
-    return false;
+    return true;
   };
 
   const calcularPrecioUnidad = (item) => {
     const precioBase = Number(item.precio) || 0;
+    const categoria = obtenerCategoriaProducto(item);
+    const esFigura = categoria.toLowerCase().includes('figura');
+    
+    const precioConDescuentoFigura = esFigura ? precioBase * 0.75 : precioBase;
+
     const tieneGrabado = esPersonalizable(item) && item.textoPersonalizado?.trim().length > 0;
-    return precioBase + (tieneGrabado ? PRECIO_GRABADO_REBAJADO : 0);
+    return precioConDescuentoFigura + (tieneGrabado ? PRECIO_GRABADO_REBAJADO : 0);
   };
 
   const subtotalSinCupon = carrito.reduce((acc, item) => acc + calcularPrecioUnidad(item), 0);
+  
+  const esEnvioGratis = subtotalSinCupon >= UMBRAL_ENVIO_GRATIS;
+  const costoEnvioActual = esEnvioGratis ? 0 : COSTO_ENVIO_BASE;
+
   const montoDescuento = cuponAplicado ? subtotalSinCupon * (cuponAplicado.porcentaje / 100) : 0;
-  const totalConDescuento = (subtotalSinCupon - montoDescuento).toFixed(2);
+  const totalConDescuento = (subtotalSinCupon - montoDescuento + costoEnvioActual).toFixed(2);
 
   const aplicarCupon = (e) => {
     e.preventDefault();
-    if (codigoCupon.trim().toUpperCase() === 'STARK10') {
+    const codigoLimpio = codigoCupon.trim().toUpperCase();
+
+    const cuponesUsadosSesion = JSON.parse(sessionStorage.getItem('cupones_usados_sesion') || '[]');
+    if (cuponesUsadosSesion.includes(codigoLimpio)) {
+      setErrorCupon('✨ Este código ya fue utilizado anteriormente en esta sesión.');
+      return;
+    }
+
+    if (codigoLimpio === 'STARK10') {
       setCuponAplicado({ codigo: 'STARK10', porcentaje: 10 });
+      setErrorCupon('');
+    } else if (codigoLimpio === 'GROOT5') {
+      setCuponAplicado({ codigo: 'GROOT5', porcentaje: 5 });
       setErrorCupon('');
     } else {
       setErrorCupon('⚠️ Código no válido o caducado');
@@ -146,10 +152,26 @@ export default function VistaTerminal() {
     if (carrito.length === 0) return;
 
     try {
+      const itemsAProcesar = [...carrito];
+      const cuponActual = cuponAplicado;
+
+      if (cuponActual) {
+        const cuponesUsadosSesion = JSON.parse(sessionStorage.getItem('cupones_usados_sesion') || '[]');
+        if (!cuponesUsadosSesion.includes(cuponActual.codigo)) {
+          cuponesUsadosSesion.push(cuponActual.codigo);
+          sessionStorage.setItem('cupones_usados_sesion', JSON.stringify(cuponesUsadosSesion));
+        }
+      }
+
+      setMostrarCarrito(false);
+      setCarrito([]);
+      setCuponAplicado(null);
+      setCodigoCupon('');
       setLoading(true);
+
       const nuevoPedido = await productService.crearPedido(1);
 
-      for (const item of carrito) {
+      for (const item of itemsAProcesar) {
         await productService.agregarProductoAPedido(nuevoPedido.id, {
           productoId: item.id,
           cantidad: 1,
@@ -158,10 +180,6 @@ export default function VistaTerminal() {
       }
 
       setPedidoFinalizado(nuevoPedido?.codigo || `AV-${nuevoPedido?.id || 1}`);
-      setCarrito([]);
-      setCuponAplicado(null);
-      setCodigoCupon('');
-      setMostrarCarrito(false);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -202,38 +220,16 @@ export default function VistaTerminal() {
       .toLowerCase();
   };
 
-  const obtenerCategoriaProducto = (prod) => {
-    const nombre = (prod.nombre || '').toLowerCase();
-    const catOriginal = prod.nombreCategoria || prod.categoriaNombre || prod.categoria || '';
-    
-    if (nombre.includes('taza')) return 'Tazas';
-    if (nombre.includes('gorra')) return 'Gorras';
-    if (nombre.includes('figura')) return 'Figuras';
-    if (nombre.includes('camiseta') || nombre.includes('remera')) return 'Camisetas';
-
-    return catOriginal || 'Otros';
-  };
-
-  // Extraemos las categorías base (excluyendo TODOS y PERSONALIZABLES)
-  const categoriasBase = [...new Set(productos.map(p => {
+  const categoriasUnicas = ['TODOS', ...new Set(productos.map(p => {
     const cat = obtenerCategoriaProducto(p);
     return cat.trim().toUpperCase();
-  }))].filter(c => c && c !== 'TODOS' && c !== 'PERSONALIZABLES');
-
-  // Construimos la botonera con TODOS, categorías y el nuevo filtro PERSONALIZABLES
-  const categoriasBotones = ['TODOS', ...categoriasBase, 'PERSONALIZABLES'];
+  }))];
 
   const productosFiltrados = productos.filter((prod) => {
     const categoriaProd = normalizarTexto(obtenerCategoriaProducto(prod));
     const categoriaSeleccionadaNorm = normalizarTexto(categoriaSeleccionada);
     
-// Lógica de selección de categoría o personalizables
-    const coincideCategoria =
-      categoriaSeleccionada === 'TODOS'
-        ? true
-        : categoriaSeleccionada === 'PERSONALIZABLES'
-        ? esPersonalizable(prod)
-        : categoriaProd === categoriaSeleccionadaNorm;
+    const coincideCategoria = categoriaSeleccionada === 'TODOS' || categoriaProd === categoriaSeleccionadaNorm;
 
     const textoBusquedaNormalizado = normalizarTexto(busqueda);
     const nombreNormalizado = normalizarTexto(prod.nombre);
@@ -254,10 +250,14 @@ export default function VistaTerminal() {
       <BannerSuperior />
       {mostrarPromo && <PromoModal alCerrar={cerrarPromo} />}
 
-      {/* Banner deslizante */}
-      <BannerSlider onSeleccionarCategoria={(cat) => setCategoriaSeleccionada(cat)} />
+      <BannerSlider alFiltrarCategoria={(cat) => {
+        if (Array.isArray(cat)) {
+          setCategoriaSeleccionada(cat[0].toUpperCase());
+        } else {
+          setCategoriaSeleccionada(cat.toUpperCase());
+        }
+      }} />
 
-      {/* Botón Flotante para Abrir Carrito */}
       <button 
         className="btn-carrito-flotante" 
         onClick={() => setMostrarCarrito(!mostrarCarrito)}
@@ -284,13 +284,13 @@ export default function VistaTerminal() {
           />
 
           <div className="categorias-botones-grid">
-            {categoriasBotones.map((cat) => (
+            {categoriasUnicas.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setCategoriaSeleccionada(cat)}
-                className={`btn-categoria ${categoriaSeleccionada === cat ? 'activo' : ''} ${cat === 'PERSONALIZABLES' ? 'btn-filtro-personalizables' : ''}`}
+                className={`btn-categoria ${normalizarTexto(categoriaSeleccionada) === normalizarTexto(cat) ? 'activo' : ''}`}
               >
-                {cat === 'PERSONALIZABLES' ? '⚡ PERSONALIZABLES' : cat}
+                {cat}
               </button>
             ))}
           </div>
@@ -305,8 +305,13 @@ export default function VistaTerminal() {
               ? (rutaCruda.startsWith('/') ? rutaCruda : `/${rutaCruda}`) 
               : '/imagenes/camisetas/avengers.jpg';
 
+            const esFiguraProd = obtenerCategoriaProducto(prod).toLowerCase().includes('figura');
+            const precioNum = Number(prod.precio) || 0;
+            const precioFinalProd = esFiguraProd ? precioNum * 0.75 : precioNum;
+
             return (
               <article key={prod.id} className="producto-card">
+                {esFiguraProd && <span className="product-badge gold">-25% DTO</span>}
                 <div
                   className="producto-img-container"
                   onClick={() => setProductoSeleccionado(prod)}
@@ -323,14 +328,23 @@ export default function VistaTerminal() {
                   />
                 </div>
 
-                <div className="producto-info-cuerpo">
+                <div>
                   <h3>{prod.nombre}</h3>
                   <p>{prod.descripcion}</p>
                 </div>
 
-                <div className="producto-pie-accion">
+                <div>
                   <div className="producto-precio">
-                    {(Number(prod.precio) || 0).toFixed(2)} €
+                    {esFiguraProd ? (
+                      <>
+                        <span style={{ textDecoration: 'line-through', fontSize: '1.1rem', color: '#94a3b8', marginRight: '0.4rem' }}>
+                          {precioNum.toFixed(2)} €
+                        </span>
+                        <span style={{ color: '#00e5ff' }}>{precioFinalProd.toFixed(2)} €</span>
+                      </>
+                    ) : (
+                      `${precioNum.toFixed(2)} €`
+                    )}
                   </div>
                   <button
                     className="btn-agregar"
@@ -373,51 +387,69 @@ export default function VistaTerminal() {
             ) : (
               <>
                 <ul className="comanda-items">
-                  {carrito.map((item, index) => (
-                    <li key={item.idUnico} className="comanda-item">
-                      <div className="comanda-item-header">
-                        <span>
-                          <strong className="comanda-item-cant">Unidad #{index + 1}: </strong>
-                          {item.nombre}
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span className="comanda-item-subtotal">
-                            {calcularPrecioUnidad(item).toFixed(2)} €
+                  {carrito.map((item, index) => {
+                    const esFiguraItem = obtenerCategoriaProducto(item).toLowerCase().includes('figura');
+                    return (
+                      <li key={item.idUnico} className="comanda-item">
+                        <div className="comanda-item-header">
+                          <span>
+                            <strong className="comanda-item-cant">Unidad #{index + 1}: </strong>
+                            {item.nombre}
+                            {esFiguraItem && <span style={{ color: '#fbbf24', fontSize: '0.75rem', display: 'block' }}>⚡ 25% Descuento Aplicado</span>}
                           </span>
-                          <button 
-                            onClick={() => eliminarDelCarrito(item.idUnico)}
-                            style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}
-                            title="Eliminar esta unidad"
-                          >
-                            ✕
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span className="comanda-item-subtotal">
+                              {calcularPrecioUnidad(item).toFixed(2)} €
+                            </span>
+                            <button 
+                              onClick={() => eliminarDelCarrito(item.idUnico)}
+                              style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}
+                              title="Eliminar esta unidad"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      
-                      {esPersonalizable(item) ? (
-                        <>
-                          <input
-                            type="text"
-                            placeholder="Grabado / texto para esta unidad..."
-                            value={item.textoPersonalizado}
-                            onChange={(e) => actualizarTextoPersonalizado(item.idUnico, e.target.value)}
-                            className="comanda-custom-input"
-                          />
+                        
+                        {esPersonalizable(item) ? (
+                          <>
+                            <input
+                              type="text"
+                              placeholder="Grabado / texto para esta unidad..."
+                              value={item.textoPersonalizado}
+                              onChange={(e) => actualizarTextoPersonalizado(item.idUnico, e.target.value)}
+                              className="comanda-custom-input"
+                            />
 
-                          {item.textoPersonalizado?.trim().length > 0 && (
-                            <div className="aviso-descuento-grabado">
-                              ⚡ Grabado Especial Apertura: <strong>+3.00 €</strong> <span className="precio-tachado">5.00 €</span>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <small style={{ color: '#64748b', fontSize: '0.78rem', fontStyle: 'italic', marginTop: '0.2rem' }}>
-                          🚫 Este artículo no admite grabado personalizado
-                        </small>
-                      )}
-                    </li>
-                  ))}
+                            {item.textoPersonalizado?.trim().length > 0 && (
+                              <div className="aviso-descuento-grabado">
+                                ⚡ Grabado Especial Apertura: <strong>+3.00 €</strong> <span className="precio-tachado">5.00 €</span>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <small style={{ color: '#64748b', fontSize: '0.78rem', fontStyle: 'italic', marginTop: '0.2rem' }}>
+                            🚫 Este artículo no admite grabado personalizado
+                          </small>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0.8rem 0', fontSize: '0.88rem', color: '#94a3b8' }}>
+                  <span>Gastos de Envío:</span>
+                  <span>
+                    {esEnvioGratis ? (
+                      <>
+                        <span className="precio-tachado" style={{ marginRight: '0.4rem' }}>4.95 €</span>
+                        <strong style={{ color: '#00e5ff' }}>0.00 €</strong>
+                      </>
+                    ) : (
+                      <strong style={{ color: '#e2e8f0' }}>4.95 €</strong>
+                    )}
+                  </span>
+                </div>
 
                 <div style={{ marginTop: '1rem', borderTop: '1px dashed #334155', paddingTop: '0.8rem' }}>
                   {!cuponAplicado ? (
@@ -442,7 +474,7 @@ export default function VistaTerminal() {
                     </form>
                   ) : (
                     <div className="aviso-descuento-grabado" style={{ justifyContent: 'space-between' }}>
-                      <span>🎉 Cupón <strong>{cuponAplicado.codigo}</strong> aplicado (-10%)</span>
+                      <span>🎉 Cupón <strong>{cuponAplicado.codigo}</strong> aplicado (-{cuponAplicado.porcentaje}%)</span>
                       <button 
                         onClick={() => setCuponAplicado(null)} 
                         style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}
@@ -459,7 +491,7 @@ export default function VistaTerminal() {
                   <div style={{ textAlign: 'right' }}>
                     {cuponAplicado && (
                       <div style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.9rem' }}>
-                        {subtotalSinCupon.toFixed(2)} €
+                        {(subtotalSinCupon + costoEnvioActual).toFixed(2)} €
                       </div>
                     )}
                     <span className="comanda-total-monto">{totalConDescuento} €</span>
