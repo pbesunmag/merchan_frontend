@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './BannerSlider.css';
 import funkoLogo from '../../assets/funko_logo.jpg';
+import imagenSorteo from '../../assets/sorteo.jpg';
 
 const slides = [
   {
@@ -57,7 +58,7 @@ const slides = [
     titulo: 'SORTEOS Y RECOMPENSAS',
     descripcion: 'Participa en las misiones comunitarias y gana equipamiento exclusivo de Industrias Stark.',
     textoBoton: 'GANADORES DEL SORTEO',
-    imagenFondo: '/imagenes/camisetas/avengers.jpg',
+    imagenFondo: imagenSorteo,
     colorAcento: '#00e5ff',
     accionEspecial: 'RUTA_SORTEOS'
   }
