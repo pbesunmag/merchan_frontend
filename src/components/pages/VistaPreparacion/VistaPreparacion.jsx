@@ -9,9 +9,9 @@ export default function VistaPreparacion() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const cargarPedidos = useCallback(async () => {
+  const cargarPedidos = useCallback(async (silencioso = false) => {
     try {
-      setError(null);
+      if (!silencioso) setError(null);
       const [creadosRes, enProcesoRes] = await Promise.all([
         pedidoService.obtenerPorEstado('CREADO'),
         pedidoService.obtenerPorEstado('EN_PREPARACION'),
@@ -20,20 +20,36 @@ export default function VistaPreparacion() {
       setPedidosCreados(creadosRes?.content || creadosRes || []);
       setPedidosEnProceso(enProcesoRes?.content || enProcesoRes || []);
     } catch (err) {
-      setError(err.message);
+      if (!silencioso) setError(err.message);
     } finally {
-      setLoading(false);
+      if (!silencioso) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    cargarPedidos();
+    let isMounted = true;
+
+    const initFetch = async () => {
+      if (isMounted) {
+        await cargarPedidos(false);
+      }
+    };
+
+    initFetch();
+    const intervalo = setInterval(() => {
+      if (isMounted) cargarPedidos(true);
+    }, 4000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalo);
+    };
   }, [cargarPedidos]);
 
   const cambiarEstado = async (pedidoId, nuevoEstado) => {
     try {
       await pedidoService.actualizarEstado(pedidoId, nuevoEstado);
-      cargarPedidos();
+      cargarPedidos(false);
     } catch (err) {
       setError(err.message);
     }
@@ -47,7 +63,7 @@ export default function VistaPreparacion() {
     <div className="preparacion-container">
       <div className="preparacion-header">
         <h2>📦 Preparación de Pedidos</h2>
-        <button className="btn-recargar" onClick={cargarPedidos}>
+        <button className="btn-recargar" onClick={() => cargarPedidos(false)}>
           ↻ Actualizar Tablero
         </button>
       </div>
@@ -55,7 +71,7 @@ export default function VistaPreparacion() {
       {error && <div className="error-banner">{error}</div>}
 
       <div className="tablero-columnas">
-        {/* Columna 1: Pedidos Nuevos */}
+        {/* Columna 1: Pedidos Nuevos (CREADO) */}
         <section className="columna">
           <div className="columna-titulo">
             <span>Nuevos (CREADO)</span>
@@ -74,8 +90,8 @@ export default function VistaPreparacion() {
                   </div>
 
                   <ul className="lineas-list">
-                    {pedido.productos?.map((linea, idx) => (
-                      <li key={idx} className="linea-item">
+                    {(pedido.lineas || pedido.productos)?.map((linea, idx) => (
+                      <li key={linea.id || idx} className="linea-item">
                         <strong>{linea.cantidad}x</strong> {linea.productoNombre || `Producto #${linea.productoId}`}
                         {linea.textoPersonalizado && (
                           <div className="linea-personalizado">
@@ -98,7 +114,7 @@ export default function VistaPreparacion() {
           </div>
         </section>
 
-        {/* Columna 2: Pedidos En Preparación */}
+        {/* Columna 2: Pedidos En Proceso (EN_PREPARACION) */}
         <section className="columna">
           <div className="columna-titulo">
             <span>En Proceso (EN_PREPARACION)</span>
@@ -117,8 +133,8 @@ export default function VistaPreparacion() {
                   </div>
 
                   <ul className="lineas-list">
-                    {pedido.productos?.map((linea, idx) => (
-                      <li key={idx} className="linea-item">
+                    {(pedido.lineas || pedido.productos)?.map((linea, idx) => (
+                      <li key={linea.id || idx} className="linea-item">
                         <strong>{linea.cantidad}x</strong> {linea.productoNombre || `Producto #${linea.productoId}`}
                         {linea.textoPersonalizado && (
                           <div className="linea-personalizado">
