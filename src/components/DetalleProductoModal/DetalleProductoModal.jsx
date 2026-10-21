@@ -66,8 +66,8 @@ const fotosEstandar = {
   ],
   7: [
     '/imagenes/figuras/groot/primera.jpg',
-    '/imagenes/figuras/groot/71g61VxIEvL._AC_SL1500_.jpg',
-    '/imagenes/figuras/groot/512HG9k5WeL._AC_SL1500_.jpg'
+    '/imagenes/figuras/groot/segunda.jpg',
+    '/imagenes/figuras/groot/tercera.jpg'
   ],
   8: [
     '/imagenes/figuras/guantelete_ironman/51BLOHXicCL._AC_SL1200_.jpg',
@@ -138,6 +138,16 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
   const precioBase = Number(producto.precio) || 0;
   const precioActivo = Number(varianteSeleccionada?.precio ?? precioBase);
 
+  // 3. CÁLCULO DE DESCUENTOS PROMOCIONALES (GROOT -25%, THOR -10%)
+  const nombreProd = (producto.nombre || '').trim();
+  const esGroot = nombreProd === 'Figura Groot Guardianes';
+  const esThor = nombreProd === 'Figura Thor Dios del Trueno';
+  const tieneDescuento = esGroot || esThor;
+
+  let precioFinal = precioActivo;
+  if (esGroot) precioFinal = precioActivo * 0.75;
+  if (esThor) precioFinal = precioActivo * 0.90;
+
   const fotos = configVariantes
     ? configVariantes.opciones.map((o) => o.imagen)
     : (fotosEstandar[producto.id] || [producto.imagenUrl || producto.imagen_url || '']);
@@ -172,10 +182,11 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
       nombreFinal = `${producto.nombre} (${detallesExtras.join(' - ')})`;
     }
 
+    // Se envía el precio final con el descuento aplicado
     const productoParaCarrito = {
       ...producto,
-      precio: precioActivo,
-      subtotal: precioActivo,
+      precio: precioFinal,
+      subtotal: precioFinal,
       nombre: nombreFinal,
       variante: varianteSeleccionada ? varianteSeleccionada.etiqueta : null,
       talla: esCamiseta ? tallaSeleccionada : null,
@@ -330,8 +341,8 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                         <button
                           key={talla}
                           type="button"
-                          disabled={!disponible}
-                          className={`btn-talla-chip ${seleccionada ? 'seleccionado' : ''} ${!disponible ? 'sin-stock' : ''}`}
+                          className={`btn-talla-chip ${seleccionada ? 'seleccionado' : ''}`}
+gunda                          disabled={!disponible}
                           onClick={() => setTallaSeleccionada(talla)}
                         >
                           {talla}
@@ -363,9 +374,28 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
 
               {/* FOOTER PRECIO DINÁMICO Y BOTÓN AÑADIR */}
               <div className="footer-compra-detalle">
-                <div className="precio-detalle">
-                  {precioActivo.toFixed(2)} €
+                <div className="precio-detalle-bloque">
+                  {tieneDescuento ? (
+                    <div className="contenedor-precio-oferta-modal">
+                      <div className="fila-precios-modal">
+                        <span className="precio-original-tachado">
+                          {precioActivo.toFixed(2)} €
+                        </span>
+                        <span className="precio-destacado-oferta">
+                          {precioFinal.toFixed(2)} €
+                        </span>
+                        <span className="badge-descuento-modal">
+                          {esGroot ? '-25% DTO' : '-10% DTO'}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="precio-detalle">
+                      {precioActivo.toFixed(2)} €
+                    </div>
+                  )}
                 </div>
+
                 <button className="btn-agregar-detalle" onClick={manejarAgregar}>
                   + Añadir a la Cesta
                 </button>

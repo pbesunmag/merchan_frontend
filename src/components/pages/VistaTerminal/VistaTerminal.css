@@ -643,3 +643,131 @@
   color: #ffffff !important;
   box-shadow: 0 0 14px rgba(251, 191, 36, 0.45) !important;
 }
+
+/* ==========================================================================
+   INSIGNIA DE DESCUENTO ESTILO CÁPSULA STARK / GAMER
+   ========================================================================== */
+
+/* 1. Contenedor de la tarjeta en posición relativa para anclar la insignia */
+.producto-card {
+  position: relative;
+}
+
+/* 2. Insignia en forma de cápsula con brillo reactivo */
+.product-badge.gold {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  color: #ffffff;
+  font-family: 'Consolas', monospace;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 0.35rem 0.8rem;
+  border-radius: 20px;
+  border: 1px solid #f87171;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.65), 0 4px 10px rgba(0, 0, 0, 0.7);
+  z-index: 10;
+  text-transform: uppercase;
+  pointer-events: none;
+  animation: pulsoInsignia 2.5s infinite ease-in-out;
+}
+
+/* Sutil latido de energía para captar la atención */
+@keyframes pulsoInsignia {
+  0% {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.85);
+    transform: scale(1.04);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    transform: scale(1);
+  }
+}
+
+/* ==========================================================================
+   ENCABEZADO DE PRODUCTO EN EL CARRITO (ORGANIZADO Y EN BLOQUE)
+   ========================================================================== */
+
+.comanda-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.8rem;
+  width: 100%;
+}
+
+.comanda-item-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.comanda-item-unidad {
+  color: #00e5ff;
+  font-family: 'Consolas', monospace;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+}
+
+.comanda-item-titulo {
+  color: #f1f5f9;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* Insignia pequeña y elegante debajo del nombre */
+.comanda-item-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  border-radius: 4px;
+  font-family: 'Consolas', monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  margin-top: 0.25rem;
+  letter-spacing: 0.04em;
+}
+
+.comanda-item-acciones-precio {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  white-space: nowrap;
+}
+
+.comanda-item-subtotal {
+  font-family: 'Consolas', monospace;
+  font-weight: 900;
+  color: #fbbf24;
+  font-size: 1.05rem;
+}
+
+.btn-eliminar-item-comanda {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+  padding: 0.2rem;
+  line-height: 1;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.btn-eliminar-item-comanda:hover {
+  transform: scale(1.2);
+  color: #dc2626;
+}

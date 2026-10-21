@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { productService } from '../../../services/productService';
-import ReactorLoader from '../../ReactorLoader';
-import PromoModal from '../../PromoModal/PromoModal';
-import DetalleProductoModal from '../../DetalleProductoModal/DetalleProductoModal';
-import BannerSuperior from '../../BannerSuperior/BannerSuperior';
-import './VistaTerminal.css';
-import BannerSlider from '../../BannerSlider/BannerSlider';
+import { useState, useEffect } from "react";
+import { productService } from "../../../services/productService";
+import ReactorLoader from "../../ReactorLoader";
+import PromoModal from "../../PromoModal/PromoModal";
+import DetalleProductoModal from "../../DetalleProductoModal/DetalleProductoModal";
+import BannerSuperior from "../../BannerSuperior/BannerSuperior";
+import "./VistaTerminal.css";
+import BannerSlider from "../../BannerSlider/BannerSlider";
 
 export default function VistaTerminal() {
   const [productos, setProductos] = useState([]);
@@ -16,28 +16,28 @@ export default function VistaTerminal() {
   const [error, setError] = useState(null);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
 
-  const [codigoCupon, setCodigoCupon] = useState('');
+  const [codigoCupon, setCodigoCupon] = useState("");
   const [cuponAplicado, setCuponAplicado] = useState(null);
-  const [errorCupon, setErrorCupon] = useState('');
+  const [errorCupon, setErrorCupon] = useState("");
 
-  const [busqueda, setBusqueda] = useState('');
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('TODOS');
+  const [busqueda, setBusqueda] = useState("");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("TODOS");
 
   const [mostrarPromo, setMostrarPromo] = useState(() => {
-    return !sessionStorage.getItem('promo_mostrada');
+    return !sessionStorage.getItem("promo_mostrada");
   });
 
   const cerrarPromo = () => {
-    sessionStorage.setItem('promo_mostrada', 'true');
+    sessionStorage.setItem("promo_mostrada", "true");
     setMostrarPromo(false);
   };
 
   const LIMITE_INICIAL = 8;
   const [mostrarTodos, setMostrarTodos] = useState(false);
 
-  const PRECIO_GRABADO_REBAJADO = 3.00;
+  const PRECIO_GRABADO_REBAJADO = 3.0;
   const COSTO_ENVIO_BASE = 4.95;
-  const UMBRAL_ENVIO_GRATIS = 70.00;
+  const UMBRAL_ENVIO_GRATIS = 70.0;
 
   useEffect(() => {
     let montado = true;
@@ -69,7 +69,7 @@ export default function VistaTerminal() {
       {
         ...producto,
         idUnico: `${producto.id}_item_${prev.length + 1}_${Date.now()}`,
-        textoPersonalizado: '',
+        textoPersonalizado: "",
       },
     ]);
   };
@@ -77,8 +77,10 @@ export default function VistaTerminal() {
   const actualizarTextoPersonalizado = (idUnico, texto) => {
     setCarrito((prev) =>
       prev.map((item) =>
-        item.idUnico === idUnico ? { ...item, textoPersonalizado: texto } : item
-      )
+        item.idUnico === idUnico
+          ? { ...item, textoPersonalizado: texto }
+          : item,
+      ),
     );
   };
 
@@ -87,20 +89,39 @@ export default function VistaTerminal() {
   };
 
   const obtenerCategoriaProducto = (prod) => {
-    const nombre = (prod.nombre || '').toLowerCase();
-    const catOriginal = prod.nombreCategoria || prod.categoriaNombre || prod.categoria || '';
-    
-    if (nombre.includes('taza')) return 'Tazas';
-    if (nombre.includes('gorra')) return 'Gorras';
-    if (nombre.includes('figura')) return 'Figuras';
-    if (nombre.includes('camiseta') || nombre.includes('remera')) return 'Camisetas';
+    const nombre = (prod.nombre || "").toLowerCase();
+    const catOriginal =
+      prod.nombreCategoria || prod.categoriaNombre || prod.categoria || "";
 
-    return catOriginal || 'Otros';
+    if (nombre.includes("taza")) return "Tazas";
+    if (nombre.includes("gorra")) return "Gorras";
+    if (nombre.includes("figura")) return "Figuras";
+    if (nombre.includes("camiseta") || nombre.includes("remera"))
+      return "Camisetas";
+
+    return catOriginal || "Otros";
   };
 
   const esPersonalizable = (item) => {
+    if (!item) return false;
+    if (
+      item.personalizable === true ||
+      item.personalizable === 1 ||
+      item.personalizable === "Sí" ||
+      item.personalizable === "true"
+    ) {
+      return true;
+    }
+    if (
+      item.personalizable === "No" ||
+      item.personalizable === false ||
+      item.personalizable === 0
+    ) {
+      return false;
+    }
+
     const categoria = obtenerCategoriaProducto(item);
-    if (categoria.toLowerCase().includes('figura')) {
+    if (categoria.toLowerCase().includes("figura")) {
       return false;
     }
     return true;
@@ -108,45 +129,66 @@ export default function VistaTerminal() {
 
   const calcularPrecioUnidad = (item) => {
     const precioBase = Number(item.precio) || 0;
-    const nombre = (item.nombre || '').trim();
-    
+    const nombre = (item.nombre || "").trim();
+
+    // Blindaje contra doble descuento si el ítem ya viene con rebaja desde el modal
     let precioConDescuentoFigura = precioBase;
-    if (nombre === 'Figura Groot Guardianes') {
-      precioConDescuentoFigura = precioBase * 0.75; // 25% descuento
-    } else if (nombre === 'Figura Thor Dios del Trueno') {
-      precioConDescuentoFigura = precioBase * 0.90; // 10% descuento
+    if (nombre.includes("Figura Groot Guardianes")) {
+      if (precioBase > 30) {
+        precioConDescuentoFigura = precioBase * 0.75;
+      }
+    } else if (nombre.includes("Figura Thor Dios del Trueno")) {
+      if (precioBase > 40) {
+        precioConDescuentoFigura = precioBase * 0.9;
+      }
     }
 
-    const tieneGrabado = esPersonalizable(item) && item.textoPersonalizado?.trim().length > 0;
-    return precioConDescuentoFigura + (tieneGrabado ? PRECIO_GRABADO_REBAJADO : 0);
+    const tieneGrabado =
+      esPersonalizable(item) && item.textoPersonalizado?.trim().length > 0;
+    return (
+      precioConDescuentoFigura + (tieneGrabado ? PRECIO_GRABADO_REBAJADO : 0)
+    );
   };
 
-  const subtotalSinCupon = carrito.reduce((acc, item) => acc + calcularPrecioUnidad(item), 0);
-  
+  const subtotalSinCupon = carrito.reduce(
+    (acc, item) => acc + calcularPrecioUnidad(item),
+    0,
+  );
+
   const esEnvioGratis = subtotalSinCupon >= UMBRAL_ENVIO_GRATIS;
   const costoEnvioActual = esEnvioGratis ? 0 : COSTO_ENVIO_BASE;
 
-  const montoDescuento = cuponAplicado ? subtotalSinCupon * (cuponAplicado.porcentaje / 100) : 0;
-  const totalConDescuento = (subtotalSinCupon - montoDescuento + costoEnvioActual).toFixed(2);
+  const montoDescuento = cuponAplicado
+    ? subtotalSinCupon * (cuponAplicado.porcentaje / 100)
+    : 0;
+  const totalConDescuento = (
+    subtotalSinCupon -
+    montoDescuento +
+    costoEnvioActual
+  ).toFixed(2);
 
   const aplicarCupon = (e) => {
     e.preventDefault();
     const codigoLimpio = codigoCupon.trim().toUpperCase();
 
-    const cuponesUsadosSesion = JSON.parse(sessionStorage.getItem('cupones_usados_sesion') || '[]');
+    const cuponesUsadosSesion = JSON.parse(
+      sessionStorage.getItem("cupones_usados_sesion") || "[]",
+    );
     if (cuponesUsadosSesion.includes(codigoLimpio)) {
-      setErrorCupon('✨ Este código ya fue utilizado anteriormente en esta sesión.');
+      setErrorCupon(
+        "✨ Este código ya fue utilizado anteriormente en esta sesión.",
+      );
       return;
     }
 
-    if (codigoLimpio === 'STARK10') {
-      setCuponAplicado({ codigo: 'STARK10', porcentaje: 10 });
-      setErrorCupon('');
-    } else if (codigoLimpio === 'GROOT5') {
-      setCuponAplicado({ codigo: 'GROOT5', porcentaje: 5 });
-      setErrorCupon('');
+    if (codigoLimpio === "STARK10") {
+      setCuponAplicado({ codigo: "STARK10", porcentaje: 10 });
+      setErrorCupon("");
+    } else if (codigoLimpio === "GROOT5") {
+      setCuponAplicado({ codigo: "GROOT5", porcentaje: 5 });
+      setErrorCupon("");
     } else {
-      setErrorCupon('⚠️ Código no válido o caducado');
+      setErrorCupon("⚠️ Código no válido o caducado");
     }
   };
 
@@ -160,17 +202,22 @@ export default function VistaTerminal() {
       const cuponActual = cuponAplicado;
 
       if (cuponActual) {
-        const cuponesUsadosSesion = JSON.parse(sessionStorage.getItem('cupones_usados_sesion') || '[]');
+        const cuponesUsadosSesion = JSON.parse(
+          sessionStorage.getItem("cupones_usados_sesion") || "[]",
+        );
         if (!cuponesUsadosSesion.includes(cuponActual.codigo)) {
           cuponesUsadosSesion.push(cuponActual.codigo);
-          sessionStorage.setItem('cupones_usados_sesion', JSON.stringify(cuponesUsadosSesion));
+          sessionStorage.setItem(
+            "cupones_usados_sesion",
+            JSON.stringify(cuponesUsadosSesion),
+          );
         }
       }
 
       setMostrarCarrito(false);
       setCarrito([]);
       setCuponAplicado(null);
-      setCodigoCupon('');
+      setCodigoCupon("");
       setLoading(true);
 
       const nuevoPedido = await productService.crearPedido(1);
@@ -179,7 +226,9 @@ export default function VistaTerminal() {
         await productService.agregarProductoAPedido(nuevoPedido.id, {
           productoId: item.id,
           cantidad: 1,
-          textoPersonalizado: esPersonalizable(item) ? item.textoPersonalizado : null,
+          textoPersonalizado: esPersonalizable(item)
+            ? item.textoPersonalizado
+            : null,
         });
       }
 
@@ -192,21 +241,28 @@ export default function VistaTerminal() {
   };
 
   if (loading) {
-    return <ReactorLoader size={150} text="Iniciando enlace con Stark Industries..." />;
+    return (
+      <ReactorLoader
+        size={150}
+        text="Iniciando enlace con Stark Industries..."
+      />
+    );
   }
 
   if (pedidoFinalizado) {
     return (
-      <div style={{ padding: '4rem 1rem', maxWidth: '650px', margin: '0 auto' }}>
+      <div
+        style={{ padding: "4rem 1rem", maxWidth: "650px", margin: "0 auto" }}
+      >
         <div className="modal-exito">
           <h2>⭐ Transmisión Completada ⭐</h2>
-          <p style={{ color: '#cbd5e1' }}>
+          <p style={{ color: "#cbd5e1" }}>
             Tu solicitud de equipamiento ha sido enviada al área de preparación:
           </p>
           <div className="codigo-destacado">{pedidoFinalizado}</div>
           <button
             className="btn-agregar"
-            style={{ maxWidth: '280px', margin: '1rem auto 0 auto' }}
+            style={{ maxWidth: "280px", margin: "1rem auto 0 auto" }}
             onClick={() => setPedidoFinalizado(null)}
           >
             Realizar nuevo pedido
@@ -217,29 +273,40 @@ export default function VistaTerminal() {
   }
 
   const normalizarTexto = (texto) => {
-    if (!texto) return '';
+    if (!texto) return "";
     return texto
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
   };
 
-  const categoriasUnicas = ['TODOS', ...new Set(productos.map(p => {
-    const cat = obtenerCategoriaProducto(p);
-    return cat.trim().toUpperCase();
-  }))];
+  const categoriasBase = [
+    ...new Set(
+      productos.map((p) => {
+        const cat = obtenerCategoriaProducto(p);
+        return cat.trim().toUpperCase();
+      }),
+    ),
+  ].filter((c) => c && c !== "TODOS" && c !== "PERSONALIZABLES");
+
+  const categoriasUnicas = ["TODOS", ...categoriasBase, "PERSONALIZABLES"];
 
   const productosFiltrados = productos.filter((prod) => {
     const categoriaProd = normalizarTexto(obtenerCategoriaProducto(prod));
     const categoriaSeleccionadaNorm = normalizarTexto(categoriaSeleccionada);
-    
-    const coincideCategoria = categoriaSeleccionada === 'TODOS' || categoriaProd === categoriaSeleccionadaNorm;
+
+    const coincideCategoria =
+      categoriaSeleccionada === "TODOS"
+        ? true
+        : categoriaSeleccionada === "PERSONALIZABLES"
+          ? esPersonalizable(prod)
+          : categoriaProd === categoriaSeleccionadaNorm;
 
     const textoBusquedaNormalizado = normalizarTexto(busqueda);
     const nombreNormalizado = normalizarTexto(prod.nombre);
     const descripcionNormalizada = normalizarTexto(prod.descripcion);
 
-    const coincideTexto = 
+    const coincideTexto =
       nombreNormalizado.includes(textoBusquedaNormalizado) ||
       descripcionNormalizada.includes(textoBusquedaNormalizado) ||
       categoriaProd.includes(textoBusquedaNormalizado);
@@ -247,34 +314,45 @@ export default function VistaTerminal() {
     return coincideCategoria && coincideTexto;
   });
 
-  const productosVisibles = mostrarTodos ? productosFiltrados : productosFiltrados.slice(0, LIMITE_INICIAL);
+  const productosVisibles = mostrarTodos
+    ? productosFiltrados
+    : productosFiltrados.slice(0, LIMITE_INICIAL);
+
+  const handleFiltroDesdeBanner = (cat) => {
+    if (!cat) return;
+    if (Array.isArray(cat)) {
+      setCategoriaSeleccionada(cat[0].toUpperCase());
+    } else {
+      setCategoriaSeleccionada(cat.toUpperCase());
+    }
+  };
 
   return (
     <div className="terminal-layout">
       <BannerSuperior />
       {mostrarPromo && <PromoModal alCerrar={cerrarPromo} />}
 
-      <BannerSlider alFiltrarCategoria={(cat) => {
-        if (Array.isArray(cat)) {
-          setCategoriaSeleccionada(cat[0].toUpperCase());
-        } else {
-          setCategoriaSeleccionada(cat.toUpperCase());
-        }
-      }} />
+      <BannerSlider
+        alFiltrarCategoria={handleFiltroDesdeBanner}
+        onSeleccionarCategoria={handleFiltroDesdeBanner}
+      />
 
-      <button 
-        className="btn-carrito-flotante" 
+      <button
+        className="btn-carrito-flotante"
         onClick={() => setMostrarCarrito(!mostrarCarrito)}
       >
         🛒
-        {totalUnidades > 0 && <span className="badge-carrito">{totalUnidades}</span>}
+        {totalUnidades > 0 && (
+          <span className="badge-carrito">{totalUnidades}</span>
+        )}
       </button>
 
       <section className="catalogo-section">
         <div className="catalogo-header-bar">
           <h2>Catálogo de Equipamiento</h2>
           <span className="contador-suministros">
-            Mostrando {productosVisibles.length} de {productosFiltrados.length} suministros
+            Mostrando {productosVisibles.length} de {productosFiltrados.length}{" "}
+            suministros
           </span>
         </div>
 
@@ -292,37 +370,44 @@ export default function VistaTerminal() {
               <button
                 key={cat}
                 onClick={() => setCategoriaSeleccionada(cat)}
-                className={`btn-categoria ${normalizarTexto(categoriaSeleccionada) === normalizarTexto(cat) ? 'activo' : ''}`}
+                className={`btn-categoria ${normalizarTexto(categoriaSeleccionada) === normalizarTexto(cat) ? "activo" : ""} ${cat === "PERSONALIZABLES" ? "btn-filtro-personalizables" : ""}`}
               >
-                {cat}
+                {cat === "PERSONALIZABLES" ? "⚡ PERSONALIZABLES" : cat}
               </button>
             ))}
           </div>
         </div>
 
-        {error && <p style={{ color: '#ef4444' }}>{error}</p>}
+        {error && <p style={{ color: "#ef4444" }}>{error}</p>}
 
         <div className="productos-grid">
           {productosVisibles.map((prod) => {
             const rutaCruda = prod.imagenUrl || prod.imagen_url;
-            const rutaFoto = rutaCruda && rutaCruda.trim() !== '' 
-              ? (rutaCruda.startsWith('/') ? rutaCruda : `/${rutaCruda}`) 
-              : '/imagenes/camisetas/avengers.jpg';
+            const rutaFoto =
+              rutaCruda && rutaCruda.trim() !== ""
+                ? rutaCruda.startsWith("/")
+                  ? rutaCruda
+                  : `/${rutaCruda}`
+                : "/imagenes/camisetas/avengers.jpg";
 
-            const nombreProd = (prod.nombre || '').trim();
-            const esGroot = nombreProd === 'Figura Groot Guardianes';
-            const esThor = nombreProd === 'Figura Thor Dios del Trueno';
+            const nombreProd = (prod.nombre || "").trim();
+            const esGroot = nombreProd === "Figura Groot Guardianes";
+            const esThor = nombreProd === "Figura Thor Dios del Trueno";
             const precioNum = Number(prod.precio) || 0;
-            
+
             let precioFinalProd = precioNum;
             if (esGroot) precioFinalProd = precioNum * 0.75;
-            if (esThor) precioFinalProd = precioNum * 0.90;
+            if (esThor) precioFinalProd = precioNum * 0.9;
 
             const tieneDto = esGroot || esThor;
 
             return (
               <article key={prod.id} className="producto-card">
-                {tieneDto && <span className="product-badge gold">{esGroot ? '-25% DTO' : '-10% DTO'}</span>}
+                {tieneDto && (
+                  <span className="product-badge gold">
+                    {esGroot ? "-25% DTO" : "-10% DTO"}
+                  </span>
+                )}
                 <div
                   className="producto-img-container"
                   onClick={() => setProductoSeleccionado(prod)}
@@ -334,7 +419,7 @@ export default function VistaTerminal() {
                     className="producto-img"
                     onError={(e) => {
                       e.currentTarget.onerror = null;
-                      e.currentTarget.src = '/imagenes/camisetas/avengers.jpg';
+                      e.currentTarget.src = "/imagenes/camisetas/avengers.jpg";
                     }}
                   />
                 </div>
@@ -348,10 +433,19 @@ export default function VistaTerminal() {
                   <div className="producto-precio">
                     {tieneDto ? (
                       <>
-                        <span style={{ textDecoration: 'line-through', fontSize: '1.1rem', color: '#94a3b8', marginRight: '0.4rem' }}>
+                        <span
+                          style={{
+                            textDecoration: "line-through",
+                            fontSize: "1.1rem",
+                            color: "#94a3b8",
+                            marginRight: "0.4rem",
+                          }}
+                        >
                           {precioNum.toFixed(2)} €
                         </span>
-                        <span style={{ color: '#00e5ff' }}>{precioFinalProd.toFixed(2)} €</span>
+                        <span style={{ color: "#00e5ff" }}>
+                          {precioFinalProd.toFixed(2)} €
+                        </span>
                       </>
                     ) : (
                       `${precioNum.toFixed(2)} €`
@@ -378,7 +472,10 @@ export default function VistaTerminal() {
               {mostrarTodos ? (
                 <>▲ Reducir Catálogo</>
               ) : (
-                <>▼ Desplegar Catálogo Completo ({productosFiltrados.length - LIMITE_INICIAL} restantes)</>
+                <>
+                  ▼ Desplegar Catálogo Completo (
+                  {productosFiltrados.length - LIMITE_INICIAL} restantes)
+                </>
               )}
             </button>
           </div>
@@ -386,11 +483,22 @@ export default function VistaTerminal() {
       </section>
 
       {mostrarCarrito && (
-        <div className="carrito-overlay" onClick={() => setMostrarCarrito(false)}>
-          <aside className="carrito-drawer" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="carrito-overlay"
+          onClick={() => setMostrarCarrito(false)}
+        >
+          <aside
+            className="carrito-drawer"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="carrito-header">
               <h2>Comanda Activa</h2>
-              <button className="btn-cerrar" onClick={() => setMostrarCarrito(false)}>✕</button>
+              <button
+                className="btn-cerrar"
+                onClick={() => setMostrarCarrito(false)}
+              >
+                ✕
+              </button>
             </div>
 
             {carrito.length === 0 ? (
@@ -399,55 +507,77 @@ export default function VistaTerminal() {
               <>
                 <ul className="comanda-items">
                   {carrito.map((item, index) => {
-                    const nombreItem = (item.nombre || '').trim();
-                    const esGrootItem = nombreItem === 'Figura Groot Guardianes';
-                    const esThorItem = nombreItem === 'Figura Thor Dios del Trueno';
+                    const nombreItem = (item.nombre || "").trim();
+                    const esGrootItem =
+                      nombreItem.includes("Figura Groot Guardianes");
+                    const esThorItem =
+                      nombreItem.includes("Figura Thor Dios del Trueno");
                     const tieneDtoItem = esGrootItem || esThorItem;
 
                     return (
                       <li key={item.idUnico} className="comanda-item">
+                        {/* ENCABEZADO DEL ÍTEM ORDENADO */}
                         <div className="comanda-item-header">
-                          <span>
-                            <strong className="comanda-item-cant">Unidad #{index + 1}: </strong>
-                            {item.nombre}
+                          <div className="comanda-item-info">
+                            <span className="comanda-item-unidad">
+                              Unidad #{index + 1}
+                            </span>
+                            <span className="comanda-item-titulo">
+                              {item.nombre}
+                            </span>
                             {tieneDtoItem && (
-                              <span style={{ color: '#fbbf24', fontSize: '0.75rem', display: 'block' }}>
-                                ⚡ {esGrootItem ? '25%' : '10%'} Descuento Aplicado
+                              <span className="comanda-item-badge-pill">
+                                ⚡ {esGrootItem ? "-25% DTO" : "-10% DTO"}
                               </span>
                             )}
-                          </span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          </div>
+
+                          <div className="comanda-item-acciones-precio">
                             <span className="comanda-item-subtotal">
                               {calcularPrecioUnidad(item).toFixed(2)} €
                             </span>
-                            <button 
+                            <button
                               onClick={() => eliminarDelCarrito(item.idUnico)}
-                              style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}
+                              className="btn-eliminar-item-comanda"
                               title="Eliminar esta unidad"
                             >
                               ✕
                             </button>
                           </div>
                         </div>
-                        
+
                         {esPersonalizable(item) ? (
                           <>
                             <input
                               type="text"
                               placeholder="Grabado / texto para esta unidad..."
                               value={item.textoPersonalizado}
-                              onChange={(e) => actualizarTextoPersonalizado(item.idUnico, e.target.value)}
+                              onChange={(e) =>
+                                actualizarTextoPersonalizado(
+                                  item.idUnico,
+                                  e.target.value,
+                                )
+                              }
                               className="comanda-custom-input"
                             />
 
                             {item.textoPersonalizado?.trim().length > 0 && (
                               <div className="aviso-descuento-grabado">
-                                ⚡ Grabado Especial Apertura: <strong>+3.00 €</strong> <span className="precio-tachado">5.00 €</span>
+                                ⚡ Grabado Especial Apertura:{" "}
+                                <strong>+3.00 €</strong>{" "}
+                                <span className="precio-tachado">5.00 €</span>
                               </div>
                             )}
                           </>
                         ) : (
-                          <small style={{ color: '#64748b', fontSize: '0.78rem', fontStyle: 'italic', marginTop: '0.2rem' }}>
+                          <small
+                            style={{
+                              color: "#64748b",
+                              fontSize: "0.78rem",
+                              fontStyle: "italic",
+                              marginTop: "0.2rem",
+                            }}
+                          >
                             🚫 Este artículo no admite grabado personalizado
                           </small>
                         )}
@@ -456,64 +586,126 @@ export default function VistaTerminal() {
                   })}
                 </ul>
 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0.8rem 0', fontSize: '0.88rem', color: '#94a3b8' }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    margin: "0.8rem 0",
+                    fontSize: "0.88rem",
+                    color: "#94a3b8",
+                  }}
+                >
                   <span>Gastos de Envío:</span>
                   <span>
                     {esEnvioGratis ? (
                       <>
-                        <span className="precio-tachado" style={{ marginRight: '0.4rem' }}>4.95 €</span>
-                        <strong style={{ color: '#00e5ff' }}>0.00 €</strong>
+                        <span
+                          className="precio-tachado"
+                          style={{ marginRight: "0.4rem" }}
+                        >
+                          4.95 €
+                        </span>
+                        <strong style={{ color: "#00e5ff" }}>0.00 €</strong>
                       </>
                     ) : (
-                      <strong style={{ color: '#e2e8f0' }}>4.95 €</strong>
+                      <strong style={{ color: "#e2e8f0" }}>4.95 €</strong>
                     )}
                   </span>
                 </div>
 
-                <div style={{ marginTop: '1rem', borderTop: '1px dashed #334155', paddingTop: '0.8rem' }}>
+                <div
+                  style={{
+                    marginTop: "1rem",
+                    borderTop: "1px dashed #334155",
+                    paddingTop: "0.8rem",
+                  }}
+                >
                   {!cuponAplicado ? (
-                    <form onSubmit={aplicarCupon} style={{ display: 'flex', gap: '0.5rem' }}>
+                    <form
+                      onSubmit={aplicarCupon}
+                      style={{ display: "flex", gap: "0.5rem" }}
+                    >
                       <input
                         type="text"
                         placeholder="Introduce tu código..."
                         value={codigoCupon}
                         onChange={(e) => {
                           setCodigoCupon(e.target.value);
-                          if (errorCupon) setErrorCupon('');
+                          if (errorCupon) setErrorCupon("");
                         }}
                         className="comanda-custom-input"
                         style={{ flex: 1 }}
                       />
-                      <button 
-                        type="submit" 
-                        style={{ background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', padding: '0.4rem 0.8rem', cursor: 'pointer', fontWeight: 'bold' }}
+                      <button
+                        type="submit"
+                        style={{
+                          background: "#0284c7",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: "4px",
+                          padding: "0.4rem 0.8rem",
+                          cursor: "pointer",
+                          fontWeight: "bold",
+                        }}
                       >
                         Aplicar
                       </button>
                     </form>
                   ) : (
-                    <div className="aviso-descuento-grabado" style={{ justifyContent: 'space-between' }}>
-                      <span>🎉 Cupón <strong>{cuponAplicado.codigo}</strong> aplicado (-{cuponAplicado.porcentaje}%)</span>
-                      <button 
-                        onClick={() => setCuponAplicado(null)} 
-                        style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontWeight: 'bold' }}
+                    <div
+                      className="aviso-descuento-grabado"
+                      style={{ justifyContent: "space-between" }}
+                    >
+                      <span>
+                        🎉 Cupón <strong>{cuponAplicado.codigo}</strong>{" "}
+                        aplicado (-{cuponAplicado.porcentaje}%)
+                      </span>
+                      <button
+                        onClick={() => setCuponAplicado(null)}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: "#ef4444",
+                          cursor: "pointer",
+                          fontWeight: "bold",
+                        }}
                       >
                         ✕
                       </button>
                     </div>
                   )}
-                  {errorCupon && <small style={{ color: '#f87171', display: 'block', marginTop: '0.3rem', fontSize: '0.78rem' }}>{errorCupon}</small>}
+                  {errorCupon && (
+                    <small
+                      style={{
+                        color: "#f87171",
+                        display: "block",
+                        marginTop: "0.3rem",
+                        fontSize: "0.78rem",
+                      }}
+                    >
+                      {errorCupon}
+                    </small>
+                  )}
                 </div>
 
                 <div className="comanda-total-container">
                   <span className="comanda-total-label">Total a abonar</span>
-                  <div style={{ textAlign: 'right' }}>
+                  <div style={{ textAlign: "right" }}>
                     {cuponAplicado && (
-                      <div style={{ textDecoration: 'line-through', color: '#94a3b8', fontSize: '0.9rem' }}>
+                      <div
+                        style={{
+                          textDecoration: "line-through",
+                          color: "#94a3b8",
+                          fontSize: "0.9rem",
+                        }}
+                      >
                         {(subtotalSinCupon + costoEnvioActual).toFixed(2)} €
                       </div>
                     )}
-                    <span className="comanda-total-monto">{totalConDescuento} €</span>
+                    <span className="comanda-total-monto">
+                      {totalConDescuento} €
+                    </span>
                   </div>
                 </div>
 
