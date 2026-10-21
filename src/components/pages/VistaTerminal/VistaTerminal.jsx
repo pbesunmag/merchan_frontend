@@ -73,7 +73,9 @@ export default function VistaTerminal() {
     const topeStock = Number(producto.stockMax ?? producto.stock ?? 99);
     if (topeStock <= 0) return;
 
-    const claveArticulo = `${producto.id}_${producto.nombre || ""}`;
+    // Se incluye la talla en la clave única para permitir diferentes tallas de un mismo producto
+    const tallaArticulo = producto.talla || "";
+    const claveArticulo = `${producto.id}_${producto.nombre || ""}_${tallaArticulo}`;
 
     setCarrito((prev) => {
       const existe = prev.find((item) => item.idUnico === claveArticulo);
@@ -95,6 +97,7 @@ export default function VistaTerminal() {
         {
           ...producto,
           idUnico: claveArticulo,
+          talla: producto.talla || null,
           cantidad: 1,
           stockMax: topeStock,
           textoPersonalizado: "",
@@ -191,7 +194,6 @@ export default function VistaTerminal() {
     const precioBase = Number(item.precio) || 0;
     const nombre = (item.nombre || "").trim();
 
-    // Blindaje contra doble descuento si el ítem ya viene con rebaja desde el modal
     let precioConDescuentoFigura = precioBase;
     if (nombre.includes("Figura Groot Guardianes")) {
       if (precioBase > 30) {
@@ -293,6 +295,7 @@ export default function VistaTerminal() {
           textoPersonalizado: esPersonalizable(item)
             ? item.textoPersonalizado
             : null,
+          talla: item.talla || null, // Se envía la talla seleccionada al backend
         });
       }
 
@@ -622,6 +625,11 @@ export default function VistaTerminal() {
                           <div className="comanda-item-info">
                             <span className="comanda-item-titulo">
                               {item.nombre}
+                              {item.talla && (
+                                <strong style={{ color: "#00e5ff", marginLeft: "0.4rem" }}>
+                                  ({item.talla})
+                                </strong>
+                              )}
                             </span>
                             {tieneDtoItem && (
                               <span className="comanda-item-badge-pill">
@@ -813,7 +821,6 @@ export default function VistaTerminal() {
                           background: "transparent",
                           border: "none",
                           color: "#ef4444",
-                          cursor: "pointer",
                           fontWeight: "bold",
                         }}
                       >

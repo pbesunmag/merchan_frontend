@@ -15,13 +15,9 @@ export const productService = {
     }),
 
   // Añade un ítem al pedido
-  agregarProductoAPedido: (pedidoId, { productoId, cantidad, textoPersonalizado }) =>
-    request(`/pedidos/${pedidoId}/productos`, {
-      method: 'POST',
-      body: JSON.stringify({
-        productoId,
-        cantidad,
-        textoPersonalizado: textoPersonalizado || null,
-      }),
-    }),
+  agregarProductoAPedido: (pedidoId, datos) =>
+  request(`/pedidos/${pedidoId}/productos`, {
+    method: 'POST',
+    body: JSON.stringify(datos),
+  }),
 };
