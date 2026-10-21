@@ -90,15 +90,7 @@ const formatearPersonaje = (texto) => {
 };
 
 export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) {
-  // Estados iniciales seguros (sin setState durante el render para evitar "Too many re-renders")
-  const [varianteSeleccionada, setVarianteSeleccionada] = useState(null);
-  const [tallasDisponibles, setTallasDisponibles] = useState([]);
-  const [tallaSeleccionada, setTallaSeleccionada] = useState(null);
-  const [cargandoTallas, setCargandoTallas] = useState(false);
-  const [imagenManual, setImagenManual] = useState(null);
-  const [pantallaCompleta, setPantallaCompleta] = useState(false);
-  const [imagenRota, setImagenRota] = useState(false);
-
+  // 1. esCamiseta declarado en primer lugar para evitar ReferenceError[cite: 17, 18]
   const esCamiseta = Boolean(
     producto &&
       (producto.id <= 5 ||
@@ -106,30 +98,30 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
         (producto.nombre || '').toLowerCase().includes('camiseta'))
   );
 
-  // Efecto único controlado exclusivamente por [producto?.id]
+  // 2. Configuración de variantes del producto actual
+  const configVariantes = producto ? catalogoVariantes[producto.id] : null;
+
+  // 3. Estado de variante derivado de forma segura[cite: 13]
+  const [opcionElegida, setOpcionElegida] = useState(null);
+  const varianteSeleccionada = opcionElegida || configVariantes?.opciones[0] || null;
+
+  // 4. Estados locales
+  const [tallasDisponibles, setTallasDisponibles] = useState([]);
+  const [tallaSeleccionada, setTallaSeleccionada] = useState(null);
+  const [imagenManual, setImagenManual] = useState(null);
+  const [pantallaCompleta, setPantallaCompleta] = useState(false);
+  const [imagenRota, setImagenRota] = useState(false);
+
+  // 5. Estado de carga derivado sin necesidad de setState huérfano[cite: 15]
+  const cargandoTallas = esCamiseta && tallasDisponibles.length === 0;
+
+  // 6. Efecto asíncrono para cargar existencias desde Spring Boot
   useEffect(() => {
-    if (!producto || !producto.id) return;
-
-    const config = catalogoVariantes[producto.id];
-    setVarianteSeleccionada(config ? config.opciones[0] : null);
-    setImagenManual(null);
-    setPantallaCompleta(false);
-    setImagenRota(false);
-
-    const categoriaEsCamiseta =
-      producto.id <= 5 ||
-      (producto.nombreCategoria || '').toLowerCase().includes('camiseta') ||
-      (producto.nombre || '').toLowerCase().includes('camiseta');
-
-    if (!categoriaEsCamiseta) {
-      setTallasDisponibles([]);
-      setTallaSeleccionada(null);
-      setCargandoTallas(false);
+    if (!producto?.id || !esCamiseta) {
       return;
     }
 
     let cancelado = false;
-    setCargandoTallas(true);
 
     fetch(`http://localhost:8080/api/productos/${producto.id}/tallas`)
       .then((res) => {
@@ -151,7 +143,7 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
               : { talla: codigoTalla, stock: 0, disponible: false };
           });
         } else {
-          const stockGeneral = Number(producto.stock) ?? 0;
+          const stockGeneral = Number(producto?.stock) || 0;
           tallasNormalizadas = ORDEN_TALLAS.map((codigoTalla) => ({
             talla: codigoTalla,
             stock: stockGeneral,
@@ -166,7 +158,7 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
       })
       .catch(() => {
         if (cancelado) return;
-        const stockGeneral = Number(producto.stock) ?? 0;
+        const stockGeneral = Number(producto?.stock) || 0;
         const respaldo = ORDEN_TALLAS.map((codigoTalla) => ({
           talla: codigoTalla,
           stock: stockGeneral,
@@ -175,21 +167,16 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
         setTallasDisponibles(respaldo);
         const primeraConStock = respaldo.find((t) => t.stock > 0);
         setTallaSeleccionada(primeraConStock ? primeraConStock.talla : null);
-      })
-      .finally(() => {
-        if (!cancelado) setCargandoTallas(false);
       });
 
     return () => {
       cancelado = true;
     };
-  }, [producto?.id]);
+  }, [producto?.id, esCamiseta, producto?.stock]);
 
   if (!producto) return null;
 
-  const configVariantes = catalogoVariantes[producto.id];
-
-  // Evaluación del stock actual (talla activa en camisetas o stock general del producto)
+  // Evaluación del stock actual
   const objetoTallaActiva = esCamiseta
     ? tallasDisponibles.find((t) => t.talla === tallaSeleccionada)
     : null;
@@ -245,7 +232,7 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
     (varianteSeleccionada ? varianteSeleccionada.imagen : (fotos[0] || producto.imagenUrl || ''));
 
   const seleccionarOpcion = (opcion) => {
-    setVarianteSeleccionada(opcion);
+    setOpcionElegida(opcion);
     setImagenManual(opcion.imagen);
     setImagenRota(false);
   };
