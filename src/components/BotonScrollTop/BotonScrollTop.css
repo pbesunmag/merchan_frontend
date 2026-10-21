@@ -1,0 +1,42 @@
+/* ==========================================================================
+   BOTÓN FLOTANTE VOLVER ARRIBA - ESTÉTICA STARK HUD
+   ========================================================================== */
+
+.btn-scroll-top-hud {
+  position: fixed;
+  bottom: 155px;
+  right: 39px;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1.5px solid #00e5ff;
+  color: #00e5ff;
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 999;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.25s ease, background-color 0.25s ease, color 0.25s ease;
+}
+
+.btn-scroll-top-hud.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.btn-scroll-top-hud.visible:hover {
+  background: #00e5ff;
+  color: #040d1a;
+  transform: translateY(-3px);
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.85);
+}

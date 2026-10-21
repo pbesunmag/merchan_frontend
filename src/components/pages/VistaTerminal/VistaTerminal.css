@@ -291,10 +291,10 @@
 /* Modal Desplegable Overlay */
 .carrito-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
   background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   z-index: 1500;
@@ -304,12 +304,13 @@
 }
 
 .carrito-drawer {
-  width: 420px;
-  max-width: 92vw;
+  width: 600px;
   height: 100%;
   background: #111827;
   border-left: 2px solid #00e5ff;
-  padding: 1.8rem;
+  padding: 1.5rem 1.4rem !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
   display: flex;
   flex-direction: column;
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.7);
@@ -330,9 +331,53 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
   border-bottom: 1px solid #334155;
   padding-bottom: 0.8rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0.8rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.carrito-header h2 {
+  font-size: 1.15rem !important;
+  letter-spacing: 0.06em !important;
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+  margin: 0 !important;
+  white-space: nowrap;
+}
+
+.carrito-header-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.btn-vaciar-carrito {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  color: #f87171;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-vaciar-carrito:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
 }
 
 .btn-cerrar {
@@ -366,7 +411,7 @@
 .comanda-items {
   list-style: none;
   padding: 0;
-  margin: 1.2rem 0;
+  margin: 0.6rem 0;
   flex: 1;
   overflow-y: auto;
   scrollbar-width: thin;
@@ -376,28 +421,95 @@
 .comanda-item {
   display: flex;
   flex-direction: column;
-  padding: 0.85rem 0;
+  gap: 0.55rem;
+  padding: 0.9rem 0;
   border-bottom: 1px solid #1f2937;
   font-size: 0.95rem;
 }
 
-.comanda-item-header {
+/* Selector de cantidad compacto [-] [ input ] [+] */
+.comanda-cantidad-fila {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.4rem;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
-.comanda-item-cant {
+.comanda-cantidad-label {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.selector-cantidad-stark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #0f172a;
+  padding: 3px 5px;
+  border: 1px solid #1e293b;
+  border-radius: 5px;
+}
+
+.btn-cant-control {
+  background: #090d16;
+  border: 1px solid #00e5ff;
+  border-radius: 4px;
   color: #00e5ff;
-  font-weight: 800;
-  margin-right: 0.4rem;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+  font-family: 'Consolas', monospace;
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.comanda-item-subtotal {
-  font-family: monospace;
-  font-weight: 700;
-  color: #fbbf24;
+.btn-cant-control:hover:not(:disabled) {
+  background: #00e5ff;
+  color: #040d1a;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.75);
+}
+
+.btn-cant-control:disabled {
+  border-color: #334155;
+  color: #475569;
+  cursor: not-allowed;
+}
+
+.input-cant-numero {
+  width: 38px;
+  max-width: 40px;
+  height: 24px;
+  background: #090d16;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #00e5ff;
+  font-family: 'Consolas', monospace;
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-align: center;
+  padding: 0;
+  outline: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.input-cant-numero:focus {
+  border-color: #00e5ff;
+  box-shadow: 0 0 6px rgba(0, 229, 255, 0.35);
+}
+
+.input-cant-numero::-webkit-outer-spin-button,
+.input-cant-numero::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* Campo para texto personalizado */
@@ -405,10 +517,11 @@
   background: #090d16;
   border: 1px solid #334155;
   color: #e2e8f0;
-  padding: 0.4rem 0.65rem;
+  padding: 0.45rem 0.65rem;
   border-radius: 4px;
   font-size: 0.82rem;
   outline: none;
+  box-sizing: border-box;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -419,7 +532,7 @@
 
 /* Aviso de Descuento de Grabado */
 .aviso-descuento-grabado {
-  margin-top: 0.4rem;
+  margin-top: 0.2rem;
   font-size: 0.78rem;
   color: #00e5ff;
   background: rgba(0, 229, 255, 0.1);
@@ -436,31 +549,123 @@
   color: #94a3b8;
   font-size: 0.72rem;
   margin-left: 0.25rem;
+  white-space: nowrap;
 }
 
-/* Total comanda */
+/* Gastos de envío */
+.comanda-envio-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0.6rem 0;
+  font-size: 0.88rem;
+  color: #94a3b8;
+}
+
+.envio-importe {
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
+}
+
+/* Sección de Cupón con botón Aplicar 100% visible */
+.cupon-seccion-contenedor {
+  margin-top: 0.6rem;
+  border-top: 1px dashed #334155;
+  padding-top: 0.8rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cupon-form {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+}
+
+.cupon-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.btn-aplicar-cupon {
+  flex-shrink: 0;
+  white-space: nowrap;
+  background: #0284c7;
+  color: #ffffff;
+  border: 1px solid #38bdf8;
+  border-radius: 4px;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+  font-family: 'Consolas', monospace;
+  font-weight: 800;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: all 0.2s ease;
+}
+
+.btn-aplicar-cupon:hover {
+  background: #00e5ff;
+  color: #041019;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.5);
+}
+
+/* Total comanda con símbolo € inseparable */
 .comanda-total-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 1.2rem 0;
-  padding-top: 1rem;
+  white-space: nowrap;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 0.6rem;
+  margin: 1rem 0;
+  padding-top: 0.9rem;
   border-top: 1px dashed #374151;
 }
 
 .comanda-total-label {
   text-transform: uppercase;
-  font-size: 0.9rem;
-  letter-spacing: 0.1em;
+  font-size: 0.88rem;
+  letter-spacing: 0.06em;
   color: #94a3b8;
+  white-space: nowrap;
+}
+
+.comanda-total-valores {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.comanda-total-tachado {
+  text-decoration: line-through;
+  color: #94a3b8;
+  font-size: 0.88rem;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
 }
 
 .comanda-total-monto {
   font-family: 'Consolas', monospace;
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 900;
   color: #00e5ff;
   text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
 }
 
 /* Botón Finalizar Pedido */
@@ -558,7 +763,7 @@
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
-  fontSize: 0.85rem;
+  font-size: 0.85rem;
   transition: all 0.2s;
 }
 
@@ -576,7 +781,6 @@
    PARCHE: AJUSTE DE ESPACIADOS Y TEXTOS EN TARJETAS DE PRODUCTO
    ========================================================================== */
 
-/* 1. Tarjeta: forzar distribución vertical uniforme */
 .producto-card,
 .card-producto,
 .terminal-card {
@@ -585,24 +789,22 @@
   justify-content: space-between !important;
 }
 
-/* 2. Título: unir los renglones dispersos y reservar 2 líneas */
 .producto-card h3,
 .card-producto h3,
 .terminal-card h3,
 .producto-titulo {
   font-size: 1.15rem !important;
   font-weight: 800 !important;
-  line-height: 1.25 !important; /* Reduce la separación excesiva entre líneas */
+  line-height: 1.25 !important;
   margin-top: 0.6rem !important;
   margin-bottom: 0.4rem !important;
-  min-height: 2.8rem !important; /* Mantiene la misma altura si el título ocupa 1 o 2 líneas */
+  min-height: 2.8rem !important;
   display: -webkit-box !important;
   -webkit-line-clamp: 2 !important;
   -webkit-box-orient: vertical !important;
   overflow: hidden !important;
 }
 
-/* 3. Descripción: texto más compacto y recortado a 3 líneas */
 .producto-card p,
 .card-producto p,
 .terminal-card p,
@@ -618,7 +820,6 @@
   overflow: hidden !important;
 }
 
-/* 4. Pie de la tarjeta: precio y botón siempre abajo y alineados */
 .producto-precio,
 .precio {
   margin-top: auto !important;
@@ -626,7 +827,6 @@
   line-height: 1 !important;
 }
 
-/* Botón especial para el filtro de Personalizables */
 .btn-filtro-personalizables {
   border-color: #fbbf24 !important;
   color: #fbbf24 !important;
@@ -648,12 +848,10 @@
    INSIGNIA DE DESCUENTO ESTILO CÁPSULA STARK / GAMER
    ========================================================================== */
 
-/* 1. Contenedor de la tarjeta en posición relativa para anclar la insignia */
 .producto-card {
   position: relative;
 }
 
-/* 2. Insignia en forma de cápsula con brillo reactivo */
 .product-badge.gold {
   position: absolute;
   top: 14px;
@@ -674,7 +872,6 @@
   animation: pulsoInsignia 2.5s infinite ease-in-out;
 }
 
-/* Sutil latido de energía para captar la atención */
 @keyframes pulsoInsignia {
   0% {
     box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
@@ -710,14 +907,6 @@
   flex: 1;
 }
 
-.comanda-item-unidad {
-  color: #00e5ff;
-  font-family: 'Consolas', monospace;
-  font-weight: 800;
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
-}
-
 .comanda-item-titulo {
   color: #f1f5f9;
   font-size: 0.95rem;
@@ -725,7 +914,6 @@
   line-height: 1.35;
 }
 
-/* Insignia pequeña y elegante debajo del nombre */
 .comanda-item-badge-pill {
   display: inline-flex;
   align-items: center;
@@ -753,6 +941,9 @@
   font-weight: 900;
   color: #fbbf24;
   font-size: 1.05rem;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: baseline;
 }
 
 .btn-eliminar-item-comanda {

@@ -3,7 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-do
 import VistaPreparacion from './components/pages/VistaPreparacion/VistaPreparacion';
 import VistaTerminal from './components/pages/VistaTerminal/VistaTerminal';
 import PantallaRecogida from './components/pages/PantallaRecogida/PantallaRecogida';
+import VistaSorteos from './components/pages/VistaSorteos/VistaSorteos';
 import Footer from './components/Footer/Footer';
+import BotonScrollTop from './components/BotonScrollTop/BotonScrollTop';
 import Logo from './assets/logo_tienda.png';
 
 export default function App() {
@@ -93,10 +95,12 @@ export default function App() {
             <Route path="/terminal" element={<VistaTerminal />} />
             <Route path="/preparacion" element={<VistaPreparacion />} />
             <Route path="/pantalla" element={<PantallaRecogida />} />
+            <Route path="/sorteos" element={<VistaSorteos />} />
           </Routes>
         </main>
 
         <Footer />
+        <BotonScrollTop />
       </div>
     </BrowserRouter>
   );

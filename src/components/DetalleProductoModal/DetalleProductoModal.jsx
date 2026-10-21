@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './DetalleProductoModal.css';
 
 // Diccionario de variantes con soporte de precios específicos
@@ -43,15 +43,7 @@ const catalogoVariantes = {
   }
 };
 
-const TALLAS_DISPONIBLES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-
-const stockTallasPorProducto = {
-  1: { XS: true, S: true, M: true, L: true, XL: false, XXL: false },
-  2: { XS: false, S: true, M: true, L: true, XL: true, XXL: false },
-  3: { XS: true, S: false, M: true, L: true, XL: false, XXL: true },
-  4: { XS: false, S: false, M: true, L: true, XL: true, XXL: true },
-  5: { XS: true, S: true, M: false, L: true, XL: true, XXL: false }
-};
+const ORDEN_TALLAS = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
 const fotosEstandar = {
   2: ['/imagenes/camisetas/america.jpg'],
@@ -98,41 +90,137 @@ const formatearPersonaje = (texto) => {
 };
 
 export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) {
+  // Estados iniciales seguros (sin setState durante el render para evitar "Too many re-renders")
   const [varianteSeleccionada, setVarianteSeleccionada] = useState(null);
+  const [tallasDisponibles, setTallasDisponibles] = useState([]);
   const [tallaSeleccionada, setTallaSeleccionada] = useState(null);
+  const [cargandoTallas, setCargandoTallas] = useState(false);
   const [imagenManual, setImagenManual] = useState(null);
-  const [productoAnteriorId, setProductoAnteriorId] = useState(producto?.id);
   const [pantallaCompleta, setPantallaCompleta] = useState(false);
   const [imagenRota, setImagenRota] = useState(false);
 
-  const esCamiseta =
+  const esCamiseta = Boolean(
     producto &&
-    (producto.id <= 5 ||
-      (producto.nombreCategoria || '').toLowerCase().includes('camiseta') ||
-      (producto.nombre || '').toLowerCase().includes('camiseta'));
+      (producto.id <= 5 ||
+        (producto.nombreCategoria || '').toLowerCase().includes('camiseta') ||
+        (producto.nombre || '').toLowerCase().includes('camiseta'))
+  );
 
-  if (producto?.id !== productoAnteriorId) {
-    setProductoAnteriorId(producto?.id);
-    const config = catalogoVariantes[producto?.id];
+  // Efecto único controlado exclusivamente por [producto?.id]
+  useEffect(() => {
+    if (!producto || !producto.id) return;
+
+    const config = catalogoVariantes[producto.id];
     setVarianteSeleccionada(config ? config.opciones[0] : null);
-
-    if (esCamiseta) {
-      const stock = stockTallasPorProducto[producto?.id] || {};
-      const primeraDisponible = TALLAS_DISPONIBLES.find((t) => stock[t] !== false) || 'M';
-      setTallaSeleccionada(primeraDisponible);
-    } else {
-      setTallaSeleccionada(null);
-    }
-
     setImagenManual(null);
     setPantallaCompleta(false);
     setImagenRota(false);
-  }
+
+    const categoriaEsCamiseta =
+      producto.id <= 5 ||
+      (producto.nombreCategoria || '').toLowerCase().includes('camiseta') ||
+      (producto.nombre || '').toLowerCase().includes('camiseta');
+
+    if (!categoriaEsCamiseta) {
+      setTallasDisponibles([]);
+      setTallaSeleccionada(null);
+      setCargandoTallas(false);
+      return;
+    }
+
+    let cancelado = false;
+    setCargandoTallas(true);
+
+    fetch(`http://localhost:8080/api/productos/${producto.id}/tallas`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Error al obtener tallas');
+        return res.json();
+      })
+      .then((data) => {
+        if (cancelado) return;
+        const listaAPI = Array.isArray(data) ? data : [];
+
+        let tallasNormalizadas;
+        if (listaAPI.length > 0) {
+          tallasNormalizadas = ORDEN_TALLAS.map((codigoTalla) => {
+            const encontrada = listaAPI.find(
+              (item) => (item.talla || '').toUpperCase() === codigoTalla
+            );
+            return encontrada
+              ? { ...encontrada, talla: codigoTalla, stock: Number(encontrada.stock) || 0 }
+              : { talla: codigoTalla, stock: 0, disponible: false };
+          });
+        } else {
+          const stockGeneral = Number(producto.stock) ?? 0;
+          tallasNormalizadas = ORDEN_TALLAS.map((codigoTalla) => ({
+            talla: codigoTalla,
+            stock: stockGeneral,
+            disponible: stockGeneral > 0
+          }));
+        }
+
+        setTallasDisponibles(tallasNormalizadas);
+
+        const primeraConStock = tallasNormalizadas.find((t) => t.stock > 0);
+        setTallaSeleccionada(primeraConStock ? primeraConStock.talla : null);
+      })
+      .catch(() => {
+        if (cancelado) return;
+        const stockGeneral = Number(producto.stock) ?? 0;
+        const respaldo = ORDEN_TALLAS.map((codigoTalla) => ({
+          talla: codigoTalla,
+          stock: stockGeneral,
+          disponible: stockGeneral > 0
+        }));
+        setTallasDisponibles(respaldo);
+        const primeraConStock = respaldo.find((t) => t.stock > 0);
+        setTallaSeleccionada(primeraConStock ? primeraConStock.talla : null);
+      })
+      .finally(() => {
+        if (!cancelado) setCargandoTallas(false);
+      });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [producto?.id]);
 
   if (!producto) return null;
 
   const configVariantes = catalogoVariantes[producto.id];
-  const stockTallas = stockTallasPorProducto[producto.id] || {};
+
+  // Evaluación del stock actual (talla activa en camisetas o stock general del producto)
+  const objetoTallaActiva = esCamiseta
+    ? tallasDisponibles.find((t) => t.talla === tallaSeleccionada)
+    : null;
+
+  const stockActual = esCamiseta
+    ? objetoTallaActiva
+      ? Number(objetoTallaActiva.stock) || 0
+      : 0
+    : Number(producto.stock ?? (producto.activo === false ? 0 : 10));
+
+  // Configuración del Badge dinámico de disponibilidad
+  const obtenerInfoBadgeStock = (stock) => {
+    if (stock >= 4) {
+      return {
+        clase: 'badge-stock-alto',
+        texto: 'EN STOCK'
+      };
+    }
+    if (stock >= 1 && stock <= 3) {
+      return {
+        clase: 'badge-stock-bajo',
+        texto: `POCAS UNIDADES (${stock} disponibles)`
+      };
+    }
+    return {
+      clase: 'badge-stock-agotado',
+      texto: 'SIN STOCK'
+    };
+  };
+
+  const badgeStock = obtenerInfoBadgeStock(stockActual);
 
   // 2. CÁLCULO DE PRECIO REACTIVO SEGÚN VARIANTE
   const precioBase = Number(producto.precio) || 0;
@@ -168,6 +256,8 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
   };
 
   const manejarAgregar = () => {
+    if (stockActual === 0) return;
+
     let nombreFinal = producto.nombre;
     const detallesExtras = [];
 
@@ -182,7 +272,6 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
       nombreFinal = `${producto.nombre} (${detallesExtras.join(' - ')})`;
     }
 
-    // Se envía el precio final con el descuento aplicado
     const productoParaCarrito = {
       ...producto,
       precio: precioFinal,
@@ -190,6 +279,7 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
       nombre: nombreFinal,
       variante: varianteSeleccionada ? varianteSeleccionada.etiqueta : null,
       talla: esCamiseta ? tallaSeleccionada : null,
+      stockMax: stockActual,
       imagenUrl: varianteSeleccionada ? varianteSeleccionada.imagen : (producto.imagenUrl || fotos[0])
     };
 
@@ -199,19 +289,25 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
 
   return (
     <>
-      <div className="modal-overlay" onClick={alCerrar}>
+      <div className="modal-overlay" onClick={() => alCerrar()}>
         <div className="modal-contenedor-amazon" onClick={(e) => e.stopPropagation()}>
-          <button className="btn-cerrar-modal" onClick={alCerrar} title="Cerrar ventana">
+          <button
+            type="button"
+            className="btn-cerrar-modal"
+            onClick={() => alCerrar()}
+            title="Cerrar ventana"
+          >
             ✕
           </button>
 
           <div className="modal-grid-detalle">
-            {/* COLUMNA IZQUIERDA: GALERÍA VERTICAL (FOTO ARRIBA, MINIATURAS EN FILA HORIZONTAL ABAJO) */}
+            {/* COLUMNA IZQUIERDA: GALERÍA VERTICAL */}
             <div className="galeria-amazon">
-              {/* 1. VISOR PRINCIPAL ARRIBA */}
               <div
                 className="visor-principal"
-                onClick={() => !imagenRota && setPantallaCompleta(true)}
+                onClick={() => {
+                  if (!imagenRota) setPantallaCompleta(true);
+                }}
                 title={imagenRota ? 'Imagen no disponible' : 'Haz clic para ver en pantalla completa'}
               >
                 {!imagenRota ? (
@@ -230,7 +326,6 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                 )}
               </div>
 
-              {/* 2. TEXTO ENLACE EN EL MEDIO */}
               {!imagenRota && (
                 <button
                   type="button"
@@ -241,7 +336,6 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                 </button>
               )}
 
-              {/* 3. FILA HORIZONTAL DE MINIATURAS ABAJO */}
               <div className="miniaturas-fila">
                 {configVariantes
                   ? configVariantes.opciones.map((opc, idx) => (
@@ -283,7 +377,12 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
             {/* COLUMNA DERECHA: INFORMACIÓN DEL PRODUCTO */}
             <div className="info-producto-detalle">
               <div>
-                <span className="categoria-badge">{producto.nombreCategoria || 'EQUIPAMIENTO'}</span>
+                <div className="cabecera-badges-stark">
+                  <span className="categoria-badge">{producto.nombreCategoria || 'EQUIPAMIENTO'}</span>
+                  <span className={`badge-stock-hud ${badgeStock.clase}`}>
+                    {badgeStock.texto}
+                  </span>
+                </div>
                 <h2>{producto.nombre}</h2>
                 <p className="descripcion-detalle">{producto.descripcion}</p>
               </div>
@@ -327,26 +426,32 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                   <div className="header-selector-tallas">
                     <span className="label-variante">
                       Talla seleccionada:{' '}
-                      <strong className="valor-variante-activo">{tallaSeleccionada || 'Elige una talla'}</strong>
+                      <strong className="valor-variante-activo">
+                        {cargandoTallas
+                          ? 'Escaneando inventario...'
+                          : tallaSeleccionada || 'Sin stock disponible'}
+                      </strong>
                     </span>
                     <span className="guia-tallas-stark">📏 Guía Stark</span>
                   </div>
 
                   <div className="botones-tallas-grid">
-                    {TALLAS_DISPONIBLES.map((talla) => {
-                      const disponible = stockTallas[talla] !== false;
-                      const seleccionada = tallaSeleccionada === talla;
+                    {tallasDisponibles.map((item) => {
+                      const stockTalla = Number(item.stock) || 0;
+                      const agotada = stockTalla === 0;
+                      const activa = tallaSeleccionada === item.talla && !agotada;
 
                       return (
                         <button
-                          key={talla}
+                          key={item.talla}
                           type="button"
-                          className={`btn-talla-chip ${seleccionada ? 'seleccionado' : ''}`}
-gunda                          disabled={!disponible}
-                          onClick={() => setTallaSeleccionada(talla)}
+                          className={`btn-talla btn-talla-chip ${activa ? 'activa seleccionado' : ''} ${agotada ? 'agotada sin-stock' : ''}`}
+                          disabled={agotada}
+                          onClick={() => setTallaSeleccionada(item.talla)}
+                          title={agotada ? `Talla ${item.talla} agotada` : `${stockTalla} unidades disponibles`}
                         >
-                          {talla}
-                          {!disponible && <span className="linea-agotado"></span>}
+                          {item.talla}
+                          {agotada && <span className="linea-agotado"></span>}
                         </button>
                       );
                     })}
@@ -354,7 +459,7 @@ gunda                          disabled={!disponible}
                 </div>
               )}
 
-              {/* ESPECIFICACIONES CON EL PERSONAJE FORMATEADO Y VALIDACIÓN ESTRICTA DE PERSONALIZABLE */}
+              {/* ESPECIFICACIONES */}
               <div className="especificaciones-stark">
                 <p>
                   <strong>Personaje</strong>
@@ -368,7 +473,9 @@ gunda                          disabled={!disponible}
                 </p>
                 <p>
                   <strong>Disponibilidad</strong>
-                  {producto.activo ? 'En existencias' : 'Agotado'}
+                  <span className={`badge-stock-inline ${badgeStock.clase}`}>
+                    {badgeStock.texto}
+                  </span>
                 </p>
               </div>
 
@@ -396,8 +503,13 @@ gunda                          disabled={!disponible}
                   )}
                 </div>
 
-                <button className="btn-agregar-detalle" onClick={manejarAgregar}>
-                  + Añadir a la Cesta
+                <button
+                  type="button"
+                  className={`btn-agregar-detalle ${stockActual === 0 ? 'btn-agotado-detalle' : ''}`}
+                  onClick={() => manejarAgregar()}
+                  disabled={stockActual === 0}
+                >
+                  {stockActual === 0 ? '🚫 ARTÍCULO AGOTADO' : '+ Añadir a la Cesta'}
                 </button>
               </div>
             </div>
@@ -409,6 +521,7 @@ gunda                          disabled={!disponible}
       {pantallaCompleta && !imagenRota && (
         <div className="lightbox-overlay" onClick={() => setPantallaCompleta(false)}>
           <button
+            type="button"
             className="lightbox-btn-cerrar"
             onClick={() => setPantallaCompleta(false)}
             title="Cerrar pantalla completa (Esc)"

@@ -265,3 +265,134 @@
   background: #00e5ff;
   box-shadow: 0 0 14px #00e5ff;
 }
+
+/* ==========================================================================
+   MODAL HUD DE SUSCRIPCIÓN FUNKO POP
+   ========================================================================== */
+
+.funko-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.82);
+  backdrop-filter: blur(6px);
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  animation: fadeInModal 0.25s ease-out;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.funko-modal-hud {
+  position: relative;
+  max-width: 480px;
+  width: 100%;
+  background: rgba(9, 13, 24, 0.94);
+  border: 2px solid #00e5ff;
+  border-radius: 12px;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  box-shadow: 0 0 35px rgba(0, 229, 255, 0.45), inset 0 0 20px rgba(0, 229, 255, 0.1);
+}
+
+.funko-modal-cerrar {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: 1px solid #334155;
+  color: #94a3b8;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.funko-modal-cerrar:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.funko-modal-titulo {
+  color: #ffffff;
+  font-size: 1.35rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0.5rem 0 1.2rem 0;
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.5);
+}
+
+.funko-modal-desc {
+  color: #cbd5e1;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0 0 1.2rem 0;
+}
+
+.funko-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.funko-modal-input {
+  background: #050811;
+  border: 1px solid #00e5ff;
+  color: #ffffff;
+  padding: 0.85rem 1rem;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  outline: none;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.15);
+}
+
+.funko-modal-input:focus {
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.45);
+}
+
+.funko-modal-btn {
+  background: linear-gradient(135deg, #00e5ff 0%, #0284c7 100%);
+  color: #030712;
+  border: none;
+  padding: 0.9rem 1.5rem;
+  font-size: 0.98rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+  transition: all 0.2s ease;
+}
+
+.funko-modal-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.85);
+}
+
+.funko-modal-exito {
+  background: rgba(0, 230, 118, 0.1);
+  border: 1px solid #00e676;
+  border-radius: 8px;
+  padding: 1.25rem;
+  color: #e2e8f0;
+  font-weight: 600;
+  line-height: 1.5;
+  box-shadow: 0 0 18px rgba(0, 230, 118, 0.25);
+}
+
+.funko-modal-exito p {
+  margin: 0;
+}

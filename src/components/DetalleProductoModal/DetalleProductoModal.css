@@ -211,13 +211,78 @@
   justify-content: space-between;
 }
 
+.cabecera-badges-stark {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.35rem;
+}
+
 .categoria-badge {
   color: #00e5ff;
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  margin-bottom: 0.2rem;
+}
+
+/* ==========================================================================
+   BADGES DINÁMICOS DE DISPONIBILIDAD (HUD STARK)
+   ========================================================================== */
+.badge-stock-hud,
+.badge-stock-inline,
+.badge-stock-alto,
+.badge-stock-bajo,
+.badge-stock-agotado {
+  font-family: 'Consolas', monospace;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s ease;
+}
+
+.badge-stock-hud {
+  font-size: 0.74rem;
+  padding: 0.22rem 0.65rem;
+}
+
+.badge-stock-inline {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.45rem;
+  margin-top: 0.15rem;
+}
+
+/* Stock >= 4: Cian neón */
+.badge-stock-alto {
+  background: #090d16;
+  color: #00e5ff;
+  border: 1px solid #00e5ff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.35), inset 0 0 6px rgba(0, 229, 255, 0.15);
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+}
+
+/* Stock 1 a 3: Ámbar / Naranja */
+.badge-stock-bajo {
+  background: #090d16;
+  color: #fbbf24;
+  border: 1px solid #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.35), inset 0 0 6px rgba(245, 158, 11, 0.15);
+  text-shadow: 0 0 6px rgba(251, 191, 36, 0.45);
+}
+
+/* Stock === 0: Rojo alerta */
+.badge-stock-agotado {
+  background: #090d16;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4), inset 0 0 6px rgba(239, 68, 68, 0.2);
+  text-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
 }
 
 .info-producto-detalle h2 {
@@ -313,7 +378,9 @@
   border-color: #00e5ff;
 }
 
-/* Tallas */
+/* ==========================================================================
+   BOTONES DE TALLA (ESTÉTICA HUD STARK)
+   ========================================================================== */
 .selector-tallas-bloque {
   border-left-color: #fbbf24;
 }
@@ -342,9 +409,10 @@
   gap: 0.45rem;
 }
 
+.btn-talla,
 .btn-talla-chip {
   position: relative;
-  min-width: 44px;
+  min-width: 46px;
   height: 36px;
   background: #090d16;
   color: #e2e8f0;
@@ -361,26 +429,36 @@
   overflow: hidden;
 }
 
+.btn-talla:hover:not(:disabled),
 .btn-talla-chip:hover:not(:disabled) {
-  border-color: #fbbf24;
-  color: #fbbf24;
+  border-color: #00e5ff;
+  color: #00e5ff;
   transform: translateY(-2px);
-  box-shadow: 0 0 8px rgba(251, 191, 36, 0.35);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.35);
 }
 
+/* Talla seleccionada activa */
+.btn-talla.activa,
 .btn-talla-chip.seleccionado {
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.25) 0%, rgba(217, 119, 6, 0.25) 100%);
-  border-color: #fbbf24;
-  color: #fbbf24;
-  box-shadow: 0 0 12px rgba(251, 191, 36, 0.45);
+  background: #090d16;
+  border-color: #00e5ff;
+  color: #00e5ff;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.5), inset 0 0 8px rgba(0, 229, 255, 0.2);
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.6);
 }
 
-.btn-talla-chip.sin-stock {
-  background: rgba(15, 23, 42, 0.4);
+/* Talla sin stock / agotada */
+.btn-talla.agotada,
+.btn-talla-chip.sin-stock,
+.btn-talla:disabled {
+  background: #090d16;
   color: #475569;
   border-color: #1e293b;
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.45;
+  text-decoration: line-through;
+  box-shadow: none;
+  transform: none;
 }
 
 .linea-agotado {
@@ -445,6 +523,7 @@
   padding: 0.85rem 1.2rem;
   border-radius: 6px;
   cursor: pointer;
+  font-family: 'Consolas', monospace;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -453,10 +532,21 @@
   box-shadow: 0 0 15px rgba(220, 38, 38, 0.4);
 }
 
-.btn-agregar-detalle:hover {
+.btn-agregar-detalle:hover:not(:disabled) {
   background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.7);
   transform: translateY(-2px);
+}
+
+.btn-agregar-detalle:disabled,
+.btn-agregar-detalle.btn-agotado-detalle {
+  background: #090d16;
+  color: #ef4444;
+  border: 1px solid #7f1d1d;
+  cursor: not-allowed;
+  box-shadow: inset 0 0 10px rgba(239, 68, 68, 0.15);
+  opacity: 0.8;
+  transform: none;
 }
 
 /* ==========================================================================

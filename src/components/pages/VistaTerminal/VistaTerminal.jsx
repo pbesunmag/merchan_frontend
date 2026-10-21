@@ -6,6 +6,7 @@ import DetalleProductoModal from "../../DetalleProductoModal/DetalleProductoModa
 import BannerSuperior from "../../BannerSuperior/BannerSuperior";
 import "./VistaTerminal.css";
 import BannerSlider from "../../BannerSlider/BannerSlider";
+import FormularioSoporte from "../../FormularioSoporte/FormularioSoporte";
 
 export default function VistaTerminal() {
   const [productos, setProductos] = useState([]);
@@ -15,6 +16,7 @@ export default function VistaTerminal() {
   const [pedidoFinalizado, setPedidoFinalizado] = useState(null);
   const [error, setError] = useState(null);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  const [avisoStockId, setAvisoStockId] = useState(null);
 
   const [codigoCupon, setCodigoCupon] = useState("");
   const [cuponAplicado, setCuponAplicado] = useState(null);
@@ -63,15 +65,65 @@ export default function VistaTerminal() {
     };
   }, []);
 
+  const mostrarAlertaTopeStock = (idUnico) => {
+    setAvisoStockId(idUnico);
+  };
+
   const agregarAlCarrito = (producto) => {
-    setCarrito((prev) => [
-      ...prev,
-      {
-        ...producto,
-        idUnico: `${producto.id}_item_${prev.length + 1}_${Date.now()}`,
-        textoPersonalizado: "",
-      },
-    ]);
+    const topeStock = Number(producto.stockMax ?? producto.stock ?? 99);
+    if (topeStock <= 0) return;
+
+    const claveArticulo = `${producto.id}_${producto.nombre || ""}`;
+
+    setCarrito((prev) => {
+      const existe = prev.find((item) => item.idUnico === claveArticulo);
+      if (existe) {
+        const cantActual = Number(existe.cantidad) || 1;
+        const maxPermitido = Number(existe.stockMax ?? topeStock);
+        if (cantActual >= maxPermitido) {
+          mostrarAlertaTopeStock(claveArticulo);
+          return prev;
+        }
+        return prev.map((item) =>
+          item.idUnico === claveArticulo
+            ? { ...item, cantidad: cantActual + 1, stockMax: maxPermitido }
+            : item,
+        );
+      }
+      return [
+        ...prev,
+        {
+          ...producto,
+          idUnico: claveArticulo,
+          cantidad: 1,
+          stockMax: topeStock,
+          textoPersonalizado: "",
+        },
+      ];
+    });
+  };
+
+  const actualizarCantidad = (idUnico, nuevaCantidad) => {
+    setCarrito((prev) =>
+      prev.map((item) => {
+        if (item.idUnico !== idUnico) return item;
+
+        const maxStock = Number(item.stockMax ?? item.stock ?? 99);
+        const valorParseado = parseInt(nuevaCantidad, 10);
+        const cantidadBase = Number.isNaN(valorParseado) ? 1 : Math.max(1, valorParseado);
+
+        if (cantidadBase > maxStock) {
+          mostrarAlertaTopeStock(idUnico);
+          return { ...item, cantidad: maxStock };
+        }
+
+        if (avisoStockId === idUnico) {
+          setAvisoStockId(null);
+        }
+
+        return { ...item, cantidad: cantidadBase };
+      }),
+    );
   };
 
   const actualizarTextoPersonalizado = (idUnico, texto) => {
@@ -86,6 +138,14 @@ export default function VistaTerminal() {
 
   const eliminarDelCarrito = (idUnico) => {
     setCarrito((prev) => prev.filter((item) => item.idUnico !== idUnico));
+    if (avisoStockId === idUnico) setAvisoStockId(null);
+  };
+
+  const vaciarCarrito = () => {
+    setCarrito([]);
+    setCuponAplicado(null);
+    setCodigoCupon("");
+    setAvisoStockId(null);
   };
 
   const obtenerCategoriaProducto = (prod) => {
@@ -151,7 +211,8 @@ export default function VistaTerminal() {
   };
 
   const subtotalSinCupon = carrito.reduce(
-    (acc, item) => acc + calcularPrecioUnidad(item),
+    (acc, item) =>
+      acc + calcularPrecioUnidad(item) * (Number(item.cantidad) || 1),
     0,
   );
 
@@ -192,7 +253,10 @@ export default function VistaTerminal() {
     }
   };
 
-  const totalUnidades = carrito.length;
+  const totalUnidades = carrito.reduce(
+    (acc, item) => acc + (Number(item.cantidad) || 1),
+    0,
+  );
 
   const finalizarPedido = async () => {
     if (carrito.length === 0) return;
@@ -225,7 +289,7 @@ export default function VistaTerminal() {
       for (const item of itemsAProcesar) {
         await productService.agregarProductoAPedido(nuevoPedido.id, {
           productoId: item.id,
-          cantidad: 1,
+          cantidad: Number(item.cantidad) || 1,
           textoPersonalizado: esPersonalizable(item)
             ? item.textoPersonalizado
             : null,
@@ -400,6 +464,9 @@ export default function VistaTerminal() {
             if (esThor) precioFinalProd = precioNum * 0.9;
 
             const tieneDto = esGroot || esThor;
+            const esCamisetaCatalogo =
+              obtenerCategoriaProducto(prod) === "Camisetas" || prod.id <= 5;
+            const sinStockGeneral = Number(prod.stock ?? 1) === 0;
 
             return (
               <article key={prod.id} className="producto-card">
@@ -453,9 +520,23 @@ export default function VistaTerminal() {
                   </div>
                   <button
                     className="btn-agregar"
-                    onClick={() => agregarAlCarrito(prod)}
+                    disabled={!esCamisetaCatalogo && sinStockGeneral}
+                    onClick={() => {
+                      if (esCamisetaCatalogo) {
+                        setProductoSeleccionado(prod);
+                      } else {
+                        agregarAlCarrito({
+                          ...prod,
+                          stockMax: Number(prod.stock ?? 99),
+                        });
+                      }
+                    }}
                   >
-                    Añadir a la Cesta
+                    {!esCamisetaCatalogo && sinStockGeneral
+                      ? "🚫 Agotado"
+                      : esCamisetaCatalogo
+                        ? "Elegir Talla"
+                        : "Añadir a la Cesta"}
                   </button>
                 </div>
               </article>
@@ -482,6 +563,8 @@ export default function VistaTerminal() {
         )}
       </section>
 
+      <FormularioSoporte />
+
       {mostrarCarrito && (
         <div
           className="carrito-overlay"
@@ -493,12 +576,26 @@ export default function VistaTerminal() {
           >
             <div className="carrito-header">
               <h2>Comanda Activa</h2>
-              <button
-                className="btn-cerrar"
-                onClick={() => setMostrarCarrito(false)}
-              >
-                ✕
-              </button>
+              <div className="carrito-header-acciones">
+                {carrito.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn-vaciar-carrito"
+                    onClick={vaciarCarrito}
+                    title="Vaciar todos los artículos"
+                  >
+                    🗑️ Vaciar
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn-cerrar"
+                  onClick={() => setMostrarCarrito(false)}
+                  title="Cerrar carrito"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             {carrito.length === 0 ? (
@@ -506,22 +603,23 @@ export default function VistaTerminal() {
             ) : (
               <>
                 <ul className="comanda-items">
-                  {carrito.map((item, index) => {
+                  {carrito.map((item) => {
                     const nombreItem = (item.nombre || "").trim();
                     const esGrootItem =
                       nombreItem.includes("Figura Groot Guardianes");
                     const esThorItem =
                       nombreItem.includes("Figura Thor Dios del Trueno");
                     const tieneDtoItem = esGrootItem || esThorItem;
+                    const cantActual = Number(item.cantidad) || 1;
+                    const maxDisponible = Number(item.stockMax ?? item.stock ?? 99);
+                    const enTopeStock = cantActual >= maxDisponible;
+                    const subtotalItem =
+                      calcularPrecioUnidad(item) * cantActual;
 
                     return (
                       <li key={item.idUnico} className="comanda-item">
-                        {/* ENCABEZADO DEL ÍTEM ORDENADO */}
                         <div className="comanda-item-header">
                           <div className="comanda-item-info">
-                            <span className="comanda-item-unidad">
-                              Unidad #{index + 1}
-                            </span>
                             <span className="comanda-item-titulo">
                               {item.nombre}
                             </span>
@@ -534,23 +632,101 @@ export default function VistaTerminal() {
 
                           <div className="comanda-item-acciones-precio">
                             <span className="comanda-item-subtotal">
-                              {calcularPrecioUnidad(item).toFixed(2)} €
+                              {subtotalItem.toFixed(2)}&nbsp;€
                             </span>
                             <button
+                              type="button"
                               onClick={() => eliminarDelCarrito(item.idUnico)}
                               className="btn-eliminar-item-comanda"
-                              title="Eliminar esta unidad"
+                              title="Eliminar este artículo"
                             >
                               ✕
                             </button>
                           </div>
                         </div>
 
+                        <div className="comanda-cantidad-fila">
+                          <span className="comanda-cantidad-label">
+                            Unidades{" "}
+                            <small style={{ color: "#64748b" }}>
+                              (máx. {maxDisponible})
+                            </small>
+                            :
+                          </span>
+                          <div className="selector-cantidad-stark">
+                            <button
+                              type="button"
+                              className="btn-cant-control"
+                              onClick={() =>
+                                actualizarCantidad(
+                                  item.idUnico,
+                                  cantActual - 1,
+                                )
+                              }
+                              disabled={cantActual <= 1}
+                              aria-label="Disminuir cantidad"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              max={maxDisponible}
+                              value={cantActual}
+                              onChange={(e) =>
+                                actualizarCantidad(
+                                  item.idUnico,
+                                  e.target.value,
+                                )
+                              }
+                              className="input-cant-numero"
+                              aria-label="Cantidad de unidades"
+                            />
+                            <button
+                              type="button"
+                              className="btn-cant-control"
+                              onClick={() => {
+                                if (enTopeStock) {
+                                  mostrarAlertaTopeStock(item.idUnico);
+                                } else {
+                                  actualizarCantidad(
+                                    item.idUnico,
+                                    cantActual + 1,
+                                  );
+                                }
+                              }}
+                              disabled={enTopeStock}
+                              title={
+                                enTopeStock
+                                  ? `Límite de stock alcanzado (${maxDisponible} ud.)`
+                                  : "Aumentar cantidad"
+                              }
+                              aria-label="Aumentar cantidad"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        {(enTopeStock || avisoStockId === item.idUnico) && (
+                          <small
+                            style={{
+                              color: "#fbbf24",
+                              fontFamily: "'Consolas', monospace",
+                              fontSize: "0.75rem",
+                              display: "block",
+                            }}
+                          >
+                            ⚠️ Límite de stock disponible alcanzado ({maxDisponible}{" "}
+                            {maxDisponible === 1 ? "unidad" : "unidades"}).
+                          </small>
+                        )}
+
                         {esPersonalizable(item) ? (
                           <>
                             <input
                               type="text"
-                              placeholder="Grabado / texto para esta unidad..."
+                              placeholder="Grabado / texto personalizado..."
                               value={item.textoPersonalizado}
                               onChange={(e) =>
                                 actualizarTextoPersonalizado(
@@ -564,7 +740,7 @@ export default function VistaTerminal() {
                             {item.textoPersonalizado?.trim().length > 0 && (
                               <div className="aviso-descuento-grabado">
                                 ⚡ Grabado Especial Apertura:{" "}
-                                <strong>+3.00 €</strong>{" "}
+                                <strong>+3.00 € / ud.</strong>{" "}
                                 <span className="precio-tachado">5.00 €</span>
                               </div>
                             )}
@@ -586,46 +762,28 @@ export default function VistaTerminal() {
                   })}
                 </ul>
 
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    margin: "0.8rem 0",
-                    fontSize: "0.88rem",
-                    color: "#94a3b8",
-                  }}
-                >
+                <div className="comanda-envio-fila">
                   <span>Gastos de Envío:</span>
-                  <span>
+                  <span className="envio-importe">
                     {esEnvioGratis ? (
                       <>
                         <span
                           className="precio-tachado"
                           style={{ marginRight: "0.4rem" }}
                         >
-                          4.95 €
+                          4.95&nbsp;€
                         </span>
-                        <strong style={{ color: "#00e5ff" }}>0.00 €</strong>
+                        <strong style={{ color: "#00e5ff", whiteSpace: "nowrap" }}>0.00&nbsp;€</strong>
                       </>
                     ) : (
-                      <strong style={{ color: "#e2e8f0" }}>4.95 €</strong>
+                      <strong style={{ color: "#e2e8f0", whiteSpace: "nowrap" }}>4.95&nbsp;€</strong>
                     )}
                   </span>
                 </div>
 
-                <div
-                  style={{
-                    marginTop: "1rem",
-                    borderTop: "1px dashed #334155",
-                    paddingTop: "0.8rem",
-                  }}
-                >
+                <div className="cupon-seccion-contenedor">
                   {!cuponAplicado ? (
-                    <form
-                      onSubmit={aplicarCupon}
-                      style={{ display: "flex", gap: "0.5rem" }}
-                    >
+                    <form onSubmit={aplicarCupon} className="cupon-form">
                       <input
                         type="text"
                         placeholder="Introduce tu código..."
@@ -634,21 +792,9 @@ export default function VistaTerminal() {
                           setCodigoCupon(e.target.value);
                           if (errorCupon) setErrorCupon("");
                         }}
-                        className="comanda-custom-input"
-                        style={{ flex: 1 }}
+                        className="comanda-custom-input cupon-input"
                       />
-                      <button
-                        type="submit"
-                        style={{
-                          background: "#0284c7",
-                          color: "#fff",
-                          border: "none",
-                          borderRadius: "4px",
-                          padding: "0.4rem 0.8rem",
-                          cursor: "pointer",
-                          fontWeight: "bold",
-                        }}
-                      >
+                      <button type="submit" className="btn-aplicar-cupon">
                         Aplicar
                       </button>
                     </form>
@@ -691,20 +837,14 @@ export default function VistaTerminal() {
 
                 <div className="comanda-total-container">
                   <span className="comanda-total-label">Total a abonar</span>
-                  <div style={{ textAlign: "right" }}>
+                  <div className="comanda-total-valores">
                     {cuponAplicado && (
-                      <div
-                        style={{
-                          textDecoration: "line-through",
-                          color: "#94a3b8",
-                          fontSize: "0.9rem",
-                        }}
-                      >
-                        {(subtotalSinCupon + costoEnvioActual).toFixed(2)} €
+                      <div className="comanda-total-tachado">
+                        {(subtotalSinCupon + costoEnvioActual).toFixed(2)}&nbsp;€
                       </div>
                     )}
                     <span className="comanda-total-monto">
-                      {totalConDescuento} €
+                      {totalConDescuento}&nbsp;€
                     </span>
                   </div>
                 </div>
