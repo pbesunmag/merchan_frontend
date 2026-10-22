@@ -6,19 +6,28 @@ import './VistaPreparacion.css';
 export default function VistaPreparacion() {
   const [pedidosCreados, setPedidosCreados] = useState([]);
   const [pedidosEnProceso, setPedidosEnProceso] = useState([]);
+  const [pedidosListos, setPedidosListos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [soloConGrabado, setSoloConGrabado] = useState(false);
+  const [pedidoACancelar, setPedidoACancelar] = useState(null);
+  
+  const [pagosAceptados, setPagosAceptados] = useState({});
+  const [pedidoAPagoModal, setPedidoAPagoModal] = useState(null);
 
   const cargarPedidos = useCallback(async (silencioso = false) => {
     try {
       if (!silencioso) setError(null);
-      const [creadosRes, enProcesoRes] = await Promise.all([
+      const [creadosRes, enProcesoRes, listosRes] = await Promise.all([
         pedidoService.obtenerPorEstado('CREADO'),
         pedidoService.obtenerPorEstado('EN_PREPARACION'),
+        pedidoService.obtenerPorEstado('PEDIDO_LISTO'),
       ]);
 
       setPedidosCreados(creadosRes?.content || creadosRes || []);
       setPedidosEnProceso(enProcesoRes?.content || enProcesoRes || []);
+      setPedidosListos(listosRes?.content || listosRes || []);
     } catch (err) {
       if (!silencioso) setError(err.message);
     } finally {
@@ -55,6 +64,79 @@ export default function VistaPreparacion() {
     }
   };
 
+  const ejecutarCancelacion = async () => {
+    if (!pedidoACancelar) return;
+    await cambiarEstado(pedidoACancelar.id, 'CANCELADO');
+    setPedidoACancelar(null);
+  };
+
+  const confirmarPago = () => {
+    if (!pedidoAPagoModal) return;
+    setPagosAceptados((prev) => ({
+      ...prev,
+      [pedidoAPagoModal.id]: true,
+    }));
+    setPedidoAPagoModal(null);
+  };
+
+  const revertirPedido = async (pedidoId) => {
+    setPagosAceptados((prev) => ({
+      ...prev,
+      [pedidoId]: true,
+    }));
+    await cambiarEstado(pedidoId, 'CREADO');
+  };
+
+  const normalizarTexto = (texto) => {
+    if (!texto) return '';
+    return String(texto)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  };
+
+  const tieneGrabadoPersonalizado = (pedido) => {
+    const lineas = pedido.lineas || pedido.productos || [];
+    return lineas.some(
+      (linea) =>
+        linea.textoPersonalizado &&
+        String(linea.textoPersonalizado).trim().length > 0
+    );
+  };
+
+  const calcularTotalUnidades = (pedido) => {
+    const lineas = pedido.lineas || pedido.productos || [];
+    return lineas.reduce((acc, linea) => acc + (Number(linea.cantidad) || 1), 0);
+  };
+
+  const cumpleFiltros = (pedido) => {
+    if (soloConGrabado && !tieneGrabadoPersonalizado(pedido)) {
+      return false;
+    }
+
+    const termino = normalizarTexto(busqueda.trim());
+    if (!termino) return true;
+
+    const coincideCodigo = normalizarTexto(pedido.codigo).includes(termino);
+    const coincideId = String(pedido.id).includes(termino);
+
+    const lineas = pedido.lineas || pedido.productos || [];
+    const coincideProducto = lineas.some((linea) => {
+      const nombreProd = normalizarTexto(
+        linea.productoNombre || linea.nombre || `Producto #${linea.productoId}`
+      );
+      const textoPers = normalizarTexto(linea.textoPersonalizado);
+      return nombreProd.includes(termino) || textoPers.includes(termino);
+    });
+
+    return coincideCodigo || coincideId || coincideProducto;
+  };
+
+  const creadosFiltrados = pedidosCreados.filter(cumpleFiltros);
+  const enProcesoFiltrados = pedidosEnProceso.filter(cumpleFiltros);
+  const listosFiltrados = pedidosListos.filter(cumpleFiltros);
+  const hayFiltrosActivos = busqueda.trim().length > 0 || soloConGrabado;
+
   if (loading) {
     return <ReactorLoader size={140} text="Cargando pedidos del almacén..." />;
   }
@@ -63,100 +145,329 @@ export default function VistaPreparacion() {
     <div className="preparacion-container">
       <div className="preparacion-header">
         <h2>📦 Preparación de Pedidos</h2>
-        <button className="btn-recargar" onClick={() => cargarPedidos(false)}>
-          ↻ Actualizar Tablero
-        </button>
+
+        <div className="preparacion-controles">
+          <div className="buscador-preparacion-wrapper">
+            <input
+              type="text"
+              className="input-buscador-preparacion"
+              placeholder="🔍 Buscar por código (AV-1010) o producto (Spiderman)..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+            {busqueda && (
+              <button
+                type="button"
+                className="btn-limpiar-busqueda"
+                onClick={() => setBusqueda('')}
+                title="Limpiar búsqueda"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className={`btn-filtro-grabado ${soloConGrabado ? 'activo' : ''}`}
+            onClick={() => setSoloConGrabado(!soloConGrabado)}
+            title="Mostrar únicamente pedidos con texto personalizado"
+          >
+            ⚡ Solo con grabado
+          </button>
+        </div>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
 
-      <div className="tablero-columnas">
-        {/* Columna 1: Pedidos Nuevos (CREADO) */}
+      <div className="tablero-columnas tres-columnas">
         <section className="columna">
           <div className="columna-titulo">
-            <span>Nuevos (CREADO)</span>
-            <span>{pedidosCreados.length}</span>
+            <span className="columna-texto-titulo">Nuevos pedidos</span>
+            <span className="columna-contador">{creadosFiltrados.length}</span>
           </div>
 
           <div className="pedidos-lista">
-            {pedidosCreados.length === 0 ? (
-              <p className="vacio-texto">No hay pedidos pendientes</p>
+            {creadosFiltrados.length === 0 ? (
+              <p className="vacio-texto">
+                {hayFiltrosActivos
+                  ? 'Sin resultados para los filtros aplicados'
+                  : 'No hay pedidos pendientes'}
+              </p>
             ) : (
-              pedidosCreados.map((pedido) => (
-                <article key={pedido.id} className="pedido-card">
-                  <div className="pedido-card-header">
-                    <span className="pedido-codigo">{pedido.codigo}</span>
-                    <small>ID: {pedido.id}</small>
-                  </div>
+              creadosFiltrados.map((pedido) => {
+                const totalUds = calcularTotalUnidades(pedido);
+                const esPersonalizado = tieneGrabadoPersonalizado(pedido);
+                const pagoAceptado = pagosAceptados[pedido.id];
 
-                  <ul className="lineas-list">
-                    {(pedido.lineas || pedido.productos)?.map((linea, idx) => (
-                      <li key={linea.id || idx} className="linea-item">
-                        <strong>{linea.cantidad}x</strong> {linea.productoNombre || `Producto #${linea.productoId}`}
-                        {linea.textoPersonalizado && (
-                          <div className="linea-personalizado">
-                            ✏️ "{linea.textoPersonalizado}"
-                          </div>
+                return (
+                  <article key={pedido.id} className="pedido-card">
+                    <div className="pedido-card-header">
+                      <span className="pedido-codigo">{pedido.codigo}</span>
+                      <div className="pedido-header-badges">
+                        {esPersonalizado && (
+                          <span className="badge-grabado-alerta" title="Este pedido incluye artículos personalizados">
+                            ⚡ REQUIERE GRABADO
+                          </span>
                         )}
-                      </li>
-                    ))}
-                  </ul>
+                        <span className="badge-unidades" title="Total de artículos">
+                          📦 {totalUds} {totalUds === 1 ? 'ud.' : 'uds.'}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-cancelar-pedido"
+                          onClick={() => setPedidoACancelar(pedido)}
+                          title="Cancelar pedido"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
 
-                  <button
-                    className="btn-accion btn-iniciar"
-                    onClick={() => cambiarEstado(pedido.id, 'EN_PREPARACION')}
-                  >
-                    Iniciar Preparación
-                  </button>
-                </article>
-              ))
+                    <ul className="lineas-list">
+                      {(pedido.lineas || pedido.productos)?.map((linea, idx) => (
+                        <li key={linea.id || idx} className="linea-item">
+                          <strong>{linea.cantidad}x</strong>{' '}
+                          {linea.productoNombre || `Producto #${linea.productoId}`}
+                          {linea.textoPersonalizado && (
+                            <div className="linea-personalizado">
+                              ✏️ "{linea.textoPersonalizado}"
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="pedido-acciones-fila">
+                      <button
+                        type="button"
+                        className={`btn-accion ${pagoAceptado ? 'btn-pago-aceptado' : 'btn-pago-ok'}`}
+                        onClick={() => !pagoAceptado && setPedidoAPagoModal(pedido)}
+                        disabled={pagoAceptado}
+                        title={pagoAceptado ? "El pago ya ha sido verificado" : "Verificar estado del pago"}
+                      >
+                        {pagoAceptado ? '✓ Pago ya aceptado' : '💳 Pago Aceptado'}
+                      </button>
+                      <button
+                        className={`btn-accion btn-iniciar ${!pagoAceptado ? 'btn-deshabilitado' : ''}`}
+                        onClick={() => pagoAceptado && cambiarEstado(pedido.id, 'EN_PREPARACION')}
+                        disabled={!pagoAceptado}
+                        title={!pagoAceptado ? "Debe aceptar el pago antes de iniciar la preparación" : "Iniciar preparación"}
+                      >
+                        Iniciar Preparación
+                      </button>
+                    </div>
+                  </article>
+                );
+              })
             )}
           </div>
         </section>
 
-        {/* Columna 2: Pedidos En Proceso (EN_PREPARACION) */}
         <section className="columna">
           <div className="columna-titulo">
-            <span>En Proceso (EN_PREPARACION)</span>
-            <span>{pedidosEnProceso.length}</span>
+            <span className="columna-texto-titulo">En proceso</span>
+            <span className="columna-contador">{enProcesoFiltrados.length}</span>
           </div>
 
           <div className="pedidos-lista">
-            {pedidosEnProceso.length === 0 ? (
-              <p className="vacio-texto">No hay pedidos en preparación</p>
+            {enProcesoFiltrados.length === 0 ? (
+              <p className="vacio-texto">
+                {hayFiltrosActivos
+                  ? 'Sin resultados para los filtros aplicados'
+                  : 'No hay pedidos en preparación'}
+              </p>
             ) : (
-              pedidosEnProceso.map((pedido) => (
-                <article key={pedido.id} className="pedido-card">
-                  <div className="pedido-card-header">
-                    <span className="pedido-codigo">{pedido.codigo}</span>
-                    <small>ID: {pedido.id}</small>
-                  </div>
+              enProcesoFiltrados.map((pedido) => {
+                const totalUds = calcularTotalUnidades(pedido);
+                const esPersonalizado = tieneGrabadoPersonalizado(pedido);
 
-                  <ul className="lineas-list">
-                    {(pedido.lineas || pedido.productos)?.map((linea, idx) => (
-                      <li key={linea.id || idx} className="linea-item">
-                        <strong>{linea.cantidad}x</strong> {linea.productoNombre || `Producto #${linea.productoId}`}
-                        {linea.textoPersonalizado && (
-                          <div className="linea-personalizado">
-                            ✏️ "{linea.textoPersonalizado}"
-                          </div>
+                return (
+                  <article key={pedido.id} className="pedido-card">
+                    <div className="pedido-card-header">
+                      <span className="pedido-codigo">{pedido.codigo}</span>
+                      <div className="pedido-header-badges">
+                        {esPersonalizado && (
+                          <span className="badge-grabado-alerta" title="Este pedido incluye artículos personalizados">
+                            ⚡ REQUIERE GRABADO
+                          </span>
                         )}
-                      </li>
-                    ))}
-                  </ul>
+                        <span className="badge-unidades" title="Total de artículos">
+                          📦 {totalUds} {totalUds === 1 ? 'ud.' : 'uds.'}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-cancelar-pedido"
+                          onClick={() => setPedidoACancelar(pedido)}
+                          title="Cancelar pedido"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
 
-                  <button
-                    className="btn-accion btn-completar"
-                    onClick={() => cambiarEstado(pedido.id, 'PEDIDO_LISTO')}
-                  >
-                    Marcar como Listo
-                  </button>
-                </article>
-              ))
+                    <ul className="lineas-list">
+                      {(pedido.lineas || pedido.productos)?.map((linea, idx) => (
+                        <li key={linea.id || idx} className="linea-item">
+                          <strong>{linea.cantidad}x</strong>{' '}
+                          {linea.productoNombre || `Producto #${linea.productoId}`}
+                          {linea.textoPersonalizado && (
+                            <div className="linea-personalizado">
+                              ✏️ "{linea.textoPersonalizado}"
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <div className="pedido-acciones-fila">
+                      <button
+                        className="btn-accion btn-revertir"
+                        onClick={() => revertirPedido(pedido.id)}
+                        title="Devolver pedido a Nuevos"
+                      >
+                        ↩ Revertir
+                      </button>
+                      <button
+                        className="btn-accion btn-completar"
+                        onClick={() => cambiarEstado(pedido.id, 'PEDIDO_LISTO')}
+                      >
+                        Marcar como Listo
+                      </button>
+                    </div>
+                  </article>
+                );
+              })
+            )}
+          </div>
+        </section>
+
+        <section className="columna">
+          <div className="columna-titulo">
+            <span className="columna-texto-titulo">Listos en mostrador</span>
+            <span className="columna-contador">{listosFiltrados.length}</span>
+          </div>
+
+          <div className="pedidos-lista">
+            {listosFiltrados.length === 0 ? (
+              <p className="vacio-texto">
+                {hayFiltrosActivos
+                  ? 'Sin resultados para los filtros aplicados'
+                  : 'No hay pedidos listos'}
+              </p>
+            ) : (
+              listosFiltrados.map((pedido) => {
+                const totalUds = calcularTotalUnidades(pedido);
+                const esPersonalizado = tieneGrabadoPersonalizado(pedido);
+
+                return (
+                  <article key={pedido.id} className="pedido-card">
+                    <div className="pedido-card-header">
+                      <span className="pedido-codigo">{pedido.codigo}</span>
+                      <div className="pedido-header-badges">
+                        {esPersonalizado && (
+                          <span className="badge-grabado-alerta" title="Este pedido incluye artículos personalizados">
+                            ⚡ REQUIERE GRABADO
+                          </span>
+                        )}
+                        <span className="badge-unidades" title="Total de artículos">
+                          📦 {totalUds} {totalUds === 1 ? 'ud.' : 'uds.'}
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-cancelar-pedido"
+                          onClick={() => setPedidoACancelar(pedido)}
+                          title="Cancelar pedido"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+
+                    <ul className="lineas-list">
+                      {(pedido.lineas || pedido.productos)?.map((linea, idx) => (
+                        <li key={linea.id || idx} className="linea-item">
+                          <strong>{linea.cantidad}x</strong>{' '}
+                          {linea.productoNombre || `Producto #${linea.productoId}`}
+                          {linea.textoPersonalizado && (
+                            <div className="linea-personalizado">
+                              ✏️ "{linea.textoPersonalizado}"
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <button
+                      className="btn-accion btn-entregar"
+                      onClick={() => cambiarEstado(pedido.id, 'ENTREGADO')}
+                      title="Entregar pedido al cliente"
+                    >
+                      ✓ Entregado al Cliente
+                    </button>
+                  </article>
+                );
+              })
             )}
           </div>
         </section>
       </div>
+
+      {pedidoACancelar && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>⚠️ Confirmar Cancelación</h3>
+            <p>
+              ¿Está seguro que desea cancelar el pedido{' '}
+              <strong>{pedidoACancelar.codigo}</strong>?
+            </p>
+            <div className="modal-acciones">
+              <button
+                type="button"
+                className="btn-modal btn-modal-secundario"
+                onClick={() => setPedidoACancelar(null)}
+              >
+                Volver
+              </button>
+              <button
+                type="button"
+                className="btn-modal btn-modal-peligro"
+                onClick={ejecutarCancelacion}
+              >
+                Sí, cancelar pedido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pedidoAPagoModal && (
+        <div className="modal-overlay">
+          <div className="modal-content modal-pago">
+            <h3>💳 Confirmación de Pago</h3>
+            <p>
+              ¿Desea aceptar y verificar el pago para el pedido{' '}
+              <strong>{pedidoAPagoModal.codigo}</strong>?
+            </p>
+            <div className="modal-acciones">
+              <button
+                type="button"
+                className="btn-modal btn-modal-secundario"
+                onClick={() => setPedidoAPagoModal(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn-modal btn-modal-exito"
+                onClick={confirmarPago}
+              >
+                Confirmar Pago Aceptado
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
