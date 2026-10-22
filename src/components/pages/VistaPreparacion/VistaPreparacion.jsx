@@ -16,6 +16,24 @@ export default function VistaPreparacion() {
   const [pagosAceptados, setPagosAceptados] = useState({});
   const [pedidoAPagoModal, setPedidoAPagoModal] = useState(null);
 
+  const [ultimasEntregas, setUltimasEntregas] = useState(() => {
+    try {
+      const guardadas = localStorage.getItem('stark_ultimas_entregas');
+      return guardadas ? JSON.parse(guardadas) : [];
+    } catch (errInit) {
+      console.warn(errInit);
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('stark_ultimas_entregas', JSON.stringify(ultimasEntregas));
+    } catch (errStorage) {
+      console.warn(errStorage);
+    }
+  }, [ultimasEntregas]);
+
   const cargarPedidos = useCallback(async (silencioso = false) => {
     try {
       if (!silencioso) setError(null);
@@ -64,6 +82,33 @@ export default function VistaPreparacion() {
     }
   };
 
+  const entregarPedido = async (pedido) => {
+    try {
+      await pedidoService.actualizarEstado(pedido.id, 'ENTREGADO');
+      
+      const codigoEntregado = pedido.codigo || `AV-${pedido.id}`;
+      const horaActual = new Date().toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const nuevoRegistro = {
+        id: pedido.id,
+        codigo: codigoEntregado,
+        horaEntrega: horaActual,
+      };
+
+      setUltimasEntregas((prev) => {
+        const sinDuplicado = prev.filter((item) => item.id !== pedido.id);
+        return [nuevoRegistro, ...sinDuplicado].slice(0, 5);
+      });
+
+      cargarPedidos(false);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const ejecutarCancelacion = async () => {
     if (!pedidoACancelar) return;
     await cambiarEstado(pedidoACancelar.id, 'CANCELADO');
@@ -79,12 +124,16 @@ export default function VistaPreparacion() {
     setPedidoAPagoModal(null);
   };
 
-  const revertirPedido = async (pedidoId) => {
+  const revertirACreado = async (pedidoId) => {
     setPagosAceptados((prev) => ({
       ...prev,
       [pedidoId]: true,
     }));
     await cambiarEstado(pedidoId, 'CREADO');
+  };
+
+  const revertirAEnProceso = async (pedidoId) => {
+    await cambiarEstado(pedidoId, 'EN_PREPARACION');
   };
 
   const normalizarTexto = (texto) => {
@@ -323,8 +372,8 @@ export default function VistaPreparacion() {
                     <div className="pedido-acciones-fila">
                       <button
                         className="btn-accion btn-revertir"
-                        onClick={() => revertirPedido(pedido.id)}
-                        title="Devolver pedido a Nuevos"
+                        onClick={() => revertirACreado(pedido.id)}
+                        title="Devolver pedido a Nuevos pedidos"
                       >
                         ↩ Revertir
                       </button>
@@ -398,13 +447,22 @@ export default function VistaPreparacion() {
                       ))}
                     </ul>
 
-                    <button
-                      className="btn-accion btn-entregar"
-                      onClick={() => cambiarEstado(pedido.id, 'ENTREGADO')}
-                      title="Entregar pedido al cliente"
-                    >
-                      ✓ Entregado al Cliente
-                    </button>
+                    <div className="pedido-acciones-fila">
+                      <button
+                        className="btn-accion btn-revertir"
+                        onClick={() => revertirAEnProceso(pedido.id)}
+                        title="Devolver pedido a En proceso"
+                      >
+                        ↩ Revertir
+                      </button>
+                      <button
+                        className="btn-accion btn-entregar"
+                        onClick={() => entregarPedido(pedido)}
+                        title="Entregar pedido al cliente"
+                      >
+                        ✓ Entregado al Cliente
+                      </button>
+                    </div>
                   </article>
                 );
               })
