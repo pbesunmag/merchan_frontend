@@ -23,7 +23,7 @@ export default function FormularioSoporte() {
   };
 
   return (
-    <section id="soporte" className="soporte-section">
+    <section id="soporte" className="soporte-section formulario-soporte-container">
       <div className="soporte-box-hud">
         <div className="soporte-header">
           <span className="soporte-tag">CANAL DIRECTO J.A.R.V.I.S.</span>

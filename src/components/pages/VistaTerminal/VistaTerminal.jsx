@@ -38,8 +38,6 @@ export default function VistaTerminal() {
   const [mostrarTodos, setMostrarTodos] = useState(false);
 
   const PRECIO_GRABADO_REBAJADO = 3.0;
-  const COSTO_ENVIO_BASE = 4.95;
-  const UMBRAL_ENVIO_GRATIS = 70.0;
 
   useEffect(() => {
     let montado = true;
@@ -78,6 +76,20 @@ export default function VistaTerminal() {
     const claveArticulo = `${producto.id}_${producto.nombre || ""}_${tallaArticulo}`;
 
     setCarrito((prev) => {
+      const unidadesYaEnCesta = prev
+        .filter((item) =>
+          tallaArticulo
+            ? item.id === producto.id && item.talla === tallaArticulo
+            : item.id === producto.id,
+        )
+        .reduce((acc, item) => acc + (Number(item.cantidad) || 0), 0);
+
+      if (unidadesYaEnCesta >= topeStock) {
+        const itemExistente = prev.find((item) => item.idUnico === claveArticulo);
+        if (itemExistente) mostrarAlertaTopeStock(claveArticulo);
+        return prev;
+      }
+
       const existe = prev.find((item) => item.idUnico === claveArticulo);
       if (existe) {
         const cantActual = Number(existe.cantidad) || 1;
@@ -218,17 +230,10 @@ export default function VistaTerminal() {
     0,
   );
 
-  const esEnvioGratis = subtotalSinCupon >= UMBRAL_ENVIO_GRATIS;
-  const costoEnvioActual = esEnvioGratis ? 0 : COSTO_ENVIO_BASE;
-
   const montoDescuento = cuponAplicado
     ? subtotalSinCupon * (cuponAplicado.porcentaje / 100)
     : 0;
-  const totalConDescuento = (
-    subtotalSinCupon -
-    montoDescuento +
-    costoEnvioActual
-  ).toFixed(2);
+  const totalConDescuento = (subtotalSinCupon - montoDescuento).toFixed(2);
 
   const aplicarCupon = (e) => {
     e.preventDefault();
@@ -414,7 +419,7 @@ export default function VistaTerminal() {
         )}
       </button>
 
-      <section className="catalogo-section">
+      <section className="catalogo-section catalogo-container">
         <div className="catalogo-header-bar">
           <h2>Catálogo de Equipamiento</h2>
           <span className="contador-suministros">
@@ -469,7 +474,20 @@ export default function VistaTerminal() {
             const tieneDto = esGroot || esThor;
             const esCamisetaCatalogo =
               obtenerCategoriaProducto(prod) === "Camisetas" || prod.id <= 5;
-            const sinStockGeneral = Number(prod.stock ?? 1) === 0;
+
+            // 1. Unidades ya presentes en la cesta para este producto
+            const unidadesEnCesta = carrito
+              .filter((item) => item.id === prod.id)
+              .reduce((total, item) => total + (Number(item.cantidad) || 0), 0);
+
+            // 2. Stock efectivo remanente en tiempo real
+            const stockBaseProd = Number(
+              prod.stockMax ?? prod.stock ?? (prod.activo === false ? 0 : 10),
+            );
+            const stockEfectivo = Math.max(0, stockBaseProd - unidadesEnCesta);
+
+            const estaAgotado = stockEfectivo === 0;
+            const pocoStock = stockEfectivo > 0 && stockEfectivo <= 2;
 
             return (
               <article key={prod.id} className="producto-card">
@@ -500,45 +518,72 @@ export default function VistaTerminal() {
                 </div>
 
                 <div>
-                  <div className="producto-precio">
+                  <div className="producto-precio producto-precios-contenedor">
                     {tieneDto ? (
                       <>
-                        <span
-                          style={{
-                            textDecoration: "line-through",
-                            fontSize: "1.1rem",
-                            color: "#94a3b8",
-                            marginRight: "0.4rem",
-                          }}
-                        >
-                          {precioNum.toFixed(2)} €
+                        <span className="producto-precio-tachado precio-anterior-card">
+                          {precioNum.toFixed(2)}&nbsp;€
                         </span>
-                        <span style={{ color: "#00e5ff" }}>
-                          {precioFinalProd.toFixed(2)} €
+                        <span className="producto-precio-actual precio-nuevo">
+                          {precioFinalProd.toFixed(2)}&nbsp;€
                         </span>
                       </>
                     ) : (
-                      `${precioNum.toFixed(2)} €`
+                      <span className="producto-precio-actual">
+                        {precioNum.toFixed(2)}&nbsp;€
+                      </span>
                     )}
                   </div>
+
+                  {/* Aviso de stock sincronizado en tiempo real */}
+                  <div
+                    className={`producto-stock-estado ${
+                      estaAgotado
+                        ? "stock-agotado"
+                        : pocoStock
+                          ? "stock-bajo"
+                          : "stock-disponible"
+                    }`}
+                  >
+                    {estaAgotado ? (
+                      <span>🚫 Agotado en almacén</span>
+                    ) : pocoStock ? (
+                      <>
+                        <span>⚠️ ¡Pocas existencias!</span>
+                        <span className="producto-stock-unidades">
+                          (Solo quedan {stockEfectivo}&nbsp;ud)
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span>✓ En stock</span>
+                        <span className="producto-stock-unidades">
+                          ({stockEfectivo}&nbsp;disponibles)
+                        </span>
+                      </>
+                    )}
+                  </div>
+
                   <button
-                    className="btn-agregar"
-                    disabled={!esCamisetaCatalogo && sinStockGeneral}
+                    className={`btn-agregar ${
+                      !esCamisetaCatalogo && estaAgotado ? "btn-agregar-agotado" : ""
+                    }`}
+                    disabled={!esCamisetaCatalogo && estaAgotado}
                     onClick={() => {
                       if (esCamisetaCatalogo) {
                         setProductoSeleccionado(prod);
                       } else {
                         agregarAlCarrito({
                           ...prod,
-                          stockMax: Number(prod.stock ?? 99),
+                          stockMax: stockBaseProd,
                         });
                       }
                     }}
                   >
-                    {!esCamisetaCatalogo && sinStockGeneral
-                      ? "🚫 Agotado"
-                      : esCamisetaCatalogo
-                        ? "Elegir Talla"
+                    {esCamisetaCatalogo
+                      ? "Elegir Talla"
+                      : estaAgotado
+                        ? "🚫 Agotado"
                         : "Añadir a la Cesta"}
                   </button>
                 </div>
@@ -770,25 +815,6 @@ export default function VistaTerminal() {
                   })}
                 </ul>
 
-                <div className="comanda-envio-fila">
-                  <span>Gastos de Envío:</span>
-                  <span className="envio-importe">
-                    {esEnvioGratis ? (
-                      <>
-                        <span
-                          className="precio-tachado"
-                          style={{ marginRight: "0.4rem" }}
-                        >
-                          4.95&nbsp;€
-                        </span>
-                        <strong style={{ color: "#00e5ff", whiteSpace: "nowrap" }}>0.00&nbsp;€</strong>
-                      </>
-                    ) : (
-                      <strong style={{ color: "#e2e8f0", whiteSpace: "nowrap" }}>4.95&nbsp;€</strong>
-                    )}
-                  </span>
-                </div>
-
                 <div className="cupon-seccion-contenedor">
                   {!cuponAplicado ? (
                     <form onSubmit={aplicarCupon} className="cupon-form">
@@ -847,7 +873,7 @@ export default function VistaTerminal() {
                   <div className="comanda-total-valores">
                     {cuponAplicado && (
                       <div className="comanda-total-tachado">
-                        {(subtotalSinCupon + costoEnvioActual).toFixed(2)}&nbsp;€
+                        {subtotalSinCupon.toFixed(2)}&nbsp;€
                       </div>
                     )}
                     <span className="comanda-total-monto">
@@ -867,6 +893,7 @@ export default function VistaTerminal() {
 
       <DetalleProductoModal
         producto={productoSeleccionado}
+        carrito={carrito}
         alCerrar={() => setProductoSeleccionado(null)}
         alAgregar={agregarAlCarrito}
       />

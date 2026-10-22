@@ -2,24 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import './ModalInformacion.css';
 
 const SECCIONES_INFO = {
-  envios: {
-    etiqueta: 'LOGÍSTICA STARK',
-    titulo: 'Protocolo de Logística y Despliegue Stark',
-    items: [
-      {
-        subtitulo: 'Transporte Quinjet Express (24-48h):',
-        texto: 'Entrega estándar en la península mediante nuestra flota de suministro rápido por 4.95 € (gratuito en pedidos superiores a 70.00 €).'
-      },
-      {
-        subtitulo: 'Seguimiento por Satélite Stark:',
-        texto: 'Cada paquete incluye un localizador encriptado que permite rastrear la cápsula de suministros en tiempo real desde la salida del Complejo de Vengadores hasta tu base.'
-      },
-      {
-        subtitulo: 'Empaquetado Blindado:',
-        texto: 'Todos los suministros (figuras coleccionables, textiles y reactores) se envían en cajas reforzadas con sellos de seguridad térmicos a prueba de impactos.'
-      }
-    ]
-  },
   cambios: {
     etiqueta: 'GARANTÍA J.A.R.V.I.S.',
     titulo: 'Garantía y Retorno de Equipamiento',

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import './DetalleProductoModal.css';
 
 // Diccionario de variantes con soporte de precios específicos
@@ -80,7 +80,6 @@ const fotosEstandar = {
   20: ['/imagenes/tazas/taza_marvel_695.jpg']
 };
 
-// 1. FUNCIÓN QUE LIMPIA LAS BARRAS BAJAS Y CAPITALIZA: 'DOCTOR_DOOM' -> 'Doctor Doom'
 const formatearPersonaje = (texto) => {
   if (!texto) return 'Vengadores';
   return texto
@@ -89,8 +88,7 @@ const formatearPersonaje = (texto) => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) {
-  // 1. esCamiseta declarado en primer lugar para evitar ReferenceError[cite: 17, 18]
+export default function DetalleProductoModal({ producto, carrito = [], alCerrar, alAgregar }) {
   const esCamiseta = Boolean(
     producto &&
       (producto.id <= 5 ||
@@ -98,24 +96,19 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
         (producto.nombre || '').toLowerCase().includes('camiseta'))
   );
 
-  // 2. Configuración de variantes del producto actual
   const configVariantes = producto ? catalogoVariantes[producto.id] : null;
 
-  // 3. Estado de variante derivado de forma segura[cite: 13]
   const [opcionElegida, setOpcionElegida] = useState(null);
   const varianteSeleccionada = opcionElegida || configVariantes?.opciones[0] || null;
 
-  // 4. Estados locales
   const [tallasDisponibles, setTallasDisponibles] = useState([]);
   const [tallaSeleccionada, setTallaSeleccionada] = useState(null);
   const [imagenManual, setImagenManual] = useState(null);
   const [pantallaCompleta, setPantallaCompleta] = useState(false);
   const [imagenRota, setImagenRota] = useState(false);
 
-  // 5. Estado de carga derivado sin necesidad de setState huérfano[cite: 15]
   const cargandoTallas = esCamiseta && tallasDisponibles.length === 0;
 
-  // 6. Efecto asíncrono para cargar existencias desde Spring Boot
   useEffect(() => {
     if (!producto?.id || !esCamiseta) {
       return;
@@ -152,9 +145,6 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
         }
 
         setTallasDisponibles(tallasNormalizadas);
-
-        const primeraConStock = tallasNormalizadas.find((t) => t.stock > 0);
-        setTallaSeleccionada(primeraConStock ? primeraConStock.talla : null);
       })
       .catch(() => {
         if (cancelado) return;
@@ -165,8 +155,6 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
           disponible: stockGeneral > 0
         }));
         setTallasDisponibles(respaldo);
-        const primeraConStock = respaldo.find((t) => t.stock > 0);
-        setTallaSeleccionada(primeraConStock ? primeraConStock.talla : null);
       });
 
     return () => {
@@ -174,46 +162,88 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
     };
   }, [producto?.id, esCamiseta, producto?.stock]);
 
+  // Sincronización de stock por talla restando lo que ya está en el carrito
+  const tallasSincronizadas = useMemo(() => {
+    if (!producto || !esCamiseta) return [];
+    return tallasDisponibles.map((item) => {
+      const enCestaTalla = carrito
+        .filter((c) => c.id === producto.id && c.talla === item.talla)
+        .reduce((acc, c) => acc + (Number(c.cantidad) || 0), 0);
+
+      const stockBaseTalla = Number(item.stock) || 0;
+      const stockEfectivoTalla = Math.max(0, stockBaseTalla - enCestaTalla);
+
+      return {
+        ...item,
+        stockBase: stockBaseTalla,
+        stockEfectivo: stockEfectivoTalla,
+        enCesta: enCestaTalla
+      };
+    });
+  }, [tallasDisponibles, carrito, producto, esCamiseta]);
+
+  // Seleccionar automáticamente la primera talla con stock efectivo disponible
+  useEffect(() => {
+    if (!esCamiseta || tallasSincronizadas.length === 0) return;
+
+    const actualValida = tallasSincronizadas.find(
+      (t) => t.talla === tallaSeleccionada && t.stockEfectivo > 0
+    );
+
+    if (!actualValida) {
+      const primeraConStock = tallasSincronizadas.find((t) => t.stockEfectivo > 0);
+      setTallaSeleccionada(primeraConStock ? primeraConStock.talla : null);
+    }
+  }, [esCamiseta, tallasSincronizadas, tallaSeleccionada]);
+
   if (!producto) return null;
 
-  // Evaluación del stock actual
+  // Unidades totales de este producto ya en el carrito (para productos sin talla)
+  const unidadesProductoEnCesta = carrito
+    .filter((c) => c.id === producto.id)
+    .reduce((acc, c) => acc + (Number(c.cantidad) || 0), 0);
+
   const objetoTallaActiva = esCamiseta
-    ? tallasDisponibles.find((t) => t.talla === tallaSeleccionada)
+    ? tallasSincronizadas.find((t) => t.talla === tallaSeleccionada)
     : null;
+
+  const stockBaseModal = esCamiseta
+    ? objetoTallaActiva
+      ? Number(objetoTallaActiva.stockBase) || 0
+      : 0
+    : Number(producto.stockMax ?? producto.stock ?? (producto.activo === false ? 0 : 10));
 
   const stockActual = esCamiseta
     ? objetoTallaActiva
-      ? Number(objetoTallaActiva.stock) || 0
+      ? Number(objetoTallaActiva.stockEfectivo) || 0
       : 0
-    : Number(producto.stock ?? (producto.activo === false ? 0 : 10));
+    : Math.max(0, stockBaseModal - unidadesProductoEnCesta);
 
-  // Configuración del Badge dinámico de disponibilidad
+  // Configuración del Badge dinámico de disponibilidad sincronizado
   const obtenerInfoBadgeStock = (stock) => {
-    if (stock >= 4) {
+    if (stock > 2) {
       return {
         clase: 'badge-stock-alto',
-        texto: 'EN STOCK'
+        texto: `✓ EN STOCK (${stock} disponibles)`
       };
     }
-    if (stock >= 1 && stock <= 3) {
+    if (stock >= 1 && stock <= 2) {
       return {
         clase: 'badge-stock-bajo',
-        texto: `POCAS UNIDADES (${stock} disponibles)`
+        texto: `⚠️ ¡SOLO QUEDAN ${stock} UD!`
       };
     }
     return {
       clase: 'badge-stock-agotado',
-      texto: 'SIN STOCK'
+      texto: '🚫 AGOTADO EN ALMACÉN'
     };
   };
 
   const badgeStock = obtenerInfoBadgeStock(stockActual);
 
-  // 2. CÁLCULO DE PRECIO REACTIVO SEGÚN VARIANTE
   const precioBase = Number(producto.precio) || 0;
   const precioActivo = Number(varianteSeleccionada?.precio ?? precioBase);
 
-  // 3. CÁLCULO DE DESCUENTOS PROMOCIONALES (GROOT -25%, THOR -10%)
   const nombreProd = (producto.nombre || '').trim();
   const esGroot = nombreProd === 'Figura Groot Guardianes';
   const esThor = nombreProd === 'Figura Thor Dios del Trueno';
@@ -266,7 +296,7 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
       nombre: nombreFinal,
       variante: varianteSeleccionada ? varianteSeleccionada.etiqueta : null,
       talla: esCamiseta ? tallaSeleccionada : null,
-      stockMax: stockActual,
+      stockMax: stockBaseModal,
       imagenUrl: varianteSeleccionada ? varianteSeleccionada.imagen : (producto.imagenUrl || fotos[0])
     };
 
@@ -416,15 +446,17 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                       <strong className="valor-variante-activo">
                         {cargandoTallas
                           ? 'Escaneando inventario...'
-                          : tallaSeleccionada || 'Sin stock disponible'}
+                          : tallaSeleccionada
+                            ? `${tallaSeleccionada} (${stockActual} disp.)`
+                            : 'Sin stock disponible'}
                       </strong>
                     </span>
                     <span className="guia-tallas-stark">📏 Guía Stark</span>
                   </div>
 
                   <div className="botones-tallas-grid">
-                    {tallasDisponibles.map((item) => {
-                      const stockTalla = Number(item.stock) || 0;
+                    {tallasSincronizadas.map((item) => {
+                      const stockTalla = item.stockEfectivo;
                       const agotada = stockTalla === 0;
                       const activa = tallaSeleccionada === item.talla && !agotada;
 
@@ -435,7 +467,11 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                           className={`btn-talla btn-talla-chip ${activa ? 'activa seleccionado' : ''} ${agotada ? 'agotada sin-stock' : ''}`}
                           disabled={agotada}
                           onClick={() => setTallaSeleccionada(item.talla)}
-                          title={agotada ? `Talla ${item.talla} agotada` : `${stockTalla} unidades disponibles`}
+                          title={
+                            agotada
+                              ? `Talla ${item.talla} agotada`
+                              : `${stockTalla} unidades disponibles${item.enCesta > 0 ? ` (${item.enCesta} en cesta)` : ''}`
+                          }
                         >
                           {item.talla}
                           {agotada && <span className="linea-agotado"></span>}
@@ -453,10 +489,10 @@ export default function DetalleProductoModal({ producto, alCerrar, alAgregar }) 
                   {formatearPersonaje(producto.personaje)}
                 </p>
                 <p>
-                  <strong>Personalizable</strong>
-                  {producto.personalizable === 'Sí' || producto.personalizable === true || producto.personalizable === 1
-                    ? 'Sí'
-                    : 'No'}
+                  <strong>Envío Estimado</strong>
+                  <span style={{ color: stockActual > 0 ? '#00e5ff' : '#fbbf24', fontWeight: 700 }}>
+                    {stockActual > 0 ? '🚀 1 - 2 días' : '📦 7 - 10 días'}
+                  </span>
                 </p>
                 <p>
                   <strong>Disponibilidad</strong>

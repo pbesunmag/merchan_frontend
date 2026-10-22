@@ -1,28 +1,50 @@
-.soporte-section {
+/* ==========================================================================
+   FORMULARIO DE SOPORTE J.A.R.V.I.S. - MOBILE FIRST & CENTRADO
+   ========================================================================== */
+
+.soporte-section,
+.formulario-soporte-container {
+  max-width: 1280px;
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
   margin-top: 2rem;
   padding-top: 1rem;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
 }
 
 .soporte-box-hud {
   max-width: 820px;
+  width: 100%;
   margin: 0 auto;
   background: linear-gradient(145deg, #111827 0%, #090d16 100%);
   border: 1px solid #00e5ff;
   border-left: 4px solid #dc2626;
   border-radius: 10px;
-  padding: 2.5rem;
+  padding: 1.5rem;
+  box-sizing: border-box;
   box-shadow: 0 12px 35px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 229, 255, 0.15);
+}
+
+@media (min-width: 768px) {
+  .soporte-box-hud {
+    padding: 2.5rem;
+  }
 }
 
 .soporte-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
 }
 
 .soporte-tag {
   display: inline-block;
   font-family: 'Consolas', monospace;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 800;
   color: #00e5ff;
   background: rgba(0, 229, 255, 0.1);
@@ -35,38 +57,49 @@
 
 .soporte-header h2 {
   color: #ffffff;
-  font-size: 1.65rem;
+  font-size: 1.4rem;
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   margin: 0 0 0.5rem 0;
   text-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
 }
 
+@media (min-width: 768px) {
+  .soporte-header h2 {
+    font-size: 1.65rem;
+    letter-spacing: 0.1em;
+  }
+}
+
 .soporte-header p {
   color: #94a3b8;
-  font-size: 0.95rem;
-  margin: 0;
+  font-size: 0.92rem;
+  margin: 0 auto;
+  max-width: 600px;
 }
 
 .soporte-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.2rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
+/* Mobile First: 1 columna en móviles, 2 columnas simétricas en >= 640px */
 .soporte-grid-campos {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
+  grid-template-columns: 1fr;
+  gap: 1.2rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-@media (max-width: 640px) {
+@media (min-width: 640px) {
   .soporte-grid-campos {
-    grid-template-columns: 1fr;
-  }
-  .soporte-box-hud {
-    padding: 1.5rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
   }
 }
 
@@ -74,6 +107,9 @@
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .soporte-campo label {
@@ -85,6 +121,9 @@
 
 .soporte-campo input,
 .soporte-campo textarea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: #060911;
   border: 1px solid #334155;
   color: #f8fafc;
@@ -109,6 +148,7 @@
 
 .btn-enviar-transmision {
   margin-top: 0.5rem;
+  width: 100%;
   background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   color: #ffffff;
   border: 1px solid #00e5ff;

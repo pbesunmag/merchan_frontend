@@ -134,7 +134,7 @@ export default function BannerSlider({ onSeleccionarCategoria }) {
   return (
     <>
       <div
-        className="hero-slider-contenedor"
+        className="hero-slider-contenedor seccion-proximo-suministro"
         onMouseEnter={() => setEstaPausado(true)}
         onMouseLeave={() => setEstaPausado(false)}
       >

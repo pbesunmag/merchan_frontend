@@ -20,11 +20,6 @@ export default function Footer() {
             <h4 className="footer-titulo">INFORMACIÓN</h4>
             <ul className="footer-lista">
               <li>
-                <a href="#envios" onClick={(e) => abrirModal(e, 'envios')}>
-                  <span className="chevron">‹</span> Nuestros Envíos Stark
-                </a>
-              </li>
-              <li>
                 <a href="#cambios" onClick={(e) => abrirModal(e, 'cambios')}>
                   <span className="chevron">‹</span> Cambios y Devoluciones
                 </a>
