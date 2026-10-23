@@ -7,10 +7,28 @@ export default function FormularioSoporte() {
   const [numeroTicket, setNumeroTicket] = useState('');
   const [mensaje, setMensaje] = useState('');
   const [enviado, setEnviado] = useState(false);
+  const [errores, setErrores] = useState({});
 
   const manejarEnvio = (e) => {
     e.preventDefault();
-    if (!nombre.trim() || !asunto.trim() || !mensaje.trim()) return;
+    const nuevosErrores = {};
+
+    if (!nombre.trim()) {
+      nuevosErrores.nombre = '⚠️ Identificación requerida: introduce tu nombre o alias.';
+    }
+    if (!asunto.trim()) {
+      nuevosErrores.asunto = '⚠️ Especifica el motivo de la transmisión.';
+    }
+    if (!mensaje.trim()) {
+      nuevosErrores.mensaje = '⚠️ El cuerpo del mensaje no puede estar vacío.';
+    }
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores);
+      return;
+    }
+
+    setErrores({});
     setEnviado(true);
   };
 
@@ -19,6 +37,7 @@ export default function FormularioSoporte() {
     setAsunto('');
     setNumeroTicket('');
     setMensaje('');
+    setErrores({});
     setEnviado(false);
   };
 
@@ -47,18 +66,24 @@ export default function FormularioSoporte() {
             </button>
           </div>
         ) : (
-          <form className="soporte-form" onSubmit={manejarEnvio}>
+          <form className="soporte-form" onSubmit={manejarEnvio} noValidate>
             <div className="soporte-grid-campos">
               <div className="soporte-campo">
                 <label htmlFor="soporte-nombre">Nombre *</label>
                 <input
                   id="soporte-nombre"
                   type="text"
-                  required
+                  className={errores.nombre ? 'input-error-hud' : ''}
                   placeholder="Tu nombre o alias de agente"
                   value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
+                  onChange={(e) => {
+                    setNombre(e.target.value);
+                    if (errores.nombre) setErrores({ ...errores, nombre: null });
+                  }}
                 />
+                {errores.nombre && (
+                  <span className="soporte-error-msg">{errores.nombre}</span>
+                )}
               </div>
 
               <div className="soporte-campo">
@@ -66,11 +91,17 @@ export default function FormularioSoporte() {
                 <input
                   id="soporte-asunto"
                   type="text"
-                  required
+                  className={errores.asunto ? 'input-error-hud' : ''}
                   placeholder="Motivo de la consulta"
                   value={asunto}
-                  onChange={(e) => setAsunto(e.target.value)}
+                  onChange={(e) => {
+                    setAsunto(e.target.value);
+                    if (errores.asunto) setErrores({ ...errores, asunto: null });
+                  }}
                 />
+                {errores.asunto && (
+                  <span className="soporte-error-msg">{errores.asunto}</span>
+                )}
               </div>
             </div>
 
@@ -90,11 +121,17 @@ export default function FormularioSoporte() {
               <textarea
                 id="soporte-mensaje"
                 rows="4"
-                required
+                className={errores.mensaje ? 'input-error-hud' : ''}
                 placeholder="Describe detalladamente tu duda o incidencia..."
                 value={mensaje}
-                onChange={(e) => setMensaje(e.target.value)}
+                onChange={(e) => {
+                  setMensaje(e.target.value);
+                  if (errores.mensaje) setErrores({ ...errores, mensaje: null });
+                }}
               />
+              {errores.mensaje && (
+                <span className="soporte-error-msg">{errores.mensaje}</span>
+              )}
             </div>
 
             <button type="submit" className="btn-enviar-transmision">

@@ -24,7 +24,7 @@
   }
 }
 
-/* Contenedor maestro comÃºn para secciones */
+/* Contenedor maestro común para secciones */
 .catalogo-container,
 .catalogo-section,
 .formulario-soporte-container,
@@ -64,9 +64,9 @@
   align-self: center;
   gap: 0.65rem;
   width: fit-content;
-  max-width: 1420px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 0.6rem 1.6rem;
+  padding: 0.6rem 1.4rem;
   border-radius: 8px;
   font-size: clamp(0.7rem, 0.9vw + 0.35rem, 0.82rem);
   line-height: 1.35;
@@ -92,7 +92,7 @@
   margin: 0;
   color: #e2e8f0;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
   overflow: visible;
 }
 
@@ -114,11 +114,11 @@
   background: rgba(6, 15, 29, 0.85);
   border: 1.5px solid #00e5ff;
   box-shadow: 0 0 16px rgba(0, 229, 255, 0.22), inset 0 0 12px rgba(0, 229, 255, 0.06);
-  transform: translateX(-110px) !important; /* CalibraciÃ³n especÃ­fica de centrado visual */
+  transform: none !important; /* Calibración específica de centrado visual */
 }
 
 .box-apertura:hover {
-  transform: translateX(-110px) !important;
+  transform: none !important;
 }
 
 .box-apertura strong {
@@ -147,7 +147,7 @@
   white-space: nowrap;
 }
 
-/* Caja 2: CupÃ³n GuardiÃ¡n Groot (Ãmbar Stark) */
+/* Caja 2: Cupón Guardián Groot (Ámbar Stark) */
 .box-groot {
   background: rgba(22, 15, 5, 0.85);
   border: 1.5px dashed #f59e0b;
@@ -489,7 +489,7 @@
 }
 
 /* ==========================================================================
-   CABECERA Y FILTROS DEL CATÃLOGO
+   CABECERA Y FILTROS DEL CATÁLOGO
    ========================================================================== */
 
 .catalogo-header-bar {
@@ -616,7 +616,7 @@
 }
 
 /* ==========================================================================
-   GRID Y TARJETAS DEL CATÃLOGO (MOBILE FIRST)
+   GRID Y TARJETAS DEL CATÁLOGO (MOBILE FIRST)
    ========================================================================== */
 
 .productos-grid {
@@ -656,7 +656,7 @@
   border: 1px solid #3f3f46;
   border-left: 4px solid #dc2626;
   border-radius: 8px;
-  padding: 1.2rem 1rem;            /* ðŸ‘ˆ 1rem a los lados en lugar de 1.4rem */
+  padding: 1.2rem 1rem;            /* 👈 1rem a los lados en lugar de 1.4rem */
   display: flex !important;
   flex-direction: column !important;
   justify-content: space-between !important;
@@ -701,7 +701,7 @@
 }
 
 .producto-img-container::before {
-  content: "âŒ• VER DETALLE";
+  content: "⊕ VER DETALLE";
   position: absolute;
   bottom: 0.5rem;
   right: 0.5rem;
@@ -769,7 +769,7 @@
 }
 
 /* ==========================================================================
-   PRECIOS APILADOS Y CENTRADOS HORIZONTALMENTE (SIN DIVIDIR NÃšMERO Y â‚¬)
+   PRECIOS APILADOS Y CENTRADOS HORIZONTALMENTE (SIN DIVIDIR NÚMERO Y €)
    ========================================================================== */
 
 .producto-precios-contenedor,
@@ -827,7 +827,7 @@
 }
 
 /* ==========================================================================
-   SINCRONIZACIÃ“N DE STOCK EN TIEMPO REAL (TEXTO EN LÃNEA CONTINUA)
+   SINCRONIZACIÓN DE STOCK EN TIEMPO REAL (TEXTO EN LÍNEA CONTINUA)
    ========================================================================== */
 
 .producto-stock-estado {
@@ -1088,7 +1088,7 @@ span.product-badge.gold {
 }
 
 /* ==========================================================================
-   BOTÃ“N FLOTANTE Y DRAWER DEL CARRITO
+   BOTÓN FLOTANTE Y DRAWER DEL CARRITO
    ========================================================================== */
 
 .btn-carrito-flotante {
@@ -1595,7 +1595,7 @@ span.product-badge.gold {
 }
 
 /* ==========================================================================
-   MODAL DE CONFIRMACIÃ“N (HOLOGRAMA VENGADORES)
+   MODAL DE CONFIRMACIÓN (HOLOGRAMA VENGADORES)
    ========================================================================== */
 
 .modal-exito {
@@ -1638,7 +1638,7 @@ span.product-badge.gold {
 }
 
 /* ==========================================================================
-   MODAL HUD DE SUSCRIPCIÃ“N FUNKO POP
+   MODAL HUD DE SUSCRIPCIÓN FUNKO POP
    ========================================================================== */
 
 .funko-modal-overlay {
