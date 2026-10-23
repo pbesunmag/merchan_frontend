@@ -13,6 +13,22 @@ export default function PantallaRecogida() {
   const [filtroCodigo, setFiltroCodigo] = useState("");
   const inputBusquedaRef = useRef(null);
 
+  const [horaActual, setHoraActual] = useState("");
+
+  useEffect(() => {
+    const actualizarReloj = () => {
+      const ahora = new Date();
+      const horas = String(ahora.getHours()).padStart(2, "0");
+      const minutos = String(ahora.getMinutes()).padStart(2, "0");
+      const segundos = String(ahora.getSeconds()).padStart(2, "0");
+      setHoraActual(`${horas}:${minutos}:${segundos}`);
+    };
+
+    actualizarReloj();
+    const timerReloj = setInterval(actualizarReloj, 1000);
+    return () => clearInterval(timerReloj);
+  }, []);
+
   const [ultimasEntregas, setUltimasEntregas] = useState(() => {
     try {
       const guardadas = localStorage.getItem("stark_ultimas_entregas");
@@ -104,6 +120,18 @@ export default function PantallaRecogida() {
     return () => window.removeEventListener("keydown", manejarKeyDown);
   }, [filtroCodigo]);
 
+  const alternarPantallaCompleta = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.warn("Error al intentar activar pantalla completa:", err);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  };
+
   const terminoLimpio = filtroCodigo.trim().toUpperCase();
 
   const pedidosEnProcesoFiltrados = useMemo(() => {
@@ -138,10 +166,43 @@ export default function PantallaRecogida() {
 
   return (
     <div className="recogida-container">
+      <button
+        type="button"
+        onClick={alternarPantallaCompleta}
+        title="Alternar modo pantalla completa"
+        style={{
+          position: "absolute",
+          top: "1rem",
+          right: "1.5rem",
+          background: "rgba(5, 8, 17, 0.8)",
+          border: "1px solid rgba(0, 229, 255, 0.4)",
+          color: "var(--stark-cyan)",
+          width: "36px",
+          height: "36px",
+          borderRadius: "6px",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "1rem",
+          zIndex: 50,
+          boxShadow: "0 0 10px rgba(0, 229, 255, 0.2)",
+          transition: "all 0.2s ease",
+        }}
+      >
+        ⛶
+      </button>
+
       <header className="recogida-header">
-        <div className="recogida-header-badge">
+        <div className="recogida-header-badge" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span style={{ width: "8px", height: "8px", backgroundColor: "#10b981", borderRadius: "50%", display: "inline-block", boxShadow: "0 0 8px #10b981" }} />
           STARK LOGISTICS HUD // TERMINAL DE ENTREGA
         </div>
+        {horaActual && (
+          <div style={{ fontFamily: "var(--font-tech)", fontSize: "0.85rem", color: "var(--stark-cyan)", letterSpacing: "0.15em", textShadow: "0 0 10px rgba(0, 229, 255, 0.4)", margin: "-0.5rem 0 0.2rem 0" }}>
+            HORA CENTRAL // {horaActual}
+          </div>
+        )}
         <h1 className="recogida-titulo">ESTADO DE PEDIDOS</h1>
         <p className="recogida-subtitulo">
           Acércate al mostrador cuando tu código aparezca en la columna de
