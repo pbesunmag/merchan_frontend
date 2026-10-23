@@ -145,8 +145,15 @@
     padding: 0 0.75rem;
   }
 
-  .banner-promo-box {
-    width: 100%;
+  .promo-box,
+  .banner-promo-box,
+  .box-apertura,
+  .box-apertura:hover,
+  .box-groot,
+  .box-groot:hover {
+    transform: none !important;
+    margin: 0.4rem auto !important;
+    width: 92% !important;
     padding: 0.6rem 0.85rem;
   }
 

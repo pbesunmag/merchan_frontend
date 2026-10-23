@@ -533,7 +533,7 @@ export default function VistaTerminal() {
             const stockEfectivo = Math.max(0, stockBaseProd - unidadesEnCesta);
 
             const estaAgotado = stockEfectivo === 0;
-            const pocoStock = stockEfectivo > 0 && stockEfectivo <= 2;
+            const pocoStock = stockEfectivo > 0 && stockEfectivo <= 3;
 
             return (
               <article key={prod.id} className="producto-card">
@@ -600,9 +600,11 @@ export default function VistaTerminal() {
                       </>
                     ) : pocoStock ? (
                       <>
-                        <span>⚠️ ¡Pocas unidades!</span>
+                        <span>⚠️¡Últimas unidades!</span>
                         <span className="producto-stock-unidades">
-                          (Solo quedan {stockEfectivo} ud)
+                          {stockEfectivo === 1
+                            ? "(Solo queda 1 ud)"
+                            : `(Solo quedan ${stockEfectivo} ud)`}
                         </span>
                       </>
                     ) : (

@@ -4,8 +4,8 @@
 
 .btn-scroll-top-hud {
   position: fixed;
-  bottom: 155px;
-  right: 39px;
+  bottom: 5.2rem;
+  right: 1rem;
   width: 45px;
   height: 45px;
   border-radius: 50%;
@@ -26,6 +26,20 @@
   pointer-events: none;
   transform: translateY(10px);
   transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.25s ease, background-color 0.25s ease, color 0.25s ease;
+}
+
+@media (min-width: 769px) {
+  .btn-scroll-top-hud {
+    bottom: 6.5rem;
+    right: 2.4rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .btn-scroll-top-hud {
+    bottom: 5.2rem !important;
+    right: 1rem !important;
+  }
 }
 
 .btn-scroll-top-hud.visible {

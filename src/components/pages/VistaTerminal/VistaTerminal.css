@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    AVENGERS SHOP - TERMINAL HUD STYLING (MOBILE FIRST & CENTRADO GLOBAL)
    ========================================================================== */
 
@@ -24,7 +24,7 @@
   }
 }
 
-/* Contenedor maestro común para secciones */
+/* Contenedor maestro comÃºn para secciones */
 .catalogo-container,
 .catalogo-section,
 .formulario-soporte-container,
@@ -114,7 +114,7 @@
   background: rgba(6, 15, 29, 0.85);
   border: 1.5px solid #00e5ff;
   box-shadow: 0 0 16px rgba(0, 229, 255, 0.22), inset 0 0 12px rgba(0, 229, 255, 0.06);
-  transform: translateX(-110px) !important; /* Calibración específica de centrado visual */
+  transform: translateX(-110px) !important; /* CalibraciÃ³n especÃ­fica de centrado visual */
 }
 
 .box-apertura:hover {
@@ -147,7 +147,7 @@
   white-space: nowrap;
 }
 
-/* Caja 2: Cupón Guardián Groot (Ámbar Stark) */
+/* Caja 2: CupÃ³n GuardiÃ¡n Groot (Ãmbar Stark) */
 .box-groot {
   background: rgba(22, 15, 5, 0.85);
   border: 1.5px dashed #f59e0b;
@@ -489,7 +489,7 @@
 }
 
 /* ==========================================================================
-   CABECERA Y FILTROS DEL CATÁLOGO
+   CABECERA Y FILTROS DEL CATÃLOGO
    ========================================================================== */
 
 .catalogo-header-bar {
@@ -540,7 +540,7 @@
 }
 
 .catalogo-section h2::before {
-  content: "◈";
+  content: "▲";
   color: #00e5ff;
   font-size: 1.2rem;
   text-shadow: 0 0 8px #00e5ff;
@@ -616,7 +616,7 @@
 }
 
 /* ==========================================================================
-   GRID Y TARJETAS DEL CATÁLOGO (MOBILE FIRST)
+   GRID Y TARJETAS DEL CATÃLOGO (MOBILE FIRST)
    ========================================================================== */
 
 .productos-grid {
@@ -656,7 +656,7 @@
   border: 1px solid #3f3f46;
   border-left: 4px solid #dc2626;
   border-radius: 8px;
-  padding: 1.2rem 1rem;            /* 👈 1rem a los lados en lugar de 1.4rem */
+  padding: 1.2rem 1rem;            /* ðŸ‘ˆ 1rem a los lados en lugar de 1.4rem */
   display: flex !important;
   flex-direction: column !important;
   justify-content: space-between !important;
@@ -701,7 +701,7 @@
 }
 
 .producto-img-container::before {
-  content: "⌕ VER DETALLE";
+  content: "âŒ• VER DETALLE";
   position: absolute;
   bottom: 0.5rem;
   right: 0.5rem;
@@ -769,7 +769,7 @@
 }
 
 /* ==========================================================================
-   PRECIOS APILADOS Y CENTRADOS HORIZONTALMENTE (SIN DIVIDIR NÚMERO Y €)
+   PRECIOS APILADOS Y CENTRADOS HORIZONTALMENTE (SIN DIVIDIR NÃšMERO Y â‚¬)
    ========================================================================== */
 
 .producto-precios-contenedor,
@@ -827,7 +827,7 @@
 }
 
 /* ==========================================================================
-   SINCRONIZACIÓN DE STOCK EN TIEMPO REAL (TEXTO EN LÍNEA CONTINUA)
+   SINCRONIZACIÃ“N DE STOCK EN TIEMPO REAL (TEXTO EN LÃNEA CONTINUA)
    ========================================================================== */
 
 .producto-stock-estado {
@@ -906,13 +906,35 @@
   overflow: hidden !important;
 }
 
+.producto-stock-estado.stock-bajo > span:first-child,
 .producto-stock-estado.stock-bajo span:first-child {
+  font-size: 0.58rem !important;
+  letter-spacing: -0.01em !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+  margin: 0 auto !important;
+}
+
+.producto-stock-estado.stock-bajo .producto-stock-unidades {
+  font-size: 0.60rem !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+  margin: 0 auto !important;
+}
+
+.producto-stock-estado.stock-bajo_old {
   font-size: 0.66rem !important;
   letter-spacing: 0 !important;
   white-space: nowrap !important;
 }
 
 .producto-stock-estado.stock-bajo {
+  padding: 0.35rem 0.15rem !important;
+  min-height: 48px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
   color: #f59e0b;
   background: rgba(245, 158, 11, 0.14);
   border: 1px solid rgba(245, 158, 11, 0.55);
@@ -972,25 +994,26 @@
   opacity: 0.85;
 }
 
-/* Insignia cápsula de descuento */
-.product-badge.gold {
+/* Insignia capsula de descuento */
+.product-badge.gold,
+span.product-badge.gold {
   position: absolute;
   top: 14px;
   left: 14px;
-  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important; /* 👈 Obligatorio !important */
+  background-color: transparent !important;                               /* 👈 Anula el rgb(255, 183, 3) */
+  color: #ffffff !important;
   font-family: 'Consolas', monospace;
   font-size: 0.8rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   padding: 0.35rem 0.8rem;
   border-radius: 20px;
-  border: 1px solid #f87171;
-  box-shadow: 0 0 14px rgba(239, 68, 68, 0.65), 0 4px 10px rgba(0, 0, 0, 0.7);
+  border: 1px solid #f87171 !important;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.65), 0 4px 10px rgba(0, 0, 0, 0.7) !important;
   z-index: 10;
   text-transform: uppercase;
   pointer-events: none;
-  animation: pulsoInsignia 2.5s infinite ease-in-out;
 }
 
 @keyframes pulsoInsignia {
@@ -1026,7 +1049,7 @@
 }
 
 /* ==========================================================================
-   BOTÓN MOSTRAR TODO / REDUCIR
+   BOTON MOSTRAR TODO / REDUCIR
    ========================================================================== */
 
 .ver-mas-container {
@@ -1065,7 +1088,7 @@
 }
 
 /* ==========================================================================
-   BOTÓN FLOTANTE Y DRAWER DEL CARRITO
+   BOTÃ“N FLOTANTE Y DRAWER DEL CARRITO
    ========================================================================== */
 
 .btn-carrito-flotante {
@@ -1572,7 +1595,7 @@
 }
 
 /* ==========================================================================
-   MODAL DE CONFIRMACIÓN (HOLOGRAMA VENGADORES)
+   MODAL DE CONFIRMACIÃ“N (HOLOGRAMA VENGADORES)
    ========================================================================== */
 
 .modal-exito {
@@ -1615,7 +1638,7 @@
 }
 
 /* ==========================================================================
-   MODAL HUD DE SUSCRIPCIÓN FUNKO POP
+   MODAL HUD DE SUSCRIPCIÃ“N FUNKO POP
    ========================================================================== */
 
 .funko-modal-overlay {
@@ -1743,4 +1766,41 @@
 
 .funko-modal-exito p {
   margin: 0;
+}
+
+/* ==========================================================================
+   AJUSTES RESPONSIVE MOBILE (<= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .promo-box,
+  .banner-promo-box,
+  .box-apertura,
+  .box-apertura:hover,
+  .box-groot,
+  .box-groot:hover {
+    transform: none !important;
+    margin: 0.4rem auto !important;
+    width: 92% !important;
+  }
+
+  .hero-titulo {
+    font-size: 1.5rem !important;
+    line-height: 1.2 !important;
+    word-break: break-word !important;
+    padding: 0 2rem !important;
+  }
+
+  .catalogo-section h2,
+  .carrito-section h2,
+  .soporte-header h2 {
+    font-size: 1.4rem !important;
+    white-space: normal !important;
+  }
+
+  .btn-carrito-flotante {
+    bottom: 1.2rem !important;
+    right: 1rem !important;
+    width: 52px;
+    height: 52px;
+  }
 }

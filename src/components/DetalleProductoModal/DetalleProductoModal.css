@@ -801,3 +801,103 @@
   white-space: nowrap !important;
   width: fit-content !important;
 }
+
+/* ==========================================================================
+   AJUSTES RESPONSIVE PARA MÓVILES (@media max-width: 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 0.5rem !important;
+    align-items: center !important;
+  }
+
+  .modal-contenedor-amazon,
+  .modal-producto-container,
+  .modal-detalle-contenido,
+  .modal-hud-card {
+    max-height: 90vh !important;
+    width: 95% !important;
+    padding: 1.2rem 1rem !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    justify-content: flex-start !important;
+  }
+
+  .modal-grid-detalle {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    align-items: start !important;
+  }
+
+  .galeria-amazon,
+  .modal-col-imagen {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .visor-principal,
+  .modal-imagen-principal-caja {
+    width: 180px !important;
+    height: 180px !important;
+    margin: 0.5rem auto !important;
+    padding: 0.4rem !important;
+  }
+
+  .visor-principal img,
+  .modal-imagen-principal-caja img,
+  .imagen-destacada {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+  }
+
+  .info-producto-detalle h2 {
+    font-size: 1.25rem !important;
+  }
+
+  .especificaciones-stark,
+  .modal-specs-grid {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 0.6rem !important;
+    font-size: 0.72rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 0.65rem 0.75rem !important;
+  }
+
+  .badge-stock-inline,
+  .badge-disponibilidad {
+    font-size: 0.68rem !important;
+    padding: 0.35rem 0.55rem !important;
+  }
+
+  .footer-compra-detalle {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    margin-top: 0.5rem !important;
+  }
+
+  .precio-detalle-bloque {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .contenedor-precio-oferta-modal {
+    align-items: center !important;
+    width: 100% !important;
+  }
+
+  .btn-agregar-detalle {
+    width: 100% !important;
+    text-align: center !important;
+    justify-content: center !important;
+    padding: 0.85rem 1rem !important;
+    font-size: 0.88rem !important;
+  }
+}

@@ -551,6 +551,40 @@
   }
 }
 
+@media (max-width: 768px) {
+  .app-navbar {
+    flex-direction: column !important;
+    padding: 0.75rem 1rem !important;
+    gap: 0.65rem !important;
+    text-align: center !important;
+  }
+
+  .app-navbar-brand {
+    justify-content: center !important;
+    gap: 0.65rem !important;
+  }
+
+  .app-navbar-logo,
+  .img-logo-tienda {
+    height: 64px !important;
+  }
+
+  .app-navbar-title,
+  .brand-avengers,
+  .brand-shop {
+    font-size: 1.4rem !important;
+    white-space: normal !important;
+    letter-spacing: 0.08em !important;
+  }
+
+  .app-navbar-links {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 1rem !important;
+    font-size: 0.85rem !important;
+  }
+}
+
 @media (max-width: 600px) {
   .hero-title {
     font-size: 3.8rem;

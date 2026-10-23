@@ -314,18 +314,25 @@ export default function DetalleProductoModal({
 
   // Configuración del Badge dinámico de disponibilidad sincronizado
   const obtenerInfoBadgeStock = (stock) => {
-    if (stock > 2) {
+    if (stock > 3) {
       return {
         clase: "badge-stock-alto",
         icono: "✓",
         texto: `EN STOCK (${stock} ud)`,
       };
     }
-    if (stock >= 1 && stock <= 2) {
+    if (stock === 2 || stock === 3) {
       return {
         clase: "badge-stock-bajo",
         icono: "⚠️",
         texto: `¡Solo quedan ${stock} ud!`,
+      };
+    }
+    if (stock === 1) {
+      return {
+        clase: "badge-stock-bajo",
+        icono: "⚠️",
+        texto: "¡Solo queda 1 ud!",
       };
     }
     return {
@@ -426,7 +433,7 @@ export default function DetalleProductoModal({
             {/* COLUMNA IZQUIERDA: GALERÍA VERTICAL */}
             <div className="galeria-amazon modal-col-imagen">
               <div
-                className="visor-principal"
+                className="visor-principal modal-imagen-principal-caja"
                 onClick={() => {
                   if (!imagenRota) setPantallaCompleta(true);
                 }}

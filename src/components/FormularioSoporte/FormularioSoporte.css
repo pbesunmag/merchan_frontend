@@ -147,6 +147,9 @@
 }
 
 .btn-enviar-transmision {
+  box-sizing: border-box !important;
+  white-space: normal !important;
+  word-break: break-word;
   margin-top: 0.5rem;
   width: 100%;
   background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
@@ -161,6 +164,21 @@
   cursor: pointer;
   box-shadow: 0 0 18px rgba(0, 229, 255, 0.35);
   transition: all 0.25s ease;
+}
+
+@media (max-width: 768px) {
+  .soporte-campo input,
+  .soporte-campo textarea {
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .btn-enviar-transmision {
+    width: 100% !important;
+    font-size: 0.82rem !important;
+    white-space: normal !important;
+    padding: 0.85rem 1rem !important;
+    box-sizing: border-box !important;
+  }
 }
 
 .btn-enviar-transmision:hover {
