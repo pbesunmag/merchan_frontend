@@ -16,7 +16,11 @@ export default function BannerSuperior() {
 
       {/* CAJA 2: CUPÓN GUARDIANES (ÁMBAR) */}
       <div className="banner-promo-box box-groot">
-        <span className="banner-promo-icono">🌱</span>
+        <img
+        src="/imagenes/icono_groot.png"
+        alt="Icono Groot"
+        className="banner-promo-icono-img"
+        />
         <p className="banner-promo-texto">
           <strong>OFERTA GUARDIANES:</strong> 5% de descuento en tu comanda
           utilizando el cupón <span className="badge-cupon-groot">GROOT5</span>.

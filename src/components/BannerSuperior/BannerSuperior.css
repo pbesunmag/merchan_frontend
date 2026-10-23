@@ -19,7 +19,8 @@
   z-index: 100;
 }
 
-/* Base común para ambas cajas */
+/* Base común para ambas cajas (estáticas e informativas) */
+.promo-box,
 .banner-promo-box {
   display: inline-flex;             /* El marco se amolda con precisión a su texto */
   align-items: center;
@@ -36,11 +37,9 @@
   letter-spacing: 0.01em;
   box-sizing: border-box;
   overflow: visible;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.banner-promo-box:hover {
-  transform: translateY(-1px);
+  cursor: default !important;
+  pointer-events: none;
+  user-select: text;
 }
 
 .banner-promo-icono {
@@ -49,6 +48,16 @@
   display: inline-flex;
   align-items: center;
   line-height: 1;
+}
+
+.banner-promo-icono-img {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.5));
 }
 
 .banner-promo-texto {
@@ -64,15 +73,12 @@
    ========================================================================== */
 
 /* CAJA 1: Promo Apertura (Cian Stark) */
-.box-apertura {
+.box-apertura,
+.box-apertura:hover {
   background: rgba(6, 15, 29, 0.88);
   border: 1.5px solid #00e5ff;
   box-shadow: 0 0 16px rgba(0, 229, 255, 0.22), inset 0 0 12px rgba(0, 229, 255, 0.06);
-  transform: translateX(-110px);
-}
-
-.box-apertura:hover {
-  box-shadow: 0 0 24px rgba(0, 229, 255, 0.38), inset 0 0 14px rgba(0, 229, 255, 0.1);
+  transform: translateX(-110px) !important;
 }
 
 .box-apertura strong {
@@ -102,16 +108,12 @@
 }
 
 /* CAJA 2: Cupón Groot (Ámbar Stark) */
-.box-groot {
+.box-groot,
+.box-groot:hover {
   background: rgba(22, 15, 5, 0.88);
   border: 1.5px dashed #f59e0b;
   box-shadow: 0 0 16px rgba(245, 158, 11, 0.18), inset 0 0 12px rgba(245, 158, 11, 0.05);
-  /* Ajuste milimétrico opcional si necesitas desplazar solo esta caja: */
-  /* transform: translateX(0px); */
-}
-
-.box-groot:hover {
-  box-shadow: 0 0 24px rgba(245, 158, 11, 0.34), inset 0 0 14px rgba(245, 158, 11, 0.09);
+  transform: none !important;
 }
 
 .box-groot strong {

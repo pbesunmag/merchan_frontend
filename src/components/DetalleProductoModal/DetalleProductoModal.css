@@ -11,27 +11,29 @@
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
-.modal-contenedor-amazon {
+.modal-contenedor-amazon,
+.modal-producto-container,
+.modal-detalle-contenido,
+.modal-hud-card {
   background: linear-gradient(135deg, #111827 0%, #090d16 100%);
   border: 1px solid #334155;
   border-top: 3px solid #00e5ff;
   border-bottom: 3px solid #dc2626;
   border-radius: 14px;
-  width: 1040px;
-  max-width: 95vw;
-  max-height: 90vh;
-  padding: 2.2rem 2.6rem;
+  width: 95% !important;
+  max-width: 1250px !important;
+  max-height: 92vh !important;
+  padding: 2rem 2.5rem !important;
   position: relative;
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 30px rgba(0, 229, 255, 0.2);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #334155 #0f172a;
+  overflow: visible !important;
+  box-sizing: border-box !important;
   animation: modalEntrada 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -49,8 +51,8 @@
 /* Botón cerrar Stark */
 .btn-cerrar-modal {
   position: absolute;
-  top: 1.1rem;
-  right: 1.2rem;
+  top: 0.9rem;
+  right: 1rem;
   background: rgba(15, 23, 42, 0.85);
   border: 1px solid #475569;
   color: #94a3b8;
@@ -80,34 +82,43 @@
    GRID PRINCIPAL
    ========================================================================== */
 .modal-grid-detalle {
-  display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 2.2rem;
-  align-items: start;
+  display: grid !important;
+  grid-template-columns: 290px 1fr !important;
+  width: 100% !important;
+  gap: 2.8rem !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
 }
 
 @media (max-width: 860px) {
   .modal-grid-detalle {
-    grid-template-columns: 1fr;
-    gap: 1.6rem;
+    grid-template-columns: 1fr !important;
+    gap: 1.2rem !important;
   }
 }
 
 /* ==========================================================================
-   COLUMNA IZQUIERDA: ESTRUCTURA VERTICAL (FOTO ARRIBA, MINIATURAS ABAJO)
+   COLUMNA IZQUIERDA: ESTRUCTURA VERTICAL CENTRADA (FOTO ARRIBA, MINIATURAS ABAJO)
    ========================================================================== */
-.galeria-amazon {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  width: 100%;
+.galeria-amazon,
+.modal-col-imagen {
+  width: 290px !important;
+  min-width: 290px !important;
+  max-width: 290px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto !important;
+  text-align: center !important;
+  align-self: center !important;
 }
 
 /* Visor principal */
 .visor-principal {
   width: 100%;
-  height: 380px;
+  height: 280px;
   background: radial-gradient(circle at center, #131b2e 0%, #070a12 100%);
   border: 1px solid #1e293b;
   border-radius: 12px;
@@ -117,7 +128,8 @@
   position: relative;
   overflow: hidden;
   cursor: pointer;
-  padding: 0.8rem;
+  padding: 0.65rem;
+  margin: 0 auto;
   box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.85);
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
@@ -143,10 +155,11 @@
   background: none;
   border: none;
   color: #00e5ff;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
-  margin: 0.75rem 0 0.9rem 0;
+  margin: 0.5rem auto 0.6rem auto;
+  text-align: center;
   text-decoration: none;
   letter-spacing: 0.02em;
   transition: color 0.2s ease, text-decoration 0.2s ease;
@@ -165,13 +178,14 @@
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.6rem;
   width: 100%;
+  margin: 0 auto;
 }
 
 .miniatura-btn {
-  width: 60px;
-  height: 60px;
+  width: 54px;
+  height: 54px;
   background: #090a0f;
   border: 2px solid #334155;
   border-radius: 8px;
@@ -206,6 +220,8 @@
    COLUMNA DERECHA: INFORMACIÓN Y ACCIONES
    ========================================================================== */
 .info-producto-detalle {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -216,13 +232,13 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 0.35rem;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
 }
 
 .categoria-badge {
   color: #00e5ff;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -233,12 +249,13 @@
    ========================================================================== */
 .badge-stock-hud,
 .badge-stock-inline,
+.badge-disponibilidad,
 .badge-stock-alto,
 .badge-stock-bajo,
 .badge-stock-agotado {
   font-family: 'Consolas', monospace;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
   border-radius: 4px;
   display: inline-flex;
@@ -252,10 +269,23 @@
   padding: 0.22rem 0.65rem;
 }
 
-.badge-stock-inline {
-  font-size: 0.7rem;
-  padding: 0.15rem 0.45rem;
-  margin-top: 0.15rem;
+.badge-stock-inline,
+.badge-disponibilidad {
+  position: static !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.4rem !important;
+  white-space: nowrap !important;
+  width: max-content !important;
+  flex-shrink: 0 !important;
+  box-sizing: border-box !important;
+  font-size: 0.74rem !important;
+  padding: 0.45rem 0.75rem !important;
+  margin-top: 0.2rem;
+  letter-spacing: 0.01em !important;
+  text-transform: none;
+  text-align: center;
 }
 
 /* Stock >= 4: Cian neón */
@@ -286,24 +316,24 @@
 }
 
 .info-producto-detalle h2 {
-  font-size: 1.75rem;
+  font-size: 1.55rem;
   font-weight: 800;
   color: #ffffff;
-  margin: 0.1rem 0 0.5rem 0;
+  margin: 0.1rem 0 0.35rem 0;
   line-height: 1.15;
 }
 
 .descripcion-detalle {
   color: #cbd5e1;
-  line-height: 1.45;
-  font-size: 0.92rem;
-  margin-bottom: 0.8rem;
+  line-height: 1.4;
+  font-size: 0.88rem;
+  margin-bottom: 0.55rem;
 }
 
 /* Bloques de Variantes y Tallas */
 .selector-variantes-bloque {
-  margin: 0.4rem 0 0.7rem 0;
-  padding: 0.75rem 1rem;
+  margin: 0.3rem 0 0.55rem 0;
+  padding: 0.6rem 0.9rem;
   background: rgba(15, 23, 42, 0.65);
   border: 1px solid #1e293b;
   border-left: 3px solid #00e5ff;
@@ -312,11 +342,11 @@
 
 .label-variante {
   display: block;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.35rem;
 }
 
 .valor-variante-activo {
@@ -328,16 +358,16 @@
 .botones-variantes-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.4rem;
 }
 
 .btn-variante-chip {
   background: #090d16;
   color: #cbd5e1;
   border: 1px solid #334155;
-  padding: 0.4rem 0.8rem;
+  padding: 0.35rem 0.75rem;
   border-radius: 4px;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -389,7 +419,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.45rem;
+  margin-bottom: 0.35rem;
 }
 
 .guia-tallas-stark {
@@ -406,20 +436,20 @@
 .botones-tallas-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.4rem;
 }
 
 .btn-talla,
 .btn-talla-chip {
   position: relative;
-  min-width: 46px;
-  height: 36px;
+  min-width: 44px;
+  height: 34px;
   background: #090d16;
   color: #e2e8f0;
   border: 1px solid #334155;
   border-radius: 5px;
   font-family: 'Consolas', monospace;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -473,61 +503,88 @@
 }
 
 /* Especificaciones compactas */
-.especificaciones-stark {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
+.especificaciones-stark,
+.modal-specs-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1.1fr auto !important;
+  gap: 1.5rem !important;
+  align-items: center !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
   background: rgba(15, 23, 42, 0.7);
-  padding: 0.6rem 0.8rem;
+  padding: 0.85rem 1.25rem !important;
   border-radius: 6px;
   border-left: 3px solid #dc2626;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: #94a3b8;
-  margin: 0.4rem 0 0.8rem 0;
+  margin: 0.35rem 0 0.75rem 0;
 }
 
-.especificaciones-stark p {
-  margin: 0;
+.especificaciones-stark p,
+.modal-specs-grid p,
+.modal-spec-col {
+  position: static !important;
+  margin: 0 !important;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: max-content;
 }
 
-.especificaciones-stark strong {
+.especificaciones-stark strong,
+.modal-specs-grid strong,
+.modal-spec-col strong {
   color: #f8fafc;
   display: block;
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
+  margin-bottom: 0.15rem;
+  white-space: nowrap;
 }
 
 /* Fila inferior de precio y botón */
 .footer-compra-detalle {
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
-  margin-top: 0.6rem;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 0.85rem !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-top: 0.4rem;
 }
 
 .precio-detalle {
   font-family: 'Consolas', monospace;
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 900;
   color: #fbbf24;
   margin: 0;
   text-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
-  white-space: nowrap;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
+  gap: 0.35rem !important;
+  flex-shrink: 0 !important;
 }
 
 .btn-agregar-detalle {
-  flex: 1;
+  flex: 0 1 auto !important;
+  flex-shrink: 0 !important;
+  min-width: 0 !important;
   background: linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%);
   color: #ffffff;
   border: 1px solid #ef4444;
-  padding: 0.85rem 1.2rem;
+  padding: 0.75rem 1.15rem;
   border-radius: 6px;
   cursor: pointer;
   font-family: 'Consolas', monospace;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.92rem;
+  letter-spacing: 0.05em;
+  font-size: 0.84rem;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
   transition: all 0.2s ease;
   box-shadow: 0 0 15px rgba(220, 38, 38, 0.4);
 }
@@ -680,32 +737,52 @@
 .precio-detalle-bloque {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
+}
+
+.contenedor-precio-oferta-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
 }
 
 .fila-precios-modal {
-  display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: baseline !important;
+  gap: 0.55rem !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
 }
 
 /* Precio tachado original */
 .precio-original-tachado {
   font-family: 'Consolas', monospace;
-  font-size: 1.25rem;
+  font-size: 1.05rem;
   color: #94a3b8;
   text-decoration: line-through;
   font-weight: 600;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
+  gap: 0.35rem !important;
+  flex-shrink: 0 !important;
 }
 
 /* Precio con descuento en cian neón */
 .precio-destacado-oferta {
   font-family: 'Consolas', monospace;
-  font-size: 2.2rem;
+  font-size: 1.75rem;
   font-weight: 900;
   color: #00e5ff;
   text-shadow: 0 0 16px rgba(0, 229, 255, 0.45);
   line-height: 1;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: baseline !important;
+  gap: 0.35rem !important;
+  flex-shrink: 0 !important;
 }
 
 /* Cápsula de porcentaje de descuento */
@@ -713,12 +790,14 @@
   background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
   color: #ffffff;
   font-family: 'Consolas', monospace;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 900;
-  padding: 0.25rem 0.6rem;
+  padding: 0.18rem 0.55rem;
   border-radius: 12px;
   border: 1px solid #f87171;
   box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  white-space: nowrap !important;
+  width: fit-content !important;
 }

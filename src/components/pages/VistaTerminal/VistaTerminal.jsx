@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 import { productService } from "../../../services/productService";
 import ReactorLoader from "../../ReactorLoader";
 import PromoModal from "../../PromoModal/PromoModal";
@@ -58,8 +60,48 @@ export default function VistaTerminal() {
 
     cargarCatalogo();
 
+    const stompClient = new Client({
+      webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
+      reconnectDelay: 5000,
+      onConnect: () => {
+        stompClient.subscribe("/topic/productos-stock", (mensaje) => {
+          if (!montado || !mensaje.body) return;
+          try {
+            const productoActualizado = JSON.parse(mensaje.body);
+            setProductos((prevProductos) => {
+              const existe = prevProductos.some(
+                (p) => p.id === productoActualizado.id,
+              );
+              if (existe) {
+                return prevProductos.map((p) =>
+                  p.id === productoActualizado.id
+                    ? { ...p, ...productoActualizado }
+                    : p,
+                );
+              }
+              return [...prevProductos, productoActualizado];
+            });
+
+            setProductoSeleccionado((prevSel) =>
+              prevSel && prevSel.id === productoActualizado.id
+                ? { ...prevSel, ...productoActualizado }
+                : prevSel,
+            );
+          } catch (err) {
+            console.error(
+              "Error al procesar actualización de stock por WebSocket:",
+              err,
+            );
+          }
+        });
+      },
+    });
+
+    stompClient.activate();
+
     return () => {
       montado = false;
+      stompClient.deactivate();
     };
   }, []);
 
@@ -85,7 +127,9 @@ export default function VistaTerminal() {
         .reduce((acc, item) => acc + (Number(item.cantidad) || 0), 0);
 
       if (unidadesYaEnCesta >= topeStock) {
-        const itemExistente = prev.find((item) => item.idUnico === claveArticulo);
+        const itemExistente = prev.find(
+          (item) => item.idUnico === claveArticulo,
+        );
         if (itemExistente) mostrarAlertaTopeStock(claveArticulo);
         return prev;
       }
@@ -125,7 +169,9 @@ export default function VistaTerminal() {
 
         const maxStock = Number(item.stockMax ?? item.stock ?? 99);
         const valorParseado = parseInt(nuevaCantidad, 10);
-        const cantidadBase = Number.isNaN(valorParseado) ? 1 : Math.max(1, valorParseado);
+        const cantidadBase = Number.isNaN(valorParseado)
+          ? 1
+          : Math.max(1, valorParseado);
 
         if (cantidadBase > maxStock) {
           mostrarAlertaTopeStock(idUnico);
@@ -546,12 +592,17 @@ export default function VistaTerminal() {
                     }`}
                   >
                     {estaAgotado ? (
-                      <span>🚫 Agotado en almacén</span>
+                      <>
+                        <span>🚫 Agotado</span>
+                        <span className="producto-stock-unidades">
+                          en almacén
+                        </span>
+                      </>
                     ) : pocoStock ? (
                       <>
-                        <span>⚠️ ¡Pocas existencias!</span>
+                        <span>⚠️ ¡Pocas unidades!</span>
                         <span className="producto-stock-unidades">
-                          (Solo quedan {stockEfectivo}&nbsp;ud)
+                          (Solo quedan {stockEfectivo} ud)
                         </span>
                       </>
                     ) : (
@@ -566,7 +617,9 @@ export default function VistaTerminal() {
 
                   <button
                     className={`btn-agregar ${
-                      !esCamisetaCatalogo && estaAgotado ? "btn-agregar-agotado" : ""
+                      !esCamisetaCatalogo && estaAgotado
+                        ? "btn-agregar-agotado"
+                        : ""
                     }`}
                     disabled={!esCamisetaCatalogo && estaAgotado}
                     onClick={() => {
@@ -653,13 +706,17 @@ export default function VistaTerminal() {
                 <ul className="comanda-items">
                   {carrito.map((item) => {
                     const nombreItem = (item.nombre || "").trim();
-                    const esGrootItem =
-                      nombreItem.includes("Figura Groot Guardianes");
-                    const esThorItem =
-                      nombreItem.includes("Figura Thor Dios del Trueno");
+                    const esGrootItem = nombreItem.includes(
+                      "Figura Groot Guardianes",
+                    );
+                    const esThorItem = nombreItem.includes(
+                      "Figura Thor Dios del Trueno",
+                    );
                     const tieneDtoItem = esGrootItem || esThorItem;
                     const cantActual = Number(item.cantidad) || 1;
-                    const maxDisponible = Number(item.stockMax ?? item.stock ?? 99);
+                    const maxDisponible = Number(
+                      item.stockMax ?? item.stock ?? 99,
+                    );
                     const enTopeStock = cantActual >= maxDisponible;
                     const subtotalItem =
                       calcularPrecioUnidad(item) * cantActual;
@@ -671,7 +728,12 @@ export default function VistaTerminal() {
                             <span className="comanda-item-titulo">
                               {item.nombre}
                               {item.talla && (
-                                <strong style={{ color: "#00e5ff", marginLeft: "0.4rem" }}>
+                                <strong
+                                  style={{
+                                    color: "#00e5ff",
+                                    marginLeft: "0.4rem",
+                                  }}
+                                >
                                   ({item.talla})
                                 </strong>
                               )}
@@ -711,10 +773,7 @@ export default function VistaTerminal() {
                               type="button"
                               className="btn-cant-control"
                               onClick={() =>
-                                actualizarCantidad(
-                                  item.idUnico,
-                                  cantActual - 1,
-                                )
+                                actualizarCantidad(item.idUnico, cantActual - 1)
                               }
                               disabled={cantActual <= 1}
                               aria-label="Disminuir cantidad"
@@ -727,10 +786,7 @@ export default function VistaTerminal() {
                               max={maxDisponible}
                               value={cantActual}
                               onChange={(e) =>
-                                actualizarCantidad(
-                                  item.idUnico,
-                                  e.target.value,
-                                )
+                                actualizarCantidad(item.idUnico, e.target.value)
                               }
                               className="input-cant-numero"
                               aria-label="Cantidad de unidades"
@@ -770,7 +826,8 @@ export default function VistaTerminal() {
                               display: "block",
                             }}
                           >
-                            ⚠️ Límite de stock disponible alcanzado ({maxDisponible}{" "}
+                            ⚠️ Límite de stock disponible alcanzado (
+                            {maxDisponible}{" "}
                             {maxDisponible === 1 ? "unidad" : "unidades"}).
                           </small>
                         )}
