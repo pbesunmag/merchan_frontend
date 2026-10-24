@@ -15,6 +15,23 @@ export default function VistaPreparacion() {
   
   const [pagosAceptados, setPagosAceptados] = useState({});
   const [pedidoAPagoModal, setPedidoAPagoModal] = useState(null);
+  const [toastMensaje, setToastMensaje] = useState(null);
+  const [lineasCompletadas, setLineasCompletadas] = useState({});
+
+  const mostrarToast = (texto) => {
+    setToastMensaje(texto);
+    setTimeout(() => {
+      setToastMensaje(null);
+    }, 2500);
+  };
+
+  const alternarLineaCompletada = (pedidoId, indiceLinea) => {
+    const clave = `${pedidoId}-${indiceLinea}`;
+    setLineasCompletadas((prev) => ({
+      ...prev,
+      [clave]: !prev[clave],
+    }));
+  };
 
   const [ultimasEntregas, setUltimasEntregas] = useState(() => {
     try {
@@ -73,9 +90,10 @@ export default function VistaPreparacion() {
     };
   }, [cargarPedidos]);
 
-  const cambiarEstado = async (pedidoId, nuevoEstado) => {
+  const cambiarEstado = async (pedidoId, nuevoEstado, mensajeToast = null) => {
     try {
       await pedidoService.actualizarEstado(pedidoId, nuevoEstado);
+      if (mensajeToast) mostrarToast(mensajeToast);
       cargarPedidos(false);
     } catch (err) {
       setError(err.message);
@@ -103,6 +121,7 @@ export default function VistaPreparacion() {
         return [nuevoRegistro, ...sinDuplicado].slice(0, 5);
       });
 
+      mostrarToast(`✅ Pedido ${codigoEntregado} registrado como entregado`);
       cargarPedidos(false);
     } catch (err) {
       setError(err.message);
@@ -111,7 +130,8 @@ export default function VistaPreparacion() {
 
   const ejecutarCancelacion = async () => {
     if (!pedidoACancelar) return;
-    await cambiarEstado(pedidoACancelar.id, 'CANCELADO');
+    const codigo = pedidoACancelar.codigo || `AV-${pedidoACancelar.id}`;
+    await cambiarEstado(pedidoACancelar.id, 'CANCELADO', `⚠️ Pedido ${codigo} cancelado`);
     setPedidoACancelar(null);
   };
 
@@ -121,19 +141,21 @@ export default function VistaPreparacion() {
       ...prev,
       [pedidoAPagoModal.id]: true,
     }));
+    const codigo = pedidoAPagoModal.codigo || `AV-${pedidoAPagoModal.id}`;
+    mostrarToast(`💳 Pago aceptado para el pedido ${codigo}`);
     setPedidoAPagoModal(null);
   };
 
-  const revertirACreado = async (pedidoId) => {
+  const revertirACreado = async (pedidoId, codigo) => {
     setPagosAceptados((prev) => ({
       ...prev,
       [pedidoId]: true,
     }));
-    await cambiarEstado(pedidoId, 'CREADO');
+    await cambiarEstado(pedidoId, 'CREADO', `↩ Pedido ${codigo} devuelto a nuevos`);
   };
 
-  const revertirAEnProceso = async (pedidoId) => {
-    await cambiarEstado(pedidoId, 'EN_PREPARACION');
+  const revertirAEnProceso = async (pedidoId, codigo) => {
+    await cambiarEstado(pedidoId, 'EN_PREPARACION', `↩ Pedido ${codigo} devuelto a proceso`);
   };
 
   const normalizarTexto = (texto) => {
@@ -175,7 +197,12 @@ export default function VistaPreparacion() {
         linea.productoNombre || linea.nombre || `Producto #${linea.productoId}`
       );
       const textoPers = normalizarTexto(linea.textoPersonalizado);
-      return nombreProd.includes(termino) || textoPers.includes(termino);
+      const tallaProd = normalizarTexto(linea.talla);
+      return (
+        nombreProd.includes(termino) ||
+        textoPers.includes(termino) ||
+        tallaProd.includes(termino)
+      );
     });
 
     return coincideCodigo || coincideId || coincideProducto;
@@ -248,11 +275,12 @@ export default function VistaPreparacion() {
                 const totalUds = calcularTotalUnidades(pedido);
                 const esPersonalizado = tieneGrabadoPersonalizado(pedido);
                 const pagoAceptado = pagosAceptados[pedido.id];
+                const codigoPedido = pedido.codigo || `AV-${pedido.id}`;
 
                 return (
                   <article key={pedido.id} className="pedido-card">
                     <div className="pedido-card-header">
-                      <span className="pedido-codigo">{pedido.codigo}</span>
+                      <span className="pedido-codigo">{codigoPedido}</span>
                       <div className="pedido-header-badges">
                         {esPersonalizado && (
                           <span className="badge-grabado-alerta" title="Este pedido incluye artículos personalizados">
@@ -276,8 +304,17 @@ export default function VistaPreparacion() {
                     <ul className="lineas-list">
                       {(pedido.lineas || pedido.productos)?.map((linea, idx) => (
                         <li key={linea.id || idx} className="linea-item">
-                          <strong>{linea.cantidad}x</strong>{' '}
-                          {linea.productoNombre || `Producto #${linea.productoId}`}
+                          <div className="linea-principal">
+                            <span>
+                              <strong>{linea.cantidad}x</strong>{' '}
+                              {linea.productoNombre || `Producto #${linea.productoId}`}
+                            </span>
+                            {linea.talla && (
+                              <span className="badge-talla-prep">
+                                Talla {linea.talla}
+                              </span>
+                            )}
+                          </div>
                           {linea.textoPersonalizado && (
                             <div className="linea-personalizado">
                               ✏️ "{linea.textoPersonalizado}"
@@ -299,7 +336,7 @@ export default function VistaPreparacion() {
                       </button>
                       <button
                         className={`btn-accion btn-iniciar ${!pagoAceptado ? 'btn-deshabilitado' : ''}`}
-                        onClick={() => pagoAceptado && cambiarEstado(pedido.id, 'EN_PREPARACION')}
+                        onClick={() => pagoAceptado && cambiarEstado(pedido.id, 'EN_PREPARACION', `🚀 Pedido ${codigoPedido} en preparación`)}
                         disabled={!pagoAceptado}
                         title={!pagoAceptado ? "Debe aceptar el pago antes de iniciar la preparación" : "Iniciar preparación"}
                       >
@@ -330,11 +367,12 @@ export default function VistaPreparacion() {
               enProcesoFiltrados.map((pedido) => {
                 const totalUds = calcularTotalUnidades(pedido);
                 const esPersonalizado = tieneGrabadoPersonalizado(pedido);
+                const codigoPedido = pedido.codigo || `AV-${pedido.id}`;
 
                 return (
                   <article key={pedido.id} className="pedido-card">
                     <div className="pedido-card-header">
-                      <span className="pedido-codigo">{pedido.codigo}</span>
+                      <span className="pedido-codigo">{codigoPedido}</span>
                       <div className="pedido-header-badges">
                         {esPersonalizado && (
                           <span className="badge-grabado-alerta" title="Este pedido incluye artículos personalizados">
@@ -356,30 +394,50 @@ export default function VistaPreparacion() {
                     </div>
 
                     <ul className="lineas-list">
-                      {(pedido.lineas || pedido.productos)?.map((linea, idx) => (
-                        <li key={linea.id || idx} className="linea-item">
-                          <strong>{linea.cantidad}x</strong>{' '}
-                          {linea.productoNombre || `Producto #${linea.productoId}`}
-                          {linea.textoPersonalizado && (
-                            <div className="linea-personalizado">
-                              ✏️ "{linea.textoPersonalizado}"
+                      {(pedido.lineas || pedido.productos)?.map((linea, idx) => {
+                        const claveCheck = `${pedido.id}-${idx}`;
+                        const estaCompletada = !!lineasCompletadas[claveCheck];
+
+                        return (
+                          <li
+                            key={linea.id || idx}
+                            className={`linea-item linea-checklist ${estaCompletada ? 'completada' : ''}`}
+                            onClick={() => alternarLineaCompletada(pedido.id, idx)}
+                            title="Haz clic para marcar como preparado"
+                          >
+                            <div className="linea-principal">
+                              <span>
+                                <span className="check-icono">{estaCompletada ? '✅' : '⬜'}</span>
+                                <strong>{linea.cantidad}x</strong>{' '}
+                                {linea.productoNombre || `Producto #${linea.productoId}`}
+                              </span>
+                              {linea.talla && (
+                                <span className="badge-talla-prep">
+                                  Talla {linea.talla}
+                                </span>
+                              )}
                             </div>
-                          )}
-                        </li>
-                      ))}
+                            {linea.textoPersonalizado && (
+                              <div className="linea-personalizado">
+                                ✏️ "{linea.textoPersonalizado}"
+                              </div>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
 
                     <div className="pedido-acciones-fila">
                       <button
                         className="btn-accion btn-revertir"
-                        onClick={() => revertirACreado(pedido.id)}
+                        onClick={() => revertirACreado(pedido.id, codigoPedido)}
                         title="Devolver pedido a Nuevos pedidos"
                       >
                         ↩ Revertir
                       </button>
                       <button
                         className="btn-accion btn-completar"
-                        onClick={() => cambiarEstado(pedido.id, 'PEDIDO_LISTO')}
+                        onClick={() => cambiarEstado(pedido.id, 'PEDIDO_LISTO', `✨ Pedido ${codigoPedido} marcado como listo`)}
                       >
                         Marcar como Listo
                       </button>
@@ -408,11 +466,12 @@ export default function VistaPreparacion() {
               listosFiltrados.map((pedido) => {
                 const totalUds = calcularTotalUnidades(pedido);
                 const esPersonalizado = tieneGrabadoPersonalizado(pedido);
+                const codigoPedido = pedido.codigo || `AV-${pedido.id}`;
 
                 return (
                   <article key={pedido.id} className="pedido-card">
                     <div className="pedido-card-header">
-                      <span className="pedido-codigo">{pedido.codigo}</span>
+                      <span className="pedido-codigo">{codigoPedido}</span>
                       <div className="pedido-header-badges">
                         {esPersonalizado && (
                           <span className="badge-grabado-alerta" title="Este pedido incluye artículos personalizados">
@@ -436,8 +495,17 @@ export default function VistaPreparacion() {
                     <ul className="lineas-list">
                       {(pedido.lineas || pedido.productos)?.map((linea, idx) => (
                         <li key={linea.id || idx} className="linea-item">
-                          <strong>{linea.cantidad}x</strong>{' '}
-                          {linea.productoNombre || `Producto #${linea.productoId}`}
+                          <div className="linea-principal">
+                            <span>
+                              <strong>{linea.cantidad}x</strong>{' '}
+                              {linea.productoNombre || `Producto #${linea.productoId}`}
+                            </span>
+                            {linea.talla && (
+                              <span className="badge-talla-prep">
+                                Talla {linea.talla}
+                              </span>
+                            )}
+                          </div>
                           {linea.textoPersonalizado && (
                             <div className="linea-personalizado">
                               ✏️ "{linea.textoPersonalizado}"
@@ -450,7 +518,7 @@ export default function VistaPreparacion() {
                     <div className="pedido-acciones-fila">
                       <button
                         className="btn-accion btn-revertir"
-                        onClick={() => revertirAEnProceso(pedido.id)}
+                        onClick={() => revertirAEnProceso(pedido.id, codigoPedido)}
                         title="Devolver pedido a En proceso"
                       >
                         ↩ Revertir
@@ -470,6 +538,12 @@ export default function VistaPreparacion() {
           </div>
         </section>
       </div>
+
+      {toastMensaje && (
+        <div className="stark-toast-notificacion">
+          {toastMensaje}
+        </div>
+      )}
 
       {pedidoACancelar && (
         <div className="modal-overlay">
