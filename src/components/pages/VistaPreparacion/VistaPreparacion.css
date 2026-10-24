@@ -203,6 +203,53 @@ html, body {
   word-break: break-word;
 }
 
+.linea-checklist {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  padding: 0.4rem 0.3rem;
+  border-radius: 4px;
+}
+
+.linea-checklist:hover {
+  background-color: rgba(56, 189, 248, 0.08);
+}
+
+.linea-checklist.completada {
+  opacity: 0.5;
+  text-decoration: line-through;
+  color: #94a3b8;
+}
+
+.check-icono {
+  margin-right: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.linea-principal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge-talla-prep {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  font-family: 'Consolas', monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.15);
+}
+
 .linea-personalizado {
   font-size: 0.82rem;
   color: #fbbf24;
@@ -446,6 +493,35 @@ html, body {
   text-align: center;
   margin-top: 2rem;
   font-size: 0.9rem;
+}
+
+.stark-toast-notificacion {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: linear-gradient(135deg, #0f172a 0%, #030712 100%);
+  color: #00e5ff;
+  border: 1.5px solid #00e5ff;
+  padding: 0.9rem 1.4rem;
+  border-radius: 8px;
+  font-family: 'Consolas', monospace;
+  font-size: 0.9rem;
+  font-weight: 800;
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.45), 0 10px 25px rgba(0, 0, 0, 0.8);
+  z-index: 3000;
+  animation: toastFadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.04em;
+}
+
+@keyframes toastFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @media (min-width: 768px) {
