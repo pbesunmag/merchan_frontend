@@ -105,6 +105,85 @@
 }
 
 /* ==========================================================================
+   ESTRUCTURA PRINCIPAL Y NAVBAR APP.JSX
+   ========================================================================== */
+.app-main-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #090a0f;
+}
+
+.app-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 3rem;
+  background: linear-gradient(90deg, #090d16 0%, #18181b 100%);
+  border-bottom: 2px solid #b91c1c;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.7);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.app-navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-navbar-logo {
+  height: 118px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.35));
+}
+
+.app-navbar-title {
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: #ffffff;
+  text-transform: uppercase;
+  font-size: 1.25rem;
+}
+
+.app-title-highlight {
+  color: #00e5ff;
+}
+
+.app-navbar-links {
+  display: flex;
+  gap: 2rem;
+}
+
+.app-nav-link {
+  color: #94a3b8;
+  text-decoration: none;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-bottom: 0.3rem;
+  transition: all 0.2s ease;
+}
+
+.app-nav-link:hover {
+  color: #00e5ff;
+}
+
+.app-nav-link.activo {
+  color: #00e5ff;
+  border-bottom: 2px solid #00e5ff;
+  text-shadow: 0 0 10px #00e5ff;
+}
+
+.app-content-container {
+  flex: 1;
+  background: #090a0f;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
    HERO BANNER
    ========================================================================== */
 .hero {

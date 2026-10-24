@@ -2,22 +2,37 @@ const BASE_URL = 'http://localhost:8080/api';
 
 export async function request(endpoint, options = {}) {
   const config = {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
-    ...options,
   };
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, config);
+  let response;
+  try {
+    response = await fetch(`${BASE_URL}${endpoint}`, config);
+  } catch {
+    throw new Error('No se pudo conectar con el servidor backend (verifica que esté encendido en el puerto 8080).');
+  }
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    const mensaje = errorData?.message || `Error ${response.status}: ${response.statusText}`;
-    throw new Error(mensaje);
+    
+    // Extrae el mensaje real del backend (DTO de error personalizado)
+    const mensajeBackend =
+      errorData?.message ||
+      errorData?.mensaje ||
+      errorData?.error ||
+      errorData?.detail ||
+      (Array.isArray(errorData?.errors) ? errorData.errors[0]?.defaultMessage || errorData.errors[0] : null);
+
+    const mensajeFinal = mensajeBackend || `Error ${response.status}: ${response.statusText}`;
+    throw new Error(mensajeFinal);
   }
 
   if (response.status === 204) return null;
 
-  return response.json();
+  const text = await response.text();
+  return text ? JSON.parse(text) : null;
 }
