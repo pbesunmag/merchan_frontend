@@ -24,7 +24,6 @@
   }
 }
 
-/* Contenedor maestro común para secciones */
 .catalogo-container,
 .catalogo-section,
 .formulario-soporte-container,
@@ -37,7 +36,7 @@
 }
 
 /* ==========================================================================
-   BANNER SUPERIOR - HUD STARK INDUSTRIES (CAJAS INDEPENDIENTES Y CENTRADAS)
+   BANNER SUPERIOR - HUD STARK INDUSTRIES
    ========================================================================== */
 
 .banner-promos-grid {
@@ -96,25 +95,11 @@
   overflow: visible;
 }
 
-@media (max-width: 768px) {
-  .promo-box,
-  .banner-promo-box {
-    width: 100%;
-    padding: 0.6rem 0.75rem;
-  }
-  .promo-box-texto,
-  .banner-promo-texto {
-    white-space: normal;
-    font-size: 0.75rem;
-  }
-}
-
-/* Caja 1: Promo Apertura Personalizables (Cian Stark) */
 .box-apertura {
   background: rgba(6, 15, 29, 0.85);
   border: 1.5px solid #00e5ff;
   box-shadow: 0 0 16px rgba(0, 229, 255, 0.22), inset 0 0 12px rgba(0, 229, 255, 0.06);
-  transform: none !important; /* Calibración específica de centrado visual */
+  transform: none !important;
 }
 
 .box-apertura:hover {
@@ -147,7 +132,6 @@
   white-space: nowrap;
 }
 
-/* Caja 2: Cupón Guardián Groot (Ámbar Stark) */
 .box-groot {
   background: rgba(22, 15, 5, 0.85);
   border: 1.5px dashed #f59e0b;
@@ -179,7 +163,7 @@
 }
 
 /* ==========================================================================
-   HERO BANNER SLIDER - FULL WIDTH HERO (GRAN FORMATO COMPLETO)
+   HERO BANNER SLIDER - FULL WIDTH HERO
    ========================================================================== */
 
 .hero-slider-contenedor,
@@ -616,7 +600,7 @@
 }
 
 /* ==========================================================================
-   GRID Y TARJETAS DEL CATÁLOGO (MOBILE FIRST)
+   GRID Y TARJETAS DEL CATÁLOGO
    ========================================================================== */
 
 .productos-grid {
@@ -656,7 +640,7 @@
   border: 1px solid #3f3f46;
   border-left: 4px solid #dc2626;
   border-radius: 8px;
-  padding: 1.2rem 1rem;            /* 👈 1rem a los lados en lugar de 1.4rem */
+  padding: 1.2rem 1rem;
   display: flex !important;
   flex-direction: column !important;
   justify-content: space-between !important;
@@ -769,7 +753,7 @@
 }
 
 /* ==========================================================================
-   PRECIOS APILADOS Y CENTRADOS HORIZONTALMENTE (SIN DIVIDIR NÚMERO Y €)
+   PRECIOS APILADOS Y CENTRADOS HORIZONTALMENTE
    ========================================================================== */
 
 .producto-precios-contenedor,
@@ -781,10 +765,7 @@
   justify-content: center !important;
   text-align: center !important;
   width: 100% !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  margin-top: auto !important;
-  margin-bottom: 0.65rem !important;
+  margin: auto auto 0.65rem auto !important;
   gap: 0.15rem !important;
   font-family: 'Consolas', monospace !important;
   font-size: 1.35rem !important;
@@ -796,8 +777,7 @@
 }
 
 .producto-precio-tachado,
-.precio-anterior-card,
-.producto-precio span[style*="line-through"] {
+.precio-anterior-card {
   font-family: 'Consolas', monospace !important;
   font-size: 0.9rem !important;
   font-weight: 600 !important;
@@ -810,8 +790,7 @@
 }
 
 .producto-precio-actual,
-.precio-nuevo,
-.producto-precio span[style*="#00e5ff"] {
+.precio-nuevo {
   font-family: 'Consolas', monospace !important;
   font-size: 1.35rem !important;
   font-weight: 900 !important;
@@ -827,52 +806,31 @@
 }
 
 /* ==========================================================================
-   SINCRONIZACIÓN DE STOCK EN TIEMPO REAL (TEXTO EN LÍNEA CONTINUA)
+   SINCRONIZACIÓN DE STOCK EN TIEMPO REAL
    ========================================================================== */
 
 .producto-stock-estado {
-  max-width: 100% !important;
-  overflow: hidden !important;
-  line-height: 1.3 !important;
-  font-family: 'Consolas', monospace;
-  font-size: 0.73rem !important;
-  font-weight: 800;
-  padding: 0.35rem 0.5rem !important;
-  border-radius: 5px;
-  margin-bottom: 0.65rem;
+  min-height: 48px !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 0.15rem !important;
-  letter-spacing: 0.02em;
-  text-align: center !important;
-  white-space: normal !important;
-  box-sizing: border-box !important;
-  width: 100% !important;
-}
-
-.producto-stock-estado span,
-.producto-stock-unidades {
-  white-space: normal !important;
-  overflow-wrap: break-word !important;
   width: 100% !important;
   max-width: 100% !important;
-  text-align: center !important;
-  margin: 0 auto !important;
   box-sizing: border-box !important;
-  white-space: nowrap !important;
-  display: inline-block;
+  padding: 0.35rem 0.2rem !important;
+  margin-bottom: 0.65rem;
+  border-radius: 5px;
+  font-family: 'Consolas', monospace;
+  font-size: 0.68rem !important;
+  font-weight: 800;
+  line-height: 1.25 !important;
+  letter-spacing: 0 !important;
+  text-align: center !important;
+  overflow: hidden !important;
 }
 
-.producto-stock-estado.stock-disponible {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-}
-
-.producto-stock-estado.stock-bajo span,
-.producto-stock-estado.stock-agotado span,
 .producto-stock-estado span,
 .producto-stock-unidades {
   display: block !important;
@@ -885,61 +843,28 @@
   box-sizing: border-box !important;
 }
 
-.producto-stock-estado,
-.producto-stock-estado.stock-disponible,
-.producto-stock-estado.stock-bajo,
-.producto-stock-estado.stock-agotado {
-  min-height: 48px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 0.15rem !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  padding: 0.35rem 0.2rem !important;
-  font-size: 0.68rem !important;
-  line-height: 1.25 !important;
-  letter-spacing: 0 !important;
-  text-align: center !important;
-  overflow: hidden !important;
-}
-
-.producto-stock-estado.stock-bajo > span:first-child,
-.producto-stock-estado.stock-bajo span:first-child {
-  font-size: 0.58rem !important;
-  letter-spacing: -0.01em !important;
-  white-space: nowrap !important;
-  text-align: center !important;
-  margin: 0 auto !important;
-}
-
-.producto-stock-estado.stock-bajo .producto-stock-unidades {
-  font-size: 0.60rem !important;
-  white-space: nowrap !important;
-  text-align: center !important;
-  margin: 0 auto !important;
-}
-
-.producto-stock-estado.stock-bajo_old {
-  font-size: 0.66rem !important;
-  letter-spacing: 0 !important;
-  white-space: nowrap !important;
+.producto-stock-estado.stock-disponible {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
 .producto-stock-estado.stock-bajo {
   padding: 0.35rem 0.15rem !important;
-  min-height: 48px !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
   color: #f59e0b;
   background: rgba(245, 158, 11, 0.14);
   border: 1px solid rgba(245, 158, 11, 0.55);
   box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
   animation: pulsoStockBajo 1.8s infinite ease-in-out;
+}
+
+.producto-stock-estado.stock-bajo > span:first-child {
+  font-size: 0.58rem !important;
+  letter-spacing: -0.01em !important;
+}
+
+.producto-stock-estado.stock-bajo .producto-stock-unidades {
+  font-size: 0.60rem !important;
 }
 
 .producto-stock-estado.stock-agotado {
@@ -956,7 +881,6 @@
   }
   50% {
     opacity: 0.82;
-    transform: scale(1) !important;
     transform: scale(1.02);
   }
 }
@@ -994,14 +918,13 @@
   opacity: 0.85;
 }
 
-/* Insignia capsula de descuento */
 .product-badge.gold,
 span.product-badge.gold {
   position: absolute;
   top: 14px;
   left: 14px;
-  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important; /* 👈 Obligatorio !important */
-  background-color: transparent !important;                               /* 👈 Anula el rgb(255, 183, 3) */
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+  background-color: transparent !important;
   color: #ffffff !important;
   font-family: 'Consolas', monospace;
   font-size: 0.8rem;
@@ -1014,21 +937,6 @@ span.product-badge.gold {
   z-index: 10;
   text-transform: uppercase;
   pointer-events: none;
-}
-
-@keyframes pulsoInsignia {
-  0% {
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 18px rgba(239, 68, 68, 0.85);
-    transform: scale(1.04);
-  }
-  100% {
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
-    transform: scale(1);
-  }
 }
 
 .btn-filtro-personalizables {
@@ -1049,7 +957,7 @@ span.product-badge.gold {
 }
 
 /* ==========================================================================
-   BOTON MOSTRAR TODO / REDUCIR
+   BOTÓN MOSTRAR TODO / REDUCIR
    ========================================================================== */
 
 .ver-mas-container {
@@ -1598,6 +1506,21 @@ span.product-badge.gold {
    MODAL DE CONFIRMACIÓN (HOLOGRAMA VENGADORES)
    ========================================================================== */
 
+.terminal-exito-wrapper {
+  padding: 4rem 1rem;
+  max-width: 650px;
+  margin: 0 auto;
+}
+
+.terminal-exito-subtexto {
+  color: #cbd5e1;
+}
+
+.btn-nuevo-pedido-exito {
+  max-width: 280px;
+  margin: 1rem auto 0 auto;
+}
+
 .modal-exito {
   background: radial-gradient(circle at center, #111827 0%, #030712 100%);
   border: 2px solid #00e5ff;
@@ -1635,6 +1558,77 @@ span.product-badge.gold {
     border-color: #ef4444;
     box-shadow: 0 0 30px rgba(239, 68, 68, 0.35);
   }
+}
+
+/* ==========================================================================
+   CLASES AUXILIARES DE ERROR Y COMANDA (PASO 2)
+   ========================================================================== */
+
+.terminal-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  color: #fecaca;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.terminal-error-banner button {
+  background: transparent;
+  border: none;
+  color: #f87171;
+  font-weight: 800;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.comanda-talla-tag {
+  color: #00e5ff;
+  margin-left: 0.4rem;
+}
+
+.texto-max-stock {
+  color: #64748b;
+}
+
+.aviso-tope-stock {
+  color: #fbbf24;
+  font-family: 'Consolas', monospace;
+  font-size: 0.75rem;
+  display: block;
+}
+
+.aviso-no-personalizable {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-style: italic;
+  margin-top: 0.2rem;
+}
+
+.cupon-aplicado-fila {
+  justify-content: space-between;
+}
+
+.btn-quitar-cupon {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.error-cupon-texto {
+  color: #f87171;
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
 }
 
 /* ==========================================================================
@@ -1781,6 +1775,12 @@ span.product-badge.gold {
     transform: none !important;
     margin: 0.4rem auto !important;
     width: 92% !important;
+  }
+
+  .promo-box-texto,
+  .banner-promo-texto {
+    white-space: normal;
+    font-size: 0.75rem;
   }
 
   .hero-titulo {

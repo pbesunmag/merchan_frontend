@@ -15,6 +15,7 @@ export default function VistaTerminal() {
   const [carrito, setCarrito] = useState([]);
   const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [procesandoPedido, setProcesandoPedido] = useState(false);
   const [pedidoFinalizado, setPedidoFinalizado] = useState(null);
   const [error, setError] = useState(null);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
@@ -41,10 +42,23 @@ export default function VistaTerminal() {
 
   const PRECIO_GRABADO_REBAJADO = 3.0;
 
+  const cargarCatalogo = async () => {
+    try {
+      setError(null);
+      const data = await productService.obtenerProductos();
+      const lista = data?.content || data || [];
+      setProductos(lista);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let montado = true;
 
-    const cargarCatalogo = async () => {
+    const initCatalogo = async () => {
       try {
         const data = await productService.obtenerProductos();
         if (montado) {
@@ -58,7 +72,7 @@ export default function VistaTerminal() {
       }
     };
 
-    cargarCatalogo();
+    initCatalogo();
 
     const stompClient = new Client({
       webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
@@ -113,7 +127,6 @@ export default function VistaTerminal() {
     const topeStock = Number(producto.stockMax ?? producto.stock ?? 99);
     if (topeStock <= 0) return;
 
-    // Se incluye la talla en la clave única para permitir diferentes tallas de un mismo producto
     const tallaArticulo = producto.talla || "";
     const claveArticulo = `${producto.id}_${producto.nombre || ""}_${tallaArticulo}`;
 
@@ -312,11 +325,29 @@ export default function VistaTerminal() {
   );
 
   const finalizarPedido = async () => {
-    if (carrito.length === 0) return;
+    if (carrito.length === 0 || procesandoPedido) return;
 
     try {
+      setError(null);
+      setProcesandoPedido(true);
+
       const itemsAProcesar = [...carrito];
       const cuponActual = cuponAplicado;
+
+      // POST /api/pedidos
+      const nuevoPedido = await productService.crearPedido(1);
+
+      // POST /api/pedidos/{pedidoId}/productos
+      for (const item of itemsAProcesar) {
+        await productService.agregarProductoAPedido(nuevoPedido.id, {
+          productoId: item.id,
+          cantidad: Number(item.cantidad) || 1,
+          textoPersonalizado: esPersonalizable(item)
+            ? item.textoPersonalizado
+            : null,
+          talla: item.talla || null,
+        });
+      }
 
       if (cuponActual) {
         const cuponesUsadosSesion = JSON.parse(
@@ -331,56 +362,44 @@ export default function VistaTerminal() {
         }
       }
 
+      // Solo vaciamos el carrito una vez confirmado con éxito en el backend
       setMostrarCarrito(false);
       setCarrito([]);
       setCuponAplicado(null);
       setCodigoCupon("");
-      setLoading(true);
-
-      const nuevoPedido = await productService.crearPedido(1);
-
-      for (const item of itemsAProcesar) {
-        await productService.agregarProductoAPedido(nuevoPedido.id, {
-          productoId: item.id,
-          cantidad: Number(item.cantidad) || 1,
-          textoPersonalizado: esPersonalizable(item)
-            ? item.textoPersonalizado
-            : null,
-          talla: item.talla || null, // Se envía la talla seleccionada al backend
-        });
-      }
-
       setPedidoFinalizado(nuevoPedido?.codigo || `AV-${nuevoPedido?.id || 1}`);
+      await cargarCatalogo();
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      setProcesandoPedido(false);
     }
   };
 
-  if (loading) {
+  if (loading || procesandoPedido) {
     return (
       <ReactorLoader
         size={150}
-        text="Iniciando enlace con Stark Industries..."
+        text={
+          procesandoPedido
+            ? "Registrando solicitud de suministros en Stark Industries..."
+            : "Iniciando enlace con Stark Industries..."
+        }
       />
     );
   }
 
   if (pedidoFinalizado) {
     return (
-      <div
-        style={{ padding: "4rem 1rem", maxWidth: "650px", margin: "0 auto" }}
-      >
+      <div className="terminal-exito-wrapper">
         <div className="modal-exito">
           <h2>⭐ Transmisión Completada ⭐</h2>
-          <p style={{ color: "#cbd5e1" }}>
+          <p className="terminal-exito-subtexto">
             Tu solicitud de equipamiento ha sido enviada al área de preparación:
           </p>
           <div className="codigo-destacado">{pedidoFinalizado}</div>
           <button
-            className="btn-agregar"
-            style={{ maxWidth: "280px", margin: "1rem auto 0 auto" }}
+            className="btn-agregar btn-nuevo-pedido-exito"
             onClick={() => setPedidoFinalizado(null)}
           >
             Realizar nuevo pedido
@@ -496,7 +515,14 @@ export default function VistaTerminal() {
           </div>
         </div>
 
-        {error && <p style={{ color: "#ef4444" }}>{error}</p>}
+        {error && (
+          <div className="terminal-error-banner">
+            <span>⚠️ {error}</span>
+            <button type="button" onClick={() => setError(null)}>
+              ✕
+            </button>
+          </div>
+        )}
 
         <div className="productos-grid">
           {productosVisibles.map((prod) => {
@@ -521,12 +547,10 @@ export default function VistaTerminal() {
             const esCamisetaCatalogo =
               obtenerCategoriaProducto(prod) === "Camisetas" || prod.id <= 5;
 
-            // 1. Unidades ya presentes en la cesta para este producto
             const unidadesEnCesta = carrito
               .filter((item) => item.id === prod.id)
               .reduce((total, item) => total + (Number(item.cantidad) || 0), 0);
 
-            // 2. Stock efectivo remanente en tiempo real
             const stockBaseProd = Number(
               prod.stockMax ?? prod.stock ?? (prod.activo === false ? 0 : 10),
             );
@@ -581,7 +605,6 @@ export default function VistaTerminal() {
                     )}
                   </div>
 
-                  {/* Aviso de stock sincronizado en tiempo real */}
                   <div
                     className={`producto-stock-estado ${
                       estaAgotado
@@ -701,6 +724,15 @@ export default function VistaTerminal() {
               </div>
             </div>
 
+            {error && (
+              <div className="terminal-error-banner">
+                <span>⚠️ {error}</span>
+                <button type="button" onClick={() => setError(null)}>
+                  ✕
+                </button>
+              </div>
+            )}
+
             {carrito.length === 0 ? (
               <p className="carrito-vacio">No has seleccionado suministros.</p>
             ) : (
@@ -730,12 +762,7 @@ export default function VistaTerminal() {
                             <span className="comanda-item-titulo">
                               {item.nombre}
                               {item.talla && (
-                                <strong
-                                  style={{
-                                    color: "#00e5ff",
-                                    marginLeft: "0.4rem",
-                                  }}
-                                >
+                                <strong className="comanda-talla-tag">
                                   ({item.talla})
                                 </strong>
                               )}
@@ -765,7 +792,7 @@ export default function VistaTerminal() {
                         <div className="comanda-cantidad-fila">
                           <span className="comanda-cantidad-label">
                             Unidades{" "}
-                            <small style={{ color: "#64748b" }}>
+                            <small className="texto-max-stock">
                               (máx. {maxDisponible})
                             </small>
                             :
@@ -820,14 +847,7 @@ export default function VistaTerminal() {
                         </div>
 
                         {(enTopeStock || avisoStockId === item.idUnico) && (
-                          <small
-                            style={{
-                              color: "#fbbf24",
-                              fontFamily: "'Consolas', monospace",
-                              fontSize: "0.75rem",
-                              display: "block",
-                            }}
-                          >
+                          <small className="aviso-tope-stock">
                             ⚠️ Límite de stock disponible alcanzado (
                             {maxDisponible}{" "}
                             {maxDisponible === 1 ? "unidad" : "unidades"}).
@@ -858,14 +878,7 @@ export default function VistaTerminal() {
                             )}
                           </>
                         ) : (
-                          <small
-                            style={{
-                              color: "#64748b",
-                              fontSize: "0.78rem",
-                              fontStyle: "italic",
-                              marginTop: "0.2rem",
-                            }}
-                          >
+                          <small className="aviso-no-personalizable">
                             🚫 Este artículo no admite grabado personalizado
                           </small>
                         )}
@@ -892,38 +905,22 @@ export default function VistaTerminal() {
                       </button>
                     </form>
                   ) : (
-                    <div
-                      className="aviso-descuento-grabado"
-                      style={{ justifyContent: "space-between" }}
-                    >
+                    <div className="aviso-descuento-grabado cupon-aplicado-fila">
                       <span>
                         🎉 Cupón <strong>{cuponAplicado.codigo}</strong>{" "}
                         aplicado (-{cuponAplicado.porcentaje}%)
                       </span>
                       <button
+                        type="button"
                         onClick={() => setCuponAplicado(null)}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          color: "#ef4444",
-                          fontWeight: "bold",
-                        }}
+                        className="btn-quitar-cupon"
                       >
                         ✕
                       </button>
                     </div>
                   )}
                   {errorCupon && (
-                    <small
-                      style={{
-                        color: "#f87171",
-                        display: "block",
-                        marginTop: "0.3rem",
-                        fontSize: "0.78rem",
-                      }}
-                    >
-                      {errorCupon}
-                    </small>
+                    <small className="error-cupon-texto">{errorCupon}</small>
                   )}
                 </div>
 
