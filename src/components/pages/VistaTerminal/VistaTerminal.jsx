@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Client } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
 import { productService } from "../../../services/productService";
 import { estadisticaService } from "../../../services/estadisticaService";
 import useCarrito from "../../../hooks/useCarrito";
@@ -118,7 +117,9 @@ export default function VistaTerminal() {
     initMasVendido();
 
     const stompClient = new Client({
-      webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
+      brokerURL:
+        (window.location.protocol === "https:" ? "wss://" : "ws://") +
+        "localhost:8080/ws",
       reconnectDelay: 5000,
       onConnect: () => {
         stompClient.subscribe("/topic/productos-stock", (mensaje) => {
