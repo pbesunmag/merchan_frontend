@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { pedidoService } from '../../../services/pedidoService';
+import { obtenerCodigoPedido } from '../../../utils/formatoUtils';
+import { usePollingPedidos } from '../../../hooks/usePollingPedidos';
 import ReactorLoader from '../../ReactorLoader';
 import './VistaPreparacion.css';
 
@@ -7,8 +9,6 @@ export default function VistaPreparacion() {
   const [pedidosCreados, setPedidosCreados] = useState([]);
   const [pedidosEnProceso, setPedidosEnProceso] = useState([]);
   const [pedidosListos, setPedidosListos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [busqueda, setBusqueda] = useState('');
   const [soloConGrabado, setSoloConGrabado] = useState(false);
   const [pedidoACancelar, setPedidoACancelar] = useState(null);
@@ -51,50 +51,30 @@ export default function VistaPreparacion() {
     }
   }, [ultimasEntregas]);
 
-  const cargarPedidos = useCallback(async (silencioso = false) => {
-    try {
-      if (!silencioso) setError(null);
-      const [creadosRes, enProcesoRes, listosRes] = await Promise.all([
-        pedidoService.obtenerPorEstado('CREADO'),
-        pedidoService.obtenerPorEstado('EN_PREPARACION'),
-        pedidoService.obtenerPorEstado('PEDIDO_LISTO'),
-      ]);
+  // Consulta de pedidos: lanza el error para que el hook decida si lo muestra (carga inicial) o lo silencia (polling).
+  const consultarPedidos = useCallback(async () => {
+    const [creadosRes, pagadosRes, enProcesoRes, listosRes] = await Promise.all([
+      pedidoService.obtenerPorEstado('CREADO'),
+      pedidoService.obtenerPorEstado('PAGO_ACEPTADO'),
+      pedidoService.obtenerPorEstado('EN_PREPARACION'),
+      pedidoService.obtenerPorEstado('PEDIDO_LISTO'),
+    ]);
 
-      setPedidosCreados(creadosRes?.content || creadosRes || []);
-      setPedidosEnProceso(enProcesoRes?.content || enProcesoRes || []);
-      setPedidosListos(listosRes?.content || listosRes || []);
-    } catch (err) {
-      if (!silencioso) setError(err.message);
-    } finally {
-      if (!silencioso) setLoading(false);
-    }
+    // Los pedidos con PAGO_ACEPTADO siguen en "Nuevos pedidos" hasta iniciar la preparación.
+    const creados = creadosRes?.content || creadosRes || [];
+    const pagados = pagadosRes?.content || pagadosRes || [];
+    setPedidosCreados([...creados, ...pagados].sort((a, b) => a.id - b.id));
+    setPedidosEnProceso(enProcesoRes?.content || enProcesoRes || []);
+    setPedidosListos(listosRes?.content || listosRes || []);
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const initFetch = async () => {
-      if (isMounted) {
-        await cargarPedidos(false);
-      }
-    };
-
-    initFetch();
-    const intervalo = setInterval(() => {
-      if (isMounted) cargarPedidos(true);
-    }, 4000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(intervalo);
-    };
-  }, [cargarPedidos]);
+  const { loading, error, setError, recargar } = usePollingPedidos(consultarPedidos);
 
   const cambiarEstado = async (pedidoId, nuevoEstado, mensajeToast = null) => {
     try {
       await pedidoService.actualizarEstado(pedidoId, nuevoEstado);
       if (mensajeToast) mostrarToast(mensajeToast);
-      cargarPedidos(false);
+      recargar(false);
     } catch (err) {
       setError(err.message);
     }
@@ -104,7 +84,7 @@ export default function VistaPreparacion() {
     try {
       await pedidoService.actualizarEstado(pedido.id, 'ENTREGADO');
       
-      const codigoEntregado = pedido.codigo || `AV-${pedido.id}`;
+      const codigoEntregado = obtenerCodigoPedido(pedido);
       const horaActual = new Date().toLocaleTimeString('es-ES', {
         hour: '2-digit',
         minute: '2-digit',
@@ -122,7 +102,7 @@ export default function VistaPreparacion() {
       });
 
       mostrarToast(`✅ Pedido ${codigoEntregado} registrado como entregado`);
-      cargarPedidos(false);
+      recargar(false);
     } catch (err) {
       setError(err.message);
     }
@@ -130,21 +110,33 @@ export default function VistaPreparacion() {
 
   const ejecutarCancelacion = async () => {
     if (!pedidoACancelar) return;
-    const codigo = pedidoACancelar.codigo || `AV-${pedidoACancelar.id}`;
+    const codigo = obtenerCodigoPedido(pedidoACancelar);
     await cambiarEstado(pedidoACancelar.id, 'CANCELADO', `⚠️ Pedido ${codigo} cancelado`);
     setPedidoACancelar(null);
   };
 
-  const confirmarPago = () => {
+  // Emite el PATCH real con PAGO_ACEPTADO; solo marca el pago en la UI si el backend lo acepta.
+  const confirmarPago = async () => {
     if (!pedidoAPagoModal) return;
-    setPagosAceptados((prev) => ({
-      ...prev,
-      [pedidoAPagoModal.id]: true,
-    }));
-    const codigo = pedidoAPagoModal.codigo || `AV-${pedidoAPagoModal.id}`;
-    mostrarToast(`💳 Pago aceptado para el pedido ${codigo}`);
+    const pedido = pedidoAPagoModal;
+    const codigo = obtenerCodigoPedido(pedido);
     setPedidoAPagoModal(null);
+    try {
+      await pedidoService.actualizarEstado(pedido.id, 'PAGO_ACEPTADO');
+      setPagosAceptados((prev) => ({
+        ...prev,
+        [pedido.id]: true,
+      }));
+      mostrarToast(`💳 Pago aceptado para el pedido ${codigo}`);
+      recargar(false);
+    } catch (err) {
+      setError(err.message);
+    }
   };
+
+  const estaPagoAceptado = (pedido) =>
+    !!pagosAceptados[pedido.id] ||
+    String(pedido.estado || '').trim().toUpperCase().replace(/ /g, '_') === 'PAGO_ACEPTADO';
 
   const revertirACreado = async (pedidoId, codigo) => {
     setPagosAceptados((prev) => ({
@@ -274,8 +266,8 @@ export default function VistaPreparacion() {
               creadosFiltrados.map((pedido) => {
                 const totalUds = calcularTotalUnidades(pedido);
                 const esPersonalizado = tieneGrabadoPersonalizado(pedido);
-                const pagoAceptado = pagosAceptados[pedido.id];
-                const codigoPedido = pedido.codigo || `AV-${pedido.id}`;
+                const pagoAceptado = estaPagoAceptado(pedido);
+                const codigoPedido = obtenerCodigoPedido(pedido);
 
                 return (
                   <article key={pedido.id} className="pedido-card">
@@ -367,7 +359,7 @@ export default function VistaPreparacion() {
               enProcesoFiltrados.map((pedido) => {
                 const totalUds = calcularTotalUnidades(pedido);
                 const esPersonalizado = tieneGrabadoPersonalizado(pedido);
-                const codigoPedido = pedido.codigo || `AV-${pedido.id}`;
+                const codigoPedido = obtenerCodigoPedido(pedido);
 
                 return (
                   <article key={pedido.id} className="pedido-card">
@@ -466,7 +458,7 @@ export default function VistaPreparacion() {
               listosFiltrados.map((pedido) => {
                 const totalUds = calcularTotalUnidades(pedido);
                 const esPersonalizado = tieneGrabadoPersonalizado(pedido);
-                const codigoPedido = pedido.codigo || `AV-${pedido.id}`;
+                const codigoPedido = obtenerCodigoPedido(pedido);
 
                 return (
                   <article key={pedido.id} className="pedido-card">

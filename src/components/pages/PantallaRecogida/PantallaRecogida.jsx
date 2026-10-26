@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { pedidoService } from "../../../services/pedidoService";
+import { obtenerCodigoPedido } from "../../../utils/formatoUtils";
+import { usePollingPedidos } from "../../../hooks/usePollingPedidos";
 import ReactorLoader from "../../ReactorLoader";
 import "./PantallaRecogida.css";
 import loaderPreparacion from "../../../assets/loader7.svg";
@@ -7,8 +9,6 @@ import loaderPreparacion from "../../../assets/loader7.svg";
 export default function PantallaRecogida() {
   const [pedidosEnProceso, setPedidosEnProceso] = useState([]);
   const [pedidosListos, setPedidosListos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   const [filtroCodigo, setFiltroCodigo] = useState("");
   const inputBusquedaRef = useRef(null);
@@ -50,10 +50,9 @@ export default function PantallaRecogida() {
     }
   }, []);
 
-  const consultarPedidos = useCallback(async (silencioso = false) => {
+  // Consulta de pedidos: lanza el error para que el hook decida si lo muestra (carga inicial) o lo silencia (polling).
+  const consultarPedidos = useCallback(async () => {
     try {
-      if (!silencioso) setError(null);
-
       const [procesoRes, listosRes] = await Promise.all([
         pedidoService.obtenerPorEstado("EN_PREPARACION"),
         pedidoService.obtenerPorEstado("PEDIDO_LISTO"),
@@ -64,35 +63,16 @@ export default function PantallaRecogida() {
       sincronizarEntregas();
     } catch (errConsulta) {
       console.warn(errConsulta);
-      if (!silencioso) {
-        setError(
-          "No se pudo sincronizar con el servidor central de Stark Industries."
-        );
-      }
-    } finally {
-      if (!silencioso) {
-        setLoading(false);
-      }
+      throw new Error(
+        "No se pudo sincronizar con el servidor central de Stark Industries.",
+        { cause: errConsulta }
+      );
     }
   }, [sincronizarEntregas]);
 
+  const { loading, error, recargar } = usePollingPedidos(consultarPedidos);
+
   useEffect(() => {
-    let montado = true;
-
-    const inicializar = async () => {
-      if (montado) {
-        await consultarPedidos(false);
-      }
-    };
-
-    inicializar();
-
-    const intervalo = setInterval(() => {
-      if (montado) {
-        consultarPedidos(true);
-      }
-    }, 4000);
-
     const manejarStorageChange = (e) => {
       if (e.key === "stark_ultimas_entregas") {
         sincronizarEntregas();
@@ -100,13 +80,8 @@ export default function PantallaRecogida() {
     };
 
     window.addEventListener("storage", manejarStorageChange);
-
-    return () => {
-      montado = false;
-      clearInterval(intervalo);
-      window.removeEventListener("storage", manejarStorageChange);
-    };
-  }, [consultarPedidos, sincronizarEntregas]);
+    return () => window.removeEventListener("storage", manejarStorageChange);
+  }, [sincronizarEntregas]);
 
   useEffect(() => {
     const manejarKeyDown = (e) => {
@@ -137,7 +112,7 @@ export default function PantallaRecogida() {
   const pedidosEnProcesoFiltrados = useMemo(() => {
     if (!terminoLimpio) return pedidosEnProceso;
     return pedidosEnProceso.filter((pedido) => {
-      const codigo = (pedido.codigo || `AV-${pedido.id}`).toUpperCase();
+      const codigo = obtenerCodigoPedido(pedido).toUpperCase();
       return codigo.includes(terminoLimpio);
     });
   }, [pedidosEnProceso, terminoLimpio]);
@@ -145,7 +120,7 @@ export default function PantallaRecogida() {
   const pedidosListosFiltrados = useMemo(() => {
     if (!terminoLimpio) return pedidosListos;
     return pedidosListos.filter((pedido) => {
-      const codigo = (pedido.codigo || `AV-${pedido.id}`).toUpperCase();
+      const codigo = obtenerCodigoPedido(pedido).toUpperCase();
       return codigo.includes(terminoLimpio);
     });
   }, [pedidosListos, terminoLimpio]);
@@ -247,7 +222,7 @@ export default function PantallaRecogida() {
       {error && (
         <div className="recogida-error-banner">
           <span>⚠️ {error}</span>
-          <button type="button" onClick={() => consultarPedidos(false)}>
+          <button type="button" onClick={() => recargar(false)}>
             Reintentar
           </button>
         </div>
@@ -281,7 +256,7 @@ export default function PantallaRecogida() {
           ) : (
             <div className="tarjetas-grid">
               {pedidosEnProcesoFiltrados.map((pedido) => {
-                const codigoMostrar = pedido.codigo || `AV-${pedido.id}`;
+                const codigoMostrar = obtenerCodigoPedido(pedido);
                 return (
                   <div
                     key={pedido.id}
@@ -318,7 +293,7 @@ export default function PantallaRecogida() {
           ) : (
             <div className="tarjetas-grid">
               {pedidosListosFiltrados.map((pedido) => {
-                const codigoMostrar = pedido.codigo || `AV-${pedido.id}`;
+                const codigoMostrar = obtenerCodigoPedido(pedido);
                 return (
                   <div
                     key={pedido.id}

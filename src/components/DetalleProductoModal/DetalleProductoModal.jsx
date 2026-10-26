@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import "./DetalleProductoModal.css";
+import { formatearMoneda, formatearPersonaje } from "../../utils/formatoUtils";
 
 // Diccionario de variantes con soporte de precios específicos
 const catalogoVariantes = {
@@ -122,6 +123,17 @@ const catalogoVariantes = {
 
 const ORDEN_TALLAS = ["XS", "S", "M", "L", "XL", "XXL"];
 
+// La imagen está en public/, así que se sirve directamente desde la raíz.
+const URL_GUIA_TALLAS = "/imagenes/camisetas/tallas.jpg";
+
+const abrirGuiaTallas = (e) => {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  window.open(URL_GUIA_TALLAS, "_blank", "noopener,noreferrer");
+};
+
 const fotosEstandar = {
   2: ["/imagenes/camisetas/america.jpg"],
   3: ["/imagenes/camisetas/avengers.jpg"],
@@ -164,14 +176,6 @@ const fotosEstandar = {
   18: ["/imagenes/tazas/taza_deadpool.jpg"],
   19: ["/imagenes/tazas/taza_loki.jpg"],
   20: ["/imagenes/tazas/taza_marvel_695.jpg"],
-};
-
-const formatearPersonaje = (texto) => {
-  if (!texto) return "Vengadores";
-  return texto
-    .replace(/_/g, " ")
-    .toLowerCase()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
 export default function DetalleProductoModal({
@@ -575,7 +579,14 @@ export default function DetalleProductoModal({
                             : "Sin stock disponible"}
                       </strong>
                     </span>
-                    <span className="guia-tallas-stark">📏 Guía Stark</span>
+                    <button
+                      type="button"
+                      className="guia-tallas-stark"
+                      onClick={abrirGuiaTallas}
+                      title="Abrir guía de tallas en una pestaña nueva"
+                    >
+                      📏 Guía Stark
+                    </button>
                   </div>
 
                   <div className="botones-tallas-grid">
@@ -652,10 +663,10 @@ export default function DetalleProductoModal({
                     <div className="contenedor-precio-oferta-modal">
                       <div className="fila-precios-modal">
                         <span className="precio-original-tachado">
-                          {precioActivo.toFixed(2)}&nbsp;€
+                          {formatearMoneda(precioActivo)}
                         </span>
                         <span className="precio-destacado-oferta">
-                          {precioFinal.toFixed(2)}&nbsp;€
+                          {formatearMoneda(precioFinal)}
                         </span>
                       </div>
                       <span className="badge-descuento-modal">
@@ -664,7 +675,7 @@ export default function DetalleProductoModal({
                     </div>
                   ) : (
                     <div className="precio-detalle">
-                      {precioActivo.toFixed(2)}&nbsp;€
+                      {formatearMoneda(precioActivo)}
                     </div>
                   )}
                 </div>

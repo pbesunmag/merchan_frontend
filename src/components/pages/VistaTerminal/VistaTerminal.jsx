@@ -2,6 +2,10 @@ import { useState, useEffect } from "react";
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { productService } from "../../../services/productService";
+import { estadisticaService } from "../../../services/estadisticaService";
+import useCarrito from "../../../hooks/useCarrito";
+import { formatearMoneda } from "../../../utils/formatoUtils";
+import { obtenerCategoriaProducto } from "../../../utils/categoriaUtils";
 import ReactorLoader from "../../ReactorLoader";
 import PromoModal from "../../PromoModal/PromoModal";
 import DetalleProductoModal from "../../DetalleProductoModal/DetalleProductoModal";
@@ -11,19 +15,48 @@ import BannerSlider from "../../BannerSlider/BannerSlider";
 import FormularioSoporte from "../../FormularioSoporte/FormularioSoporte";
 
 export default function VistaTerminal() {
+  const {
+    carrito,
+    mostrarCarrito,
+    setMostrarCarrito,
+    avisoStockId,
+    codigoCupon,
+    setCodigoCupon,
+    cuponAplicado,
+    errorCupon,
+    setErrorCupon,
+    procesandoPedido,
+    pedidoFinalizado,
+    errorPedido,
+    setErrorPedido,
+    totalUnidades,
+    subtotalSinCupon,
+    totalConDescuento,
+    esPersonalizable,
+    calcularPrecioUnidad,
+    mostrarAlertaTopeStock,
+    agregarAlCarrito,
+    actualizarCantidad,
+    actualizarTextoPersonalizado,
+    eliminarDelCarrito,
+    vaciarCarrito,
+    aplicarCupon,
+    quitarCupon,
+    finalizarPedido,
+    limpiarPedidoFinalizado,
+  } = useCarrito();
+
+  useEffect(() => {
+    if (pedidoFinalizado) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [pedidoFinalizado]);
+
   const [productos, setProductos] = useState([]);
-  const [carrito, setCarrito] = useState([]);
-  const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [procesandoPedido, setProcesandoPedido] = useState(false);
-  const [pedidoFinalizado, setPedidoFinalizado] = useState(null);
   const [error, setError] = useState(null);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-  const [avisoStockId, setAvisoStockId] = useState(null);
-
-  const [codigoCupon, setCodigoCupon] = useState("");
-  const [cuponAplicado, setCuponAplicado] = useState(null);
-  const [errorCupon, setErrorCupon] = useState("");
+  const [productoMasVendido, setProductoMasVendido] = useState(null);
 
   const [busqueda, setBusqueda] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("TODOS");
@@ -39,8 +72,6 @@ export default function VistaTerminal() {
 
   const LIMITE_INICIAL = 8;
   const [mostrarTodos, setMostrarTodos] = useState(false);
-
-  const PRECIO_GRABADO_REBAJADO = 3.0;
 
   const cargarCatalogo = async () => {
     try {
@@ -73,6 +104,18 @@ export default function VistaTerminal() {
     };
 
     initCatalogo();
+
+    // La estadística es decorativa: si falla, el catálogo sigue funcionando sin destacado.
+    const initMasVendido = async () => {
+      try {
+        const data = await estadisticaService.obtenerProductoMasVendido();
+        if (montado) setProductoMasVendido(data || null);
+      } catch (err) {
+        console.warn("No se pudo obtener el producto más vendido:", err);
+      }
+    };
+
+    initMasVendido();
 
     const stompClient = new Client({
       webSocketFactory: () => new SockJS("http://localhost:8080/ws"),
@@ -119,262 +162,13 @@ export default function VistaTerminal() {
     };
   }, []);
 
-  const mostrarAlertaTopeStock = (idUnico) => {
-    setAvisoStockId(idUnico);
+  const errorVisible = error || errorPedido;
+  const cerrarError = () => {
+    setError(null);
+    setErrorPedido(null);
   };
 
-  const agregarAlCarrito = (producto) => {
-    const topeStock = Number(producto.stockMax ?? producto.stock ?? 99);
-    if (topeStock <= 0) return;
-
-    const tallaArticulo = producto.talla || "";
-    const claveArticulo = `${producto.id}_${producto.nombre || ""}_${tallaArticulo}`;
-
-    setCarrito((prev) => {
-      const unidadesYaEnCesta = prev
-        .filter((item) =>
-          tallaArticulo
-            ? item.id === producto.id && item.talla === tallaArticulo
-            : item.id === producto.id,
-        )
-        .reduce((acc, item) => acc + (Number(item.cantidad) || 0), 0);
-
-      if (unidadesYaEnCesta >= topeStock) {
-        const itemExistente = prev.find(
-          (item) => item.idUnico === claveArticulo,
-        );
-        if (itemExistente) mostrarAlertaTopeStock(claveArticulo);
-        return prev;
-      }
-
-      const existe = prev.find((item) => item.idUnico === claveArticulo);
-      if (existe) {
-        const cantActual = Number(existe.cantidad) || 1;
-        const maxPermitido = Number(existe.stockMax ?? topeStock);
-        if (cantActual >= maxPermitido) {
-          mostrarAlertaTopeStock(claveArticulo);
-          return prev;
-        }
-        return prev.map((item) =>
-          item.idUnico === claveArticulo
-            ? { ...item, cantidad: cantActual + 1, stockMax: maxPermitido }
-            : item,
-        );
-      }
-      return [
-        ...prev,
-        {
-          ...producto,
-          idUnico: claveArticulo,
-          talla: producto.talla || null,
-          cantidad: 1,
-          stockMax: topeStock,
-          textoPersonalizado: "",
-        },
-      ];
-    });
-  };
-
-  const actualizarCantidad = (idUnico, nuevaCantidad) => {
-    setCarrito((prev) =>
-      prev.map((item) => {
-        if (item.idUnico !== idUnico) return item;
-
-        const maxStock = Number(item.stockMax ?? item.stock ?? 99);
-        const valorParseado = parseInt(nuevaCantidad, 10);
-        const cantidadBase = Number.isNaN(valorParseado)
-          ? 1
-          : Math.max(1, valorParseado);
-
-        if (cantidadBase > maxStock) {
-          mostrarAlertaTopeStock(idUnico);
-          return { ...item, cantidad: maxStock };
-        }
-
-        if (avisoStockId === idUnico) {
-          setAvisoStockId(null);
-        }
-
-        return { ...item, cantidad: cantidadBase };
-      }),
-    );
-  };
-
-  const actualizarTextoPersonalizado = (idUnico, texto) => {
-    setCarrito((prev) =>
-      prev.map((item) =>
-        item.idUnico === idUnico
-          ? { ...item, textoPersonalizado: texto }
-          : item,
-      ),
-    );
-  };
-
-  const eliminarDelCarrito = (idUnico) => {
-    setCarrito((prev) => prev.filter((item) => item.idUnico !== idUnico));
-    if (avisoStockId === idUnico) setAvisoStockId(null);
-  };
-
-  const vaciarCarrito = () => {
-    setCarrito([]);
-    setCuponAplicado(null);
-    setCodigoCupon("");
-    setAvisoStockId(null);
-  };
-
-  const obtenerCategoriaProducto = (prod) => {
-    const nombre = (prod.nombre || "").toLowerCase();
-    const catOriginal =
-      prod.nombreCategoria || prod.categoriaNombre || prod.categoria || "";
-
-    if (nombre.includes("taza")) return "Tazas";
-    if (nombre.includes("gorra")) return "Gorras";
-    if (nombre.includes("figura")) return "Figuras";
-    if (nombre.includes("camiseta") || nombre.includes("remera"))
-      return "Camisetas";
-
-    return catOriginal || "Otros";
-  };
-
-  const esPersonalizable = (item) => {
-    if (!item) return false;
-    if (
-      item.personalizable === true ||
-      item.personalizable === 1 ||
-      item.personalizable === "Sí" ||
-      item.personalizable === "true"
-    ) {
-      return true;
-    }
-    if (
-      item.personalizable === "No" ||
-      item.personalizable === false ||
-      item.personalizable === 0
-    ) {
-      return false;
-    }
-
-    const categoria = obtenerCategoriaProducto(item);
-    if (categoria.toLowerCase().includes("figura")) {
-      return false;
-    }
-    return true;
-  };
-
-  const calcularPrecioUnidad = (item) => {
-    const precioBase = Number(item.precio) || 0;
-    const nombre = (item.nombre || "").trim();
-
-    let precioConDescuentoFigura = precioBase;
-    if (nombre.includes("Figura Groot Guardianes")) {
-      if (precioBase > 30) {
-        precioConDescuentoFigura = precioBase * 0.75;
-      }
-    } else if (nombre.includes("Figura Thor Dios del Trueno")) {
-      if (precioBase > 40) {
-        precioConDescuentoFigura = precioBase * 0.9;
-      }
-    }
-
-    const tieneGrabado =
-      esPersonalizable(item) && item.textoPersonalizado?.trim().length > 0;
-    return (
-      precioConDescuentoFigura + (tieneGrabado ? PRECIO_GRABADO_REBAJADO : 0)
-    );
-  };
-
-  const subtotalSinCupon = carrito.reduce(
-    (acc, item) =>
-      acc + calcularPrecioUnidad(item) * (Number(item.cantidad) || 1),
-    0,
-  );
-
-  const montoDescuento = cuponAplicado
-    ? subtotalSinCupon * (cuponAplicado.porcentaje / 100)
-    : 0;
-  const totalConDescuento = (subtotalSinCupon - montoDescuento).toFixed(2);
-
-  const aplicarCupon = (e) => {
-    e.preventDefault();
-    const codigoLimpio = codigoCupon.trim().toUpperCase();
-
-    const cuponesUsadosSesion = JSON.parse(
-      sessionStorage.getItem("cupones_usados_sesion") || "[]",
-    );
-    if (cuponesUsadosSesion.includes(codigoLimpio)) {
-      setErrorCupon(
-        "✨ Este código ya fue utilizado anteriormente en esta sesión.",
-      );
-      return;
-    }
-
-    if (codigoLimpio === "STARK10") {
-      setCuponAplicado({ codigo: "STARK10", porcentaje: 10 });
-      setErrorCupon("");
-    } else if (codigoLimpio === "GROOT5") {
-      setCuponAplicado({ codigo: "GROOT5", porcentaje: 5 });
-      setErrorCupon("");
-    } else {
-      setErrorCupon("⚠️ Código no válido o caducado");
-    }
-  };
-
-  const totalUnidades = carrito.reduce(
-    (acc, item) => acc + (Number(item.cantidad) || 1),
-    0,
-  );
-
-  const finalizarPedido = async () => {
-    if (carrito.length === 0 || procesandoPedido) return;
-
-    try {
-      setError(null);
-      setProcesandoPedido(true);
-
-      const itemsAProcesar = [...carrito];
-      const cuponActual = cuponAplicado;
-
-      // POST /api/pedidos
-      const nuevoPedido = await productService.crearPedido(1);
-
-      // POST /api/pedidos/{pedidoId}/productos
-      for (const item of itemsAProcesar) {
-        await productService.agregarProductoAPedido(nuevoPedido.id, {
-          productoId: item.id,
-          cantidad: Number(item.cantidad) || 1,
-          textoPersonalizado: esPersonalizable(item)
-            ? item.textoPersonalizado
-            : null,
-          talla: item.talla || null,
-        });
-      }
-
-      if (cuponActual) {
-        const cuponesUsadosSesion = JSON.parse(
-          sessionStorage.getItem("cupones_usados_sesion") || "[]",
-        );
-        if (!cuponesUsadosSesion.includes(cuponActual.codigo)) {
-          cuponesUsadosSesion.push(cuponActual.codigo);
-          sessionStorage.setItem(
-            "cupones_usados_sesion",
-            JSON.stringify(cuponesUsadosSesion),
-          );
-        }
-      }
-
-      // Solo vaciamos el carrito una vez confirmado con éxito en el backend
-      setMostrarCarrito(false);
-      setCarrito([]);
-      setCuponAplicado(null);
-      setCodigoCupon("");
-      setPedidoFinalizado(nuevoPedido?.codigo || `AV-${nuevoPedido?.id || 1}`);
-      await cargarCatalogo();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setProcesandoPedido(false);
-    }
-  };
+  const finalizarPedidoYRecargar = () => finalizarPedido(cargarCatalogo);
 
   if (loading || procesandoPedido) {
     return (
@@ -400,7 +194,7 @@ export default function VistaTerminal() {
           <div className="codigo-destacado">{pedidoFinalizado}</div>
           <button
             className="btn-agregar btn-nuevo-pedido-exito"
-            onClick={() => setPedidoFinalizado(null)}
+            onClick={limpiarPedidoFinalizado}
           >
             Realizar nuevo pedido
           </button>
@@ -515,10 +309,10 @@ export default function VistaTerminal() {
           </div>
         </div>
 
-        {error && (
+        {errorVisible && (
           <div className="terminal-error-banner">
-            <span>⚠️ {error}</span>
-            <button type="button" onClick={() => setError(null)}>
+            <span>⚠️ {errorVisible}</span>
+            <button type="button" onClick={cerrarError}>
               ✕
             </button>
           </div>
@@ -561,6 +355,15 @@ export default function VistaTerminal() {
 
             return (
               <article key={prod.id} className="producto-card">
+                {productoMasVendido &&
+                  productoMasVendido.productoId === prod.id && (
+                    <span
+                      className="badge-top-ventas"
+                      title={`Producto estrella: ${productoMasVendido.totalUnidadesVendidas} unidades vendidas`}
+                    >
+                      ⭐ TOP VENTAS
+                    </span>
+                  )}
                 {tieneDto && (
                   <span className="product-badge gold">
                     {esGroot ? "-25% DTO" : "-10% DTO"}
@@ -592,15 +395,15 @@ export default function VistaTerminal() {
                     {tieneDto ? (
                       <>
                         <span className="producto-precio-tachado precio-anterior-card">
-                          {precioNum.toFixed(2)}&nbsp;€
+                          {formatearMoneda(precioNum)}
                         </span>
                         <span className="producto-precio-actual precio-nuevo">
-                          {precioFinalProd.toFixed(2)}&nbsp;€
+                          {formatearMoneda(precioFinalProd)}
                         </span>
                       </>
                     ) : (
                       <span className="producto-precio-actual">
-                        {precioNum.toFixed(2)}&nbsp;€
+                        {formatearMoneda(precioNum)}
                       </span>
                     )}
                   </div>
@@ -724,10 +527,10 @@ export default function VistaTerminal() {
               </div>
             </div>
 
-            {error && (
+            {errorVisible && (
               <div className="terminal-error-banner">
-                <span>⚠️ {error}</span>
-                <button type="button" onClick={() => setError(null)}>
+                <span>⚠️ {errorVisible}</span>
+                <button type="button" onClick={cerrarError}>
                   ✕
                 </button>
               </div>
@@ -776,7 +579,7 @@ export default function VistaTerminal() {
 
                           <div className="comanda-item-acciones-precio">
                             <span className="comanda-item-subtotal">
-                              {subtotalItem.toFixed(2)}&nbsp;€
+                              {formatearMoneda(subtotalItem)}
                             </span>
                             <button
                               type="button"
@@ -912,7 +715,7 @@ export default function VistaTerminal() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => setCuponAplicado(null)}
+                        onClick={quitarCupon}
                         className="btn-quitar-cupon"
                       >
                         ✕
@@ -929,7 +732,7 @@ export default function VistaTerminal() {
                   <div className="comanda-total-valores">
                     {cuponAplicado && (
                       <div className="comanda-total-tachado">
-                        {subtotalSinCupon.toFixed(2)}&nbsp;€
+                        {formatearMoneda(subtotalSinCupon)}
                       </div>
                     )}
                     <span className="comanda-total-monto">
@@ -938,7 +741,7 @@ export default function VistaTerminal() {
                   </div>
                 </div>
 
-                <button className="btn-finalizar" onClick={finalizarPedido}>
+                <button className="btn-finalizar" onClick={finalizarPedidoYRecargar}>
                   ⚡ Confirmar Suministros
                 </button>
               </>

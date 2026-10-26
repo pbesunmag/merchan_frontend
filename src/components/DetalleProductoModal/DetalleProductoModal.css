@@ -423,14 +423,22 @@
 }
 
 .guia-tallas-stark {
+  background: transparent;
+  border: none;
+  padding: 0.15rem 0.3rem;
+  font-family: inherit;
   font-size: 0.75rem;
   color: #94a3b8;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: color 0.2s, text-shadow 0.2s;
 }
 
-.guia-tallas-stark:hover {
+.guia-tallas-stark:hover,
+.guia-tallas-stark:focus-visible {
   color: #fbbf24;
+  text-decoration: underline;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+  outline: none;
 }
 
 .botones-tallas-grid {
