@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { productService } from "../services/productService";
 import { obtenerCategoriaProducto } from "../utils/categoriaUtils";
 
 const PRECIO_GRABADO_REBAJADO = 3.0;
+const CLAVE_STORAGE_CARRITO = "stark_carrito_activo";
 
 // Comprueba si un artículo admite grabado personalizado.
 export const esPersonalizable = (item) => {
@@ -52,7 +53,18 @@ export const calcularPrecioUnidad = (item) => {
 };
 
 export default function useCarrito() {
-  const [carrito, setCarrito] = useState([]);
+  // Inicialización perezosa desde localStorage para conservar la cesta al recargar
+  const [carrito, setCarrito] = useState(() => {
+    try {
+      const guardado = localStorage.getItem(CLAVE_STORAGE_CARRITO);
+      const parseado = guardado ? JSON.parse(guardado) : [];
+      return Array.isArray(parseado) ? parseado : [];
+    } catch (err) {
+      console.warn("Error al leer el carrito de localStorage:", err);
+      return [];
+    }
+  });
+
   const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [avisoStockId, setAvisoStockId] = useState(null);
 
@@ -63,6 +75,19 @@ export default function useCarrito() {
   const [procesandoPedido, setProcesandoPedido] = useState(false);
   const [pedidoFinalizado, setPedidoFinalizado] = useState(null);
   const [errorPedido, setErrorPedido] = useState(null);
+
+  // Sincronización automática del carrito en localStorage
+  useEffect(() => {
+    try {
+      if (carrito.length > 0) {
+        localStorage.setItem(CLAVE_STORAGE_CARRITO, JSON.stringify(carrito));
+      } else {
+        localStorage.removeItem(CLAVE_STORAGE_CARRITO);
+      }
+    } catch (err) {
+      console.warn("Error al guardar el carrito en localStorage:", err);
+    }
+  }, [carrito]);
 
   // ---- Totales ----
   const totalUnidades = useMemo(
@@ -184,6 +209,7 @@ export default function useCarrito() {
 
   const vaciarCarrito = () => {
     setCarrito([]);
+    localStorage.removeItem(CLAVE_STORAGE_CARRITO);
     setCuponAplicado(null);
     setCodigoCupon("");
     setAvisoStockId(null);
@@ -220,7 +246,6 @@ export default function useCarrito() {
   };
 
   // ---- Pedido ----
-  // onSuccessCallback: se ejecuta al confirmar el pedido (p. ej. recargar el catálogo).
   const finalizarPedido = async (onSuccessCallback) => {
     if (carrito.length === 0 || procesandoPedido) return;
 
@@ -262,6 +287,7 @@ export default function useCarrito() {
       // Solo vaciamos el carrito una vez confirmado con éxito en el backend
       setMostrarCarrito(false);
       setCarrito([]);
+      localStorage.removeItem(CLAVE_STORAGE_CARRITO);
       setCuponAplicado(null);
       setCodigoCupon("");
       setPedidoFinalizado(nuevoPedido?.codigo || `AV-${nuevoPedido?.id || 1}`);

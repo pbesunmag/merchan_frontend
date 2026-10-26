@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { pedidoService } from '../../../services/pedidoService';
 import { obtenerCodigoPedido } from '../../../utils/formatoUtils';
 import { usePollingPedidos } from '../../../hooks/usePollingPedidos';
@@ -17,12 +17,16 @@ export default function VistaPreparacion() {
   const [pedidoAPagoModal, setPedidoAPagoModal] = useState(null);
   const [toastMensaje, setToastMensaje] = useState(null);
   const [lineasCompletadas, setLineasCompletadas] = useState({});
+  const toastTimeoutRef = useRef(null);
 
   const mostrarToast = (texto) => {
     setToastMensaje(texto);
-    setTimeout(() => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    toastTimeoutRef.current = setTimeout(() => {
       setToastMensaje(null);
-    }, 2500);
+    }, 8000);
   };
 
   const alternarLineaCompletada = (pedidoId, indiceLinea) => {

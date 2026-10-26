@@ -30,9 +30,11 @@ Orientada al cliente final en el punto de venta para la creación de pedidos:
   * Modal interactivo para visualizar el producto al detalle, comprobar stock por talla en vivo consultando al backend y elegir talla (`S`, `M`, `L`, `XL`) en artículos textiles.
   * **Botón interactivo "📏 Guía Stark":** Acceso directo en el selector de tallas que abre la ficha técnica `tallas.jpg` (ubicada en la galería de camisetas) en una nueva pestaña/ventana independiente del navegador.
 * **Drawer de Comanda Activa (Carrito):**
+  * **Persistencia en `localStorage`:** Conserva automáticamente los artículos seleccionados en la cesta (`stark_carrito_activo`) si el cliente recarga accidentalmente el navegador antes de confirmar el pedido.
   * Añadir, modificar unidades (respetando el tope máximo de stock disponible) y eliminar productos o vaciar la cesta.
   * Inclusión de texto personalizado (grabado) en los artículos que lo admiten (`personalizable = "Sí"` / `true`), aplicando la promoción de apertura.
   * Soporte para códigos promocionales de sesión (`STARK10`, `GROOT5`) y visualización desglosada del total del pedido.
+  * **Envío de Ticket Digital (Email / Teléfono):** Permite al cliente seleccionar mediante casillas si desea recibir su ticket de compra por correo electrónico y/o número telefónico; al confirmar el envío, bloquea los datos en modo lectura y despliega una notificación confirmando los destinatarios.
 * **Holograma de Confirmación con Auto-Scroll:** Al pulsar *"⚡ Confirmar Suministros"*, la interfaz realiza un desplazamiento superior suave automático (`window.scrollTo({ top: 0, behavior: 'smooth' })`) y proyecta el código único autogenerado por el backend (ej. `AV-1014`) para el seguimiento inmediato en mostrador.
 
 ### 📦 2.2. Vista Preparación / Cocina (`/preparacion`)
@@ -42,7 +44,7 @@ Tablero Kanban para la gestión operativa de comandas con sincronización perió
 2. **En proceso (`EN_PREPARACION`):** Incluye un checklist interactivo por cada línea de producto (permite tachar y marcar con ✅ cada artículo conforme se empaqueta), botón para revertir operativamente a `CREADO` o avanzar a `PEDIDO_LISTO`.
 3. **Listos en mostrador (`PEDIDO_LISTO`):** Comandas terminadas listas para entrega. Permite revertir a `EN_PREPARACION` o registrar la entrega definitiva al cliente (`ENTREGADO`).
 * **Blindaje de la Máquina de Estados:** Validación bidireccional coordinada con el backend; si se intenta un salto no autorizado, el sistema captura el código HTTP `400 Bad Request` y preserva la consistencia visual.
-* **Controles adicionales:** Buscador multicriterio (por código, nombre de producto, talla o texto de grabado), filtro exclusivo `⚡ Solo con grabado`, modal de seguridad para cancelar pedidos (`CANCELADO`) y notificaciones flotantes (*Stark Toasts*) en cada transición.
+* **Controles adicionales:** Buscador multicriterio (por código, nombre de producto, talla o texto de grabado), filtro exclusivo `⚡ Solo con grabado`, modal de seguridad para cancelar pedidos (`CANCELADO`) y notificaciones flotantes (*Stark Toasts*) de 8 segundos en cada transición.
 
 ### 📢 2.3. Vista Pantalla de Recogida (`/pantalla`)
 Monitor público de sala diseñado con estética HUD de alto contraste:
@@ -112,7 +114,7 @@ El flujo de extremo a extremo entre las tres pantallas principales sigue fielmen
 
 * **React 18 (con Vite):** Biblioteca principal para la construcción de interfaces declarativas basadas en componentes funcionales.
 * **JavaScript (ES6+):** Asincronía con `async/await`, `Promise.all` y gestión inmutable de estados.
-* **React Hooks:** `useState`, `useEffect`, `useCallback`, `useMemo` y `useRef`.
+* **React Hooks & Custom Hooks:** `useState`, `useEffect`, `useCallback`, `useMemo`, `useRef`, `useCarrito` y `usePollingPedidos`.
 * **React Router DOM (`react-router-dom`):** Enrutamiento SPA dinámico (`BrowserRouter`, `Routes`, `Route`, `NavLink`, `Navigate`).
 * **Fetch API nativa:** Cliente HTTP centralizado para el consumo estricto de la API REST.
 * **Librería `@stomp/stompjs`:** Conexión por WebSocket nativo (`ws://localhost:8080/ws`) suscrita a `/topic/productos-stock` para actualizaciones de inventario en tiempo real.
@@ -134,33 +136,69 @@ merchan_frontend/
 │   │   │   ├── avengers.jpg
 │   │   │   ├── marvel.jpg
 │   │   │   ├── miles_morales.jpg
-│   │   │   └── tallas.jpg               # Ficha técnica visual consumida por la Guía Stark
+│   │   │   └── tallas.jpg
 │   │   ├── figuras/
+│   │   │   ├── doctor_doom/
+│   │   │   ├── groot/
+│   │   │   ├── guantelete_ironman/
+│   │   │   ├── thanos/
+│   │   │   └── thor/
 │   │   ├── gorras/
+│   │   │   ├── america/
+│   │   │   ├── marvel/
+│   │   │   ├── personalizable/
+│   │   │   ├── punisher/
+│   │   │   └── set_gorra_gafas/
 │   │   └── tazas/
+│   │       ├── taza_personalizable/
+│   │       ├── tazas_vengadores/
+│   │       ├── taza_deadpool.jpg
+│   │       ├── taza_loki.jpg
+│   │       └── taza_marvel_695.jpg
 │   ├── icono_groot.png
 │   ├── favicon.svg
 │   └── icons.svg
 ├── src/
-│   ├── assets/                          # Logotipos y recursos vectoriales
-│   ├── components/                      # Componentes desacoplados de UI y vistas
-│   │   ├── layout/                      # Navbar, Footer, BannerSuperior, BannerSlider
-│   │   ├── DetalleProductoModal/        # Selector de talla, grabado y botón Guía Stark
-│   │   ├── pages/                       # Vistas principales asociadas a rutas
-│   │   │   ├── PantallaRecogida/
-│   │   │   ├── VistaPreparacion/
-│   │   │   ├── VistaSorteos/
-│   │   │   └── VistaTerminal/           # Catálogo, insignia TOP VENTAS y carrito
-│   │   └── ui/                          # BotonScrollTop, ModalInformacion, ReactorLoader
+│   ├── assets/                          # Logotipos y recursos gráficos vectoriales
+│   │   ├── funko_logo.jpg
+│   │   ├── hero.png
+│   │   ├── loader7.svg
+│   │   ├── logo_tienda.png
+│   │   ├── react.svg
+│   │   ├── sorteo.jpg
+│   │   └── vite.svg
+│   ├── components/                      # Componentes reutilizables y vistas de la aplicación
+│   │   ├── BannerSlider/
+│   │   ├── BannerSuperior/
+│   │   ├── BotonScrollTop/
+│   │   ├── DetalleProductoModal/
+│   │   ├── Footer/
+│   │   ├── FormularioSoporte/
+│   │   ├── ModalInformacion/
+│   │   ├── PromoModal/
+│   │   ├── ReactorLoader/
+│   │   └── pages/                       # Vistas SPA asociadas a las rutas del enrutador
+│       ├── PantallaRecogida/
+│       ├── VistaPreparacion/
+│       ├── VistaSorteos/
+│       └── VistaTerminal/
+│   ├── hooks/                           # Custom Hooks de estado y sincronización
+│   │   ├── useCarrito.js
+│   │   └── usePollingPedidos.js
 │   ├── services/                        # Capa de comunicación REST desacoplada
-│   │   ├── api.js                       # Cliente fetch base y captura centralizada de errores
-│   │   ├── estadisticaService.js        # Consumo de analítica de ventas y ranking
-│   │   ├── pedidoService.js             # Gestión de pedidos y máquina de estados
-│   │   └── productService.js            # Consulta de catálogo, stock y checkout
+│   │   ├── api.js
+│   │   ├── estadisticaService.js
+│   │   ├── pedidoService.js
+│   │   └── productService.js
+│   ├── utils/                           # Funciones auxiliares de formateo y categorización
+│   │   ├── categoriaUtils.js
+│   │   └── formatoUtils.js
 │   ├── App.css                          # Estilos globales y HUD layout
-│   ├── App.jsx                          # Enrutador principal de la aplicación
-│   ├── index.css                        # Estilos de reseteo general
-│   └── main.jsx                         # Entrada raíz de montaje de React DOM
+│   ├── App.jsx                          # Enrutador principal y estructura de vistas
+│   ├── index.css                        # Estilos base y reseteo general
+│   └── main.jsx                         # Punto de montaje raíz de React DOM
+├── eslint.config.js
+├── index.html
 ├── package.json
 ├── README.md
 └── vite.config.js
