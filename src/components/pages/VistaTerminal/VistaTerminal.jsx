@@ -45,6 +45,79 @@ export default function VistaTerminal() {
     limpiarPedidoFinalizado,
   } = useCarrito();
 
+  // Estados para el envío del ticket de compra por correo o teléfono
+  const [deseaTicketCorreo, setDeseaTicketCorreo] = useState(false);
+  const [deseaTicketTelefono, setDeseaTicketTelefono] = useState(false);
+  const [emailTicket, setEmailTicket] = useState("");
+  const [telefonoTicket, setTelefonoTicket] = useState("");
+  const [ticketConfirmado, setTicketConfirmado] = useState(false);
+  const [notificacionTicket, setNotificacionTicket] = useState(null);
+  const [errorTicket, setErrorTicket] = useState("");
+
+  const mostrarToastTicket = (mensaje) => {
+    setNotificacionTicket(mensaje);
+    setTimeout(() => {
+      setNotificacionTicket(null);
+    }, 7000);
+  };
+
+  const construirMensajeTicket = () => {
+    const destinos = [];
+    if (deseaTicketCorreo && emailTicket.trim()) {
+      destinos.push(`al correo ${emailTicket.trim()}`);
+    }
+    if (deseaTicketTelefono && telefonoTicket.trim()) {
+      destinos.push(`al número telefónico ${telefonoTicket.trim()}`);
+    }
+    if (destinos.length === 0) return null;
+    return `📩 Se ha enviado el ticket de compra ${destinos.join(" y ")}.`;
+  };
+
+  const manejarEnvioTicketManual = (e) => {
+    e.preventDefault();
+    setErrorTicket("");
+
+    if (deseaTicketCorreo && !emailTicket.trim()) {
+      setErrorTicket("Por favor, introduce un correo electrónico válido.");
+      return;
+    }
+    if (
+      deseaTicketCorreo &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTicket.trim())
+    ) {
+      setErrorTicket("El formato del correo electrónico no es válido.");
+      return;
+    }
+    if (deseaTicketTelefono && !telefonoTicket.trim()) {
+      setErrorTicket("Por favor, introduce un número telefónico.");
+      return;
+    }
+    if (
+      deseaTicketTelefono &&
+      !/^[0-9+\s()-]{6,15}$/.test(telefonoTicket.trim())
+    ) {
+      setErrorTicket(
+        "Introduce un número telefónico válido (mín. 6 dígitos).",
+      );
+      return;
+    }
+
+    const msg = construirMensajeTicket();
+    if (msg) {
+      setTicketConfirmado(true);
+      mostrarToastTicket(msg);
+    }
+  };
+
+  const cancelarTicketConfirmado = () => {
+    setTicketConfirmado(false);
+    setDeseaTicketCorreo(false);
+    setDeseaTicketTelefono(false);
+    setEmailTicket("");
+    setTelefonoTicket("");
+    setErrorTicket("");
+  };
+
   useEffect(() => {
     if (pedidoFinalizado) {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -104,7 +177,6 @@ export default function VistaTerminal() {
 
     initCatalogo();
 
-    // La estadística es decorativa: si falla, el catálogo sigue funcionando sin destacado.
     const initMasVendido = async () => {
       try {
         const data = await estadisticaService.obtenerProductoMasVendido();
@@ -169,7 +241,18 @@ export default function VistaTerminal() {
     setErrorPedido(null);
   };
 
-  const finalizarPedidoYRecargar = () => finalizarPedido(cargarCatalogo);
+  const finalizarPedidoYRecargar = () => {
+    const msgTicket = construirMensajeTicket();
+    if (msgTicket) {
+      mostrarToastTicket(msgTicket);
+    }
+    finalizarPedido(cargarCatalogo);
+  };
+
+  const reiniciarNuevoPedido = () => {
+    cancelarTicketConfirmado();
+    limpiarPedidoFinalizado();
+  };
 
   if (loading || procesandoPedido) {
     return (
@@ -185,6 +268,7 @@ export default function VistaTerminal() {
   }
 
   if (pedidoFinalizado) {
+    const msgConfirmacionTicket = construirMensajeTicket();
     return (
       <div className="terminal-exito-wrapper">
         <div className="modal-exito">
@@ -193,13 +277,29 @@ export default function VistaTerminal() {
             Tu solicitud de equipamiento ha sido enviada al área de preparación:
           </p>
           <div className="codigo-destacado">{pedidoFinalizado}</div>
+          {msgConfirmacionTicket && (
+            <div className="aviso-ticket-exito">{msgConfirmacionTicket}</div>
+          )}
           <button
             className="btn-agregar btn-nuevo-pedido-exito"
-            onClick={limpiarPedidoFinalizado}
+            onClick={reiniciarNuevoPedido}
           >
             Realizar nuevo pedido
           </button>
         </div>
+
+        {notificacionTicket && (
+          <div className="terminal-toast-ticket">
+            <span>{notificacionTicket}</span>
+            <button
+              type="button"
+              className="btn-cerrar-toast-ticket"
+              onClick={() => setNotificacionTicket(null)}
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -511,7 +611,10 @@ export default function VistaTerminal() {
                   <button
                     type="button"
                     className="btn-vaciar-carrito"
-                    onClick={vaciarCarrito}
+                    onClick={() => {
+                      vaciarCarrito();
+                      cancelarTicketConfirmado();
+                    }}
                     title="Vaciar todos los artículos"
                   >
                     🗑️ Vaciar
@@ -728,6 +831,116 @@ export default function VistaTerminal() {
                   )}
                 </div>
 
+                {/* SECCIÓN DE ENVÍO DE TICKET DIGITAL POR CORREO O TELÉFONO */}
+                <div className="ticket-digital-contenedor">
+                  {!ticketConfirmado ? (
+                    <>
+                      <span className="ticket-digital-titulo">
+                        📩 ¿Deseas recibir tu ticket de compra?
+                      </span>
+                      <div className="ticket-digital-checks">
+                        <label className="ticket-check-label">
+                          <input
+                            type="checkbox"
+                            checked={deseaTicketCorreo}
+                            onChange={(e) => {
+                              setDeseaTicketCorreo(e.target.checked);
+                              setErrorTicket("");
+                            }}
+                          />
+                          <span>📧 Correo electrónico</span>
+                        </label>
+
+                        <label className="ticket-check-label">
+                          <input
+                            type="checkbox"
+                            checked={deseaTicketTelefono}
+                            onChange={(e) => {
+                              setDeseaTicketTelefono(e.target.checked);
+                              setErrorTicket("");
+                            }}
+                          />
+                          <span>📱 Número telefónico</span>
+                        </label>
+                      </div>
+
+                      {(deseaTicketCorreo || deseaTicketTelefono) && (
+                        <form
+                          onSubmit={manejarEnvioTicketManual}
+                          noValidate
+                          className="ticket-digital-inputs"
+                        >
+                          {deseaTicketCorreo && (
+                            <input
+                              type="text"
+                              placeholder="ejemplo@starkindustries.com"
+                              value={emailTicket}
+                              onChange={(e) => {
+                                setEmailTicket(e.target.value);
+                                if (errorTicket) setErrorTicket("");
+                              }}
+                              className="comanda-custom-input ticket-input-field"
+                            />
+                          )}
+
+                          {deseaTicketTelefono && (
+                            <input
+                              type="text"
+                              placeholder="Ej: +34 600 123 456"
+                              value={telefonoTicket}
+                              onChange={(e) => {
+                                setTelefonoTicket(e.target.value);
+                                if (errorTicket) setErrorTicket("");
+                              }}
+                              className="comanda-custom-input ticket-input-field"
+                            />
+                          )}
+
+                          <button type="submit" className="btn-enviar-ticket">
+                            📨 Solicitar envío de ticket
+                          </button>
+                        </form>
+                      )}
+
+                      {errorTicket && (
+                        <div className="stark-error-ticket-hud">
+                          <span>⚠️ {errorTicket}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="ticket-confirmado-bloque">
+                      <div className="ticket-confirmado-cabecera">
+                        <span className="ticket-confirmado-badge">
+                          ✅ Ticket de compra solicitado
+                        </span>
+                        <button
+                          type="button"
+                          onClick={cancelarTicketConfirmado}
+                          className="btn-quitar-cupon"
+                          title="Modificar datos de envío"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="ticket-confirmado-datos">
+                        {deseaTicketCorreo && emailTicket.trim() && (
+                          <div className="ticket-dato-fijo">
+                            <span>📧 Correo:</span>{" "}
+                            <strong>{emailTicket.trim()}</strong>
+                          </div>
+                        )}
+                        {deseaTicketTelefono && telefonoTicket.trim() && (
+                          <div className="ticket-dato-fijo">
+                            <span>📱 Teléfono:</span>{" "}
+                            <strong>{telefonoTicket.trim()}</strong>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="comanda-total-container">
                   <span className="comanda-total-label">Total a abonar</span>
                   <div className="comanda-total-valores">
@@ -742,12 +955,28 @@ export default function VistaTerminal() {
                   </div>
                 </div>
 
-                <button className="btn-finalizar" onClick={finalizarPedidoYRecargar}>
+                <button
+                  className="btn-finalizar"
+                  onClick={finalizarPedidoYRecargar}
+                >
                   ⚡ Confirmar Suministros
                 </button>
               </>
             )}
           </aside>
+        </div>
+      )}
+
+      {notificacionTicket && (
+        <div className="terminal-toast-ticket">
+          <span>{notificacionTicket}</span>
+          <button
+            type="button"
+            className="btn-cerrar-toast-ticket"
+            onClick={() => setNotificacionTicket(null)}
+          >
+            ✕
+          </button>
         </div>
       )}
 

@@ -1805,7 +1805,6 @@ span.product-badge.gold {
   }
 }
 
-
 /* Insignia dorada para el producto más vendido */
 .badge-top-ventas {
   position: absolute;
@@ -1835,4 +1834,188 @@ span.product-badge.gold {
     transform: scale(1.05);
     box-shadow: 0 0 20px rgba(245, 158, 11, 0.85);
   }
+}
+
+/* ==========================================================================
+   SECCIÓN DE TICKET DIGITAL (EMAIL / TELÉFONO) 
+   ========================================================================== */
+
+.ticket-digital-contenedor {
+  margin-top: 0.75rem;
+  border-top: 1px dashed #334155;
+  padding-top: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ticket-digital-titulo {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  letter-spacing: 0.03em;
+}
+
+.ticket-digital-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.ticket-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.ticket-check-label input[type="checkbox"] {
+  accent-color: #00e5ff;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.ticket-digital-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.2rem;
+}
+
+.ticket-input-field {
+  width: 100%;
+}
+
+.btn-enviar-ticket {
+  background: rgba(0, 229, 255, 0.12);
+  color: #00e5ff;
+  border: 1px solid #00e5ff;
+  border-radius: 5px;
+  padding: 0.45rem 0.8rem;
+  font-family: 'Consolas', monospace;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-enviar-ticket:hover {
+  background: #00e5ff;
+  color: #041019;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.55);
+}
+
+.ticket-confirmado-bloque {
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.ticket-confirmado-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ticket-confirmado-badge {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #00e5ff;
+  letter-spacing: 0.03em;
+}
+
+.ticket-confirmado-datos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  color: #e2e8f0;
+  word-break: break-all;
+}
+
+.ticket-dato-fijo span {
+  color: #94a3b8;
+}
+
+.ticket-dato-fijo strong {
+  color: #ffffff;
+  font-family: 'Consolas', monospace;
+}
+
+.terminal-toast-ticket {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #0f172a 0%, #030712 100%);
+  color: #00e5ff;
+  border: 1.5px solid #00e5ff;
+  padding: 0.9rem 1.4rem;
+  border-radius: 8px;
+  font-family: 'Consolas', monospace;
+  font-size: 0.88rem;
+  font-weight: 800;
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.5), 0 10px 25px rgba(0, 0, 0, 0.85);
+  z-index: 3500;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  max-width: 90vw;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.btn-cerrar-toast-ticket {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0 0.2rem;
+}
+
+.btn-cerrar-toast-ticket:hover {
+  color: #ef4444;
+}
+
+.aviso-ticket-exito {
+  margin: 0.75rem auto 1rem auto;
+  padding: 0.6rem 1rem;
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  border-radius: 6px;
+  color: #00e5ff;
+  font-family: 'Consolas', monospace;
+  font-size: 0.88rem;
+  max-width: 480px;
+}
+
+.stark-error-ticket-hud {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  color: #f87171;
+  padding: 0.45rem 0.65rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-family: 'Consolas', monospace;
+  font-weight: 700;
+  margin-top: 0.3rem;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  animation: fadeIn 0.2s ease-out;
 }
