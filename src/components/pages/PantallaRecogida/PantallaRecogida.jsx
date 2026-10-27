@@ -6,6 +6,35 @@ import ReactorLoader from "../../ReactorLoader";
 import "./PantallaRecogida.css";
 import loaderPreparacion from "../../../assets/loader7.svg";
 
+const obtenerFechaHoy = () => {
+  const ahora = new Date();
+  const dia = String(ahora.getDate()).padStart(2, "0");
+  const mes = String(ahora.getMonth() + 1).padStart(2, "0");
+  const anio = ahora.getFullYear();
+  return `${dia}/${mes}/${anio}`;
+};
+
+const filtrarEntregasDeHoy = () => {
+  try {
+    const guardadas = localStorage.getItem("stark_ultimas_entregas");
+    if (!guardadas) return [];
+    const lista = JSON.parse(guardadas);
+    if (!Array.isArray(lista)) return [];
+
+    const hoy = obtenerFechaHoy();
+    const soloDeHoy = lista.filter((item) => item.fechaEntrega === hoy);
+
+    if (soloDeHoy.length !== lista.length) {
+      localStorage.setItem("stark_ultimas_entregas", JSON.stringify(soloDeHoy));
+    }
+
+    return soloDeHoy.slice(0, 5);
+  } catch (err) {
+    console.warn("Error al procesar entregas recientes:", err);
+    return [];
+  }
+};
+
 export default function PantallaRecogida() {
   const [pedidosEnProceso, setPedidosEnProceso] = useState([]);
   const [pedidosListos, setPedidosListos] = useState([]);
@@ -13,44 +42,45 @@ export default function PantallaRecogida() {
   const [filtroCodigo, setFiltroCodigo] = useState("");
   const inputBusquedaRef = useRef(null);
 
-  const [horaActual, setHoraActual] = useState("");
+  const [fechaHoraActual, setFechaHoraActual] = useState({
+    fecha: "",
+    hora: "",
+  });
+
+  const [ultimasEntregas, setUltimasEntregas] = useState(() =>
+    filtrarEntregasDeHoy(),
+  );
+
+  const sincronizarEntregas = useCallback(() => {
+    setUltimasEntregas(filtrarEntregasDeHoy());
+  }, []);
 
   useEffect(() => {
+    let fechaAnterior = obtenerFechaHoy();
+
     const actualizarReloj = () => {
       const ahora = new Date();
       const horas = String(ahora.getHours()).padStart(2, "0");
       const minutos = String(ahora.getMinutes()).padStart(2, "0");
       const segundos = String(ahora.getSeconds()).padStart(2, "0");
-      setHoraActual(`${horas}:${minutos}:${segundos}`);
+      const fechaHoy = obtenerFechaHoy();
+
+      setFechaHoraActual({
+        fecha: fechaHoy,
+        hora: `${horas}:${minutos}:${segundos}`,
+      });
+
+      if (fechaHoy !== fechaAnterior) {
+        fechaAnterior = fechaHoy;
+        sincronizarEntregas();
+      }
     };
 
     actualizarReloj();
     const timerReloj = setInterval(actualizarReloj, 1000);
     return () => clearInterval(timerReloj);
-  }, []);
+  }, [sincronizarEntregas]);
 
-  const [ultimasEntregas, setUltimasEntregas] = useState(() => {
-    try {
-      const guardadas = localStorage.getItem("stark_ultimas_entregas");
-      return guardadas ? JSON.parse(guardadas).slice(0, 5) : [];
-    } catch (errInit) {
-      console.warn("Error al cargar entregas iniciales:", errInit);
-      return [];
-    }
-  });
-
-  const sincronizarEntregas = useCallback(() => {
-    try {
-      const guardadas = localStorage.getItem("stark_ultimas_entregas");
-      if (guardadas) {
-        setUltimasEntregas(JSON.parse(guardadas).slice(0, 5));
-      }
-    } catch (errSync) {
-      console.warn("Error al sincronizar entregas:", errSync);
-    }
-  }, []);
-
-  // Consulta de pedidos: lanza el error para que el hook decida si lo muestra (carga inicial) o lo silencia (polling).
   const consultarPedidos = useCallback(async () => {
     try {
       const [procesoRes, listosRes] = await Promise.all([
@@ -65,7 +95,7 @@ export default function PantallaRecogida() {
       console.warn(errConsulta);
       throw new Error(
         "No se pudo sincronizar con el servidor central de Stark Industries.",
-        { cause: errConsulta }
+        { cause: errConsulta },
       );
     }
   }, [sincronizarEntregas]);
@@ -145,37 +175,20 @@ export default function PantallaRecogida() {
         type="button"
         onClick={alternarPantallaCompleta}
         title="Alternar modo pantalla completa"
-        style={{
-          position: "absolute",
-          top: "1rem",
-          right: "1.5rem",
-          background: "rgba(5, 8, 17, 0.8)",
-          border: "1px solid rgba(0, 229, 255, 0.4)",
-          color: "var(--stark-cyan)",
-          width: "36px",
-          height: "36px",
-          borderRadius: "6px",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "1rem",
-          zIndex: 50,
-          boxShadow: "0 0 10px rgba(0, 229, 255, 0.2)",
-          transition: "all 0.2s ease",
-        }}
+        className="btn-pantalla-completa-stark"
       >
         ⛶
       </button>
 
       <header className="recogida-header">
-        <div className="recogida-header-badge" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          <span style={{ width: "8px", height: "8px", backgroundColor: "#10b981", borderRadius: "50%", display: "inline-block", boxShadow: "0 0 8px #10b981" }} />
+        <div className="recogida-header-badge badge-sistema-activo">
+          <span className="punto-estado-activo" />
           STARK LOGISTICS HUD // TERMINAL DE ENTREGA
         </div>
-        {horaActual && (
-          <div style={{ fontFamily: "var(--font-tech)", fontSize: "0.85rem", color: "var(--stark-cyan)", letterSpacing: "0.15em", textShadow: "0 0 10px rgba(0, 229, 255, 0.4)", margin: "-0.5rem 0 0.2rem 0" }}>
-            HORA CENTRAL // {horaActual}
+        {fechaHoraActual.hora && (
+          <div className="reloj-hud-central">
+            FECHA: {fechaHoraActual.fecha} &nbsp;|&nbsp; HORA CENTRAL:&nbsp;
+            {fechaHoraActual.hora}
           </div>
         )}
         <h1 className="recogida-titulo">ESTADO DE PEDIDOS</h1>
@@ -315,13 +328,13 @@ export default function PantallaRecogida() {
       >
         <div className="ticker-etiqueta">
           <span className="ticker-icono">📦</span>
-          <span>ENTREGAS RECIENTES:</span>
+          <span>ENTREGAS RECIENTES (HOY):</span>
         </div>
 
         <div className="ticker-contenido">
           {ultimasEntregas.length === 0 ? (
             <span className="ticker-vacio">
-              No hay registros de entregas recientes en esta sesión.
+              No hay registros de entregas recientes en el día de hoy.
             </span>
           ) : (
             <ul className="ticker-lista">

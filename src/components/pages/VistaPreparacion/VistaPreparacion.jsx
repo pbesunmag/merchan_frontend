@@ -5,6 +5,14 @@ import { usePollingPedidos } from '../../../hooks/usePollingPedidos';
 import ReactorLoader from '../../ReactorLoader';
 import './VistaPreparacion.css';
 
+const obtenerFechaHoy = () => {
+  const ahora = new Date();
+  const dia = String(ahora.getDate()).padStart(2, '0');
+  const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+  const anio = ahora.getFullYear();
+  return `${dia}/${mes}/${anio}`;
+};
+
 export default function VistaPreparacion() {
   const [pedidosCreados, setPedidosCreados] = useState([]);
   const [pedidosEnProceso, setPedidosEnProceso] = useState([]);
@@ -40,7 +48,12 @@ export default function VistaPreparacion() {
   const [ultimasEntregas, setUltimasEntregas] = useState(() => {
     try {
       const guardadas = localStorage.getItem('stark_ultimas_entregas');
-      return guardadas ? JSON.parse(guardadas) : [];
+      if (!guardadas) return [];
+      const parseadas = JSON.parse(guardadas);
+      const hoy = obtenerFechaHoy();
+      return Array.isArray(parseadas)
+        ? parseadas.filter((item) => item.fechaEntrega === hoy)
+        : [];
     } catch (errInit) {
       console.warn(errInit);
       return [];
@@ -49,13 +62,19 @@ export default function VistaPreparacion() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('stark_ultimas_entregas', JSON.stringify(ultimasEntregas));
+      const hoy = obtenerFechaHoy();
+      const vigentesHoy = ultimasEntregas.filter(
+        (item) => item.fechaEntrega === hoy
+      );
+      localStorage.setItem(
+        'stark_ultimas_entregas',
+        JSON.stringify(vigentesHoy)
+      );
     } catch (errStorage) {
       console.warn(errStorage);
     }
   }, [ultimasEntregas]);
 
-  // Consulta de pedidos: lanza el error para que el hook decida si lo muestra (carga inicial) o lo silencia (polling).
   const consultarPedidos = useCallback(async () => {
     const [creadosRes, pagadosRes, enProcesoRes, listosRes] = await Promise.all([
       pedidoService.obtenerPorEstado('CREADO'),
@@ -64,7 +83,6 @@ export default function VistaPreparacion() {
       pedidoService.obtenerPorEstado('PEDIDO_LISTO'),
     ]);
 
-    // Los pedidos con PAGO_ACEPTADO siguen en "Nuevos pedidos" hasta iniciar la preparación.
     const creados = creadosRes?.content || creadosRes || [];
     const pagados = pagadosRes?.content || pagadosRes || [];
     setPedidosCreados([...creados, ...pagados].sort((a, b) => a.id - b.id));
@@ -89,6 +107,7 @@ export default function VistaPreparacion() {
       await pedidoService.actualizarEstado(pedido.id, 'ENTREGADO');
       
       const codigoEntregado = obtenerCodigoPedido(pedido);
+      const fechaHoy = obtenerFechaHoy();
       const horaActual = new Date().toLocaleTimeString('es-ES', {
         hour: '2-digit',
         minute: '2-digit',
@@ -98,11 +117,14 @@ export default function VistaPreparacion() {
         id: pedido.id,
         codigo: codigoEntregado,
         horaEntrega: horaActual,
+        fechaEntrega: fechaHoy,
       };
 
       setUltimasEntregas((prev) => {
-        const sinDuplicado = prev.filter((item) => item.id !== pedido.id);
-        return [nuevoRegistro, ...sinDuplicado].slice(0, 5);
+        const soloDeHoy = prev.filter(
+          (item) => item.fechaEntrega === fechaHoy && item.id !== pedido.id
+        );
+        return [nuevoRegistro, ...soloDeHoy].slice(0, 5);
       });
 
       mostrarToast(`✅ Pedido ${codigoEntregado} registrado como entregado`);
@@ -119,7 +141,6 @@ export default function VistaPreparacion() {
     setPedidoACancelar(null);
   };
 
-  // Emite el PATCH real con PAGO_ACEPTADO; solo marca el pago en la UI si el backend lo acepta.
   const confirmarPago = async () => {
     if (!pedidoAPagoModal) return;
     const pedido = pedidoAPagoModal;

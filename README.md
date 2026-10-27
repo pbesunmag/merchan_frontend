@@ -50,7 +50,7 @@ Tablero Kanban para la gestión operativa de comandas con sincronización perió
 Monitor público de sala diseñado con estética HUD de alto contraste:
 * **Columna En Preparación (`EN_PREPARACION`):** Muestra los códigos de pedidos que están siendo ensamblados en taller/almacén.
 * **Columna Listo para Recoger (`PEDIDO_LISTO`):** Destaca el código de pedido con tipografía de gran formato para que el cliente acuda a ventanilla.
-* **Funcionalidades de monitor:** Reloj central en tiempo real, botón de Pantalla Completa (*Fullscreen API*), buscador de código con limpieza rápida mediante tecla `Esc` y barra inferior (*Ticker*) con el historial persistido de las últimas 5 entregas realizadas.
+* **Funcionalidades de monitor:** Fecha y reloj central en tiempo real, botón de Pantalla Completa (*Fullscreen API*), buscador de código con limpieza rápida mediante tecla `Esc` y barra inferior (*Ticker*) con el historial persistido de las últimas 5 entregas del día en curso (con reinicio automático a las 00:00h).
 
 ### 🎁 2.4. Vista Sorteos (`/sorteos`)
 Sección promocional complementaria integrada en el enrutador de la tienda.
