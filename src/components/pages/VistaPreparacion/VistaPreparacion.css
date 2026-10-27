@@ -1,3 +1,7 @@
+/* ==========================================================================
+   CONFIGURACIÓN GENERAL Y RESET - VISTA PREPARACIÓN
+   ========================================================================== */
+
 html, body {
   width: 100%;
   margin: 0;
@@ -18,6 +22,10 @@ html, body {
   color: #f1f5f9;
   font-family: system-ui, -apple-system, sans-serif;
 }
+
+/* ==========================================================================
+   CABECERA Y CONTROLES DE BÚSQUEDA Y FILTROS
+   ========================================================================== */
 
 .preparacion-header {
   display: flex;
@@ -113,6 +121,10 @@ html, body {
   box-shadow: 0 0 12px rgba(251, 191, 36, 0.4);
 }
 
+/* ==========================================================================
+   TABLERO KANBAN Y COLUMNAS DE PEDIDOS
+   ========================================================================== */
+
 .tablero-columnas {
   display: grid;
   grid-template-columns: 1fr;
@@ -163,6 +175,10 @@ html, body {
   gap: 1rem;
   width: 100%;
 }
+
+/* ==========================================================================
+   TARJETAS DE PEDIDO Y LÍNEAS DE PRODUCTOS
+   ========================================================================== */
 
 .pedido-card {
   background: #0f172a;
@@ -286,6 +302,10 @@ html, body {
   box-shadow: 0 0 8px rgba(251, 191, 36, 0.2);
 }
 
+/* ==========================================================================
+   BOTONES DE ACCIÓN Y ESTADOS DE PAGO
+   ========================================================================== */
+
 .pedido-acciones-fila {
   display: grid;
   grid-template-columns: 1fr;
@@ -395,6 +415,10 @@ html, body {
 .btn-deshabilitado:hover {
   opacity: 0.6;
 }
+
+/* ==========================================================================
+   MODALES Y NOTIFICACIONES TOAST STARK
+   ========================================================================== */
 
 .modal-overlay {
   position: fixed;
@@ -523,6 +547,10 @@ html, body {
     transform: translateY(0) scale(1);
   }
 }
+
+/* ==========================================================================
+   MEDIA QUERIES RESPONSIVE
+   ========================================================================== */
 
 @media (min-width: 768px) {
   .preparacion-container {
