@@ -1,0 +1,166 @@
+.metricas-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 12, 16, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+}
+
+.metricas-panel {
+  background: var(--marvel-panel, #1e202b);
+  border: 1px solid var(--marvel-blue, #00a8ff);
+  box-shadow: 0 0 25px rgba(0, 168, 255, 0.25);
+  border-radius: 8px;
+  padding: 1.25rem;
+  width: 100%;
+  max-width: 560px;
+  color: #fff;
+}
+
+.metricas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.metricas-header h3 {
+  margin: 0;
+  color: var(--marvel-blue, #00a8ff);
+  letter-spacing: 1px;
+}
+
+.metricas-cerrar {
+  background: transparent;
+  border: none;
+  color: var(--marvel-muted, #9e9eb3);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.metricas-cerrar:hover {
+  color: var(--marvel-red, #e62429);
+}
+
+.metricas-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.metricas-tab {
+  flex: 1;
+  background: transparent;
+  color: var(--marvel-muted, #9e9eb3);
+  border: 1px solid var(--marvel-border, #2e3244);
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.metricas-tab:hover {
+  color: #fff;
+  border-color: var(--marvel-blue, #00a8ff);
+}
+
+.metricas-tab.activo {
+  background: var(--marvel-blue, #00a8ff);
+  color: #0b0c10;
+  border-color: var(--marvel-blue, #00a8ff);
+}
+
+.metricas-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  transition: opacity 0.2s;
+}
+
+.metricas-grid.cargando {
+  opacity: 0.5;
+}
+
+.metricas-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  background: var(--marvel-charcoal, #15161e);
+  border: 1px solid var(--marvel-border, #2e3244);
+  border-left-width: 4px;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.metricas-card-icono {
+  font-size: 1.3rem;
+}
+
+.metricas-card-titulo {
+  font-size: 0.75rem;
+  color: var(--marvel-muted, #9e9eb3);
+  text-transform: uppercase;
+}
+
+.metricas-card-valor {
+  font-size: 1.4rem;
+}
+
+.metricas-card.saldo { border-left-color: var(--marvel-gold, #ffb703); }
+.metricas-card.ingresos { border-left-color: #22c55e; }
+.metricas-card.reembolsos { border-left-color: var(--marvel-red, #e62429); }
+.metricas-card.beneficio { border-left-color: var(--marvel-blue, #00a8ff); }
+
+.metricas-nota {
+  font-size: 0.75rem;
+  color: var(--marvel-muted, #9e9eb3);
+  margin: 0.75rem 0;
+}
+
+.metricas-error {
+  background: var(--marvel-red, #e62429);
+  padding: 0.6rem;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.metricas-exportar {
+  width: 100%;
+  background: var(--marvel-gold, #ffb703);
+  color: #0b0c10;
+  border: none;
+  border-radius: 4px;
+  padding: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.metricas-exportar:hover:not(:disabled) {
+  box-shadow: var(--glow-gold, 0 0 20px rgba(255, 183, 3, 0.35));
+}
+
+.metricas-exportar:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.btn-acceso-operario {
+  background: transparent;
+  border: none;
+  color: var(--marvel-muted, #9e9eb3);
+  opacity: 0.35;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.2rem 0.4rem;
+  transition: opacity 0.2s;
+}
+
+.btn-acceso-operario:hover {
+  opacity: 1;
+}

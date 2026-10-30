@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import ModalInformacion from '../ModalInformacion/ModalInformacion';
+import PanelMetricas from '../PanelMetricas/PanelMetricas';
 import './Footer.css';
 
 export default function Footer() {
   const [seccionActiva, setSeccionActiva] = useState(null);
+  const [metricasAbiertas, setMetricasAbiertas] = useState(false);
 
   const abrirModal = (e, id) => {
     e.preventDefault();
@@ -114,10 +116,21 @@ export default function Footer() {
               <span className="badge-pago">STARK-PAY</span>
               <span className="badge-pago">VISA</span>
               <span className="badge-pago">MASTERCARD</span>
+              <button
+                type="button"
+                className="btn-acceso-operario"
+                onClick={() => setMetricasAbiertas(true)}
+                title="Métricas de Control (operarios)"
+                aria-label="Métricas de Control"
+              >
+                ⚙️
+              </button>
             </div>
           </div>
         </div>
       </footer>
+
+      {metricasAbiertas && <PanelMetricas alCerrar={() => setMetricasAbiertas(false)} />}
 
       <ModalInformacion
         seccionId={seccionActiva}

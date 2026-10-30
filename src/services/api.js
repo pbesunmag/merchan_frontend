@@ -1,4 +1,5 @@
-const BASE_URL = 'http://localhost:8080/api';
+export const API_BASE_URL = 'http://localhost:8080/api';
+const BASE_URL = API_BASE_URL;
 
 export async function request(endpoint, options = {}) {
   const config = {
@@ -35,4 +36,26 @@ export async function request(endpoint, options = {}) {
 
   const text = await response.text();
   return text ? JSON.parse(text) : null;
+}
+
+/**
+ * Petición que devuelve un Blob (descargas de archivos como CSV).
+ * Reutiliza el mismo manejo de errores que `request`.
+ */
+export async function requestBlob(endpoint, options = {}) {
+  let response;
+  try {
+    response = await fetch(`${BASE_URL}${endpoint}`, options);
+  } catch {
+    throw new Error('No se pudo conectar con el servidor backend (verifica que esté encendido en el puerto 8080).');
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    const mensajeBackend =
+      errorData?.message || errorData?.mensaje || errorData?.error || errorData?.detail;
+    throw new Error(mensajeBackend || `Error ${response.status}: ${response.statusText}`);
+  }
+
+  return response.blob();
 }

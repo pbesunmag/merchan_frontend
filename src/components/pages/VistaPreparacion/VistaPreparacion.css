@@ -416,6 +416,29 @@ html, body {
   opacity: 0.6;
 }
 
+.btn-stark-exportar {
+  background: rgba(13, 27, 42, 0.85);
+  border: 1px solid rgba(0, 210, 255, 0.4);
+  color: #00d2ff;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 10px rgba(0, 210, 255, 0.15);
+}
+
+.btn-stark-exportar:hover {
+  background: rgba(0, 210, 255, 0.15);
+  border-color: #00d2ff;
+  box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+  transform: translateY(-1px);
+}
+
 /* ==========================================================================
    MODALES Y NOTIFICACIONES TOAST STARK
    ========================================================================== */
