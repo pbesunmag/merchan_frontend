@@ -172,3 +172,209 @@
   font-size: 0.9rem;
   text-align: center;
 }
+
+.postventa-overlay-confirmar {
+  z-index: 1200;
+}
+
+/* ---- Paso 1: desglose de la comanda ---- */
+.postventa-lineas-detalle {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.postventa-linea {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 0.65rem;
+}
+
+.postventa-miniatura {
+  width: 56px;
+  height: 56px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #1e293b;
+  flex-shrink: 0;
+}
+
+.postventa-miniatura-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+}
+
+.postventa-linea-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.postventa-linea-detalle {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.postventa-linea-controles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+.postventa-cantidad {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.postventa-cantidad button {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #1e293b;
+  color: #f1f5f9;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.postventa-cantidad button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.postventa-cantidad input {
+  width: 56px;
+  text-align: center;
+  padding: 0.3rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #0b1220;
+  color: #f1f5f9;
+}
+
+/* Contenedor del selector y botones de acción */
+.contenedor-acciones-linea,
+.acciones-postventa-articulo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+/* Selector numérico [- 8 +] */
+.selector-cantidad-postventa {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+/* ==========================================================================
+   OCULTAR FLECHAS NATIVAS EN SELECTORES NUMÉRICOS DE POSTVENTA
+   ========================================================================== */
+
+/* Chrome, Edge, Safari y Opera */
+.selector-cantidad-postventa input[type="number"]::-webkit-inner-spin-button,
+.selector-cantidad-postventa input[type="number"]::-webkit-outer-spin-button,
+.postventa-cantidad input[type="number"]::-webkit-inner-spin-button,
+.postventa-cantidad input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+.selector-cantidad-postventa input[type="number"],
+.postventa-cantidad input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* Botones de Devolver y Cambiar */
+.btn-devolver-linea,
+.btn-cambiar-linea {
+  width: 80%;
+  max-width: 240px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.btn-postventa:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---- Paso 2: cambio ---- */
+.postventa-cabecera-cambio {
+  background: rgba(56, 189, 248, 0.1);
+  border-left: 3px solid #38bdf8;
+  padding: 0.5rem 0.7rem;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.postventa-tallas {
+  margin-bottom: 0.75rem;
+}
+
+.postventa-tallas-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+
+.postventa-talla {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 56px;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #f1f5f9;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.postventa-talla small {
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.postventa-talla:hover:not(:disabled) {
+  border-color: #38bdf8;
+}
+
+.postventa-talla.seleccionado {
+  border-color: #22c55e;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.35);
+}
+
+.postventa-talla:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}

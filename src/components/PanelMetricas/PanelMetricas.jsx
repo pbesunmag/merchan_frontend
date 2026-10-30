@@ -49,11 +49,14 @@ export default function PanelMetricas({ alCerrar }) {
     }
   };
 
-  const ingresos = Number(metricas?.ingresos ?? metricas?.ingresosVentas) || 0;
-  const reembolsos = Number(metricas?.reembolsos ?? metricas?.totalReembolsos) || 0;
+  const ingresos = Number(metricas?.totalIngresosVentas ?? metricas?.ingresos ?? metricas?.ingresosVentas) || 0;
+  const reembolsos = Number(metricas?.totalReembolsos ?? metricas?.reembolsos) || 0;
   const beneficio = Number(metricas?.beneficioNeto ?? metricas?.beneficio ?? ingresos - reembolsos);
-  const balance = Number(metricas?.balance ?? metricas?.balanceCaja ?? ingresos - reembolsos);
-  const saldoCaja = SALDO_INICIAL_CAJA + balance;
+  const balance = Number(metricas?.balance ?? metricas?.balanceCaja ?? beneficio);
+  const saldoCaja =
+    metricas?.saldoActualCaja != null
+      ? Number(metricas.saldoActualCaja)
+      : SALDO_INICIAL_CAJA + balance;
 
   const tarjetas = [
     { icono: '💰', titulo: 'Saldo de Caja', valor: saldoCaja, clase: 'saldo' },
