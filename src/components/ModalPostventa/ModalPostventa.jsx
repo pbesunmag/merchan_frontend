@@ -56,6 +56,7 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
   const [nuevoProducto, setNuevoProducto] = useState(null);
   const [nuevaTalla, setNuevaTalla] = useState('');
   const [cantidadNueva, setCantidadNueva] = useState(1);
+  const [cestaCambio, setCestaCambio] = useState([]);
   const [filtroCatalogo, setFiltroCatalogo] = useState('');
 
   const cargar = useCallback(async () => {
@@ -179,6 +180,7 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
     setNuevoProducto(null);
     setNuevaTalla('');
     setCantidadNueva(1);
+    setCestaCambio([]);
     setFiltroCatalogo('');
   };
 
@@ -187,6 +189,7 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
     setNuevoProducto(null);
     setNuevaTalla('');
     setCantidadNueva(1);
+    setCestaCambio([]);
   };
 
   const lineaCambio = cambio?.linea || null;
@@ -206,6 +209,16 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
     );
   };
 
+  // Unidades ya añadidas en la cesta de cambio para un producto y talla
+  const unidadesEnCesta = (prodId, talla = null) =>
+    cestaCambio
+      .filter(
+        (item) =>
+          item.productoId === prodId &&
+          String(item.talla || '').toUpperCase() === String(talla || '').toUpperCase()
+      )
+      .reduce((acc, item) => acc + (Number(item.cantidad) || 0), 0);
+
   const tallasNuevo = useMemo(() => {
     if (!nuevoProducto) return [];
     if (Array.isArray(nuevoProducto.tallas) && nuevoProducto.tallas.length > 0) {
@@ -221,13 +234,18 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
   const requiereTalla = tallasNuevo.length > 0;
   const tallaElegida = tallasNuevo.find((t) => t.talla === nuevaTalla) || null;
   const productoSeleccionado = nuevoProducto;
-  const stockDisponibleNuevo = requiereTalla && tallaElegida
+  const stockBaseSeleccion = requiereTalla && tallaElegida
     ? Number(tallaElegida.stock) || 0
     : Number(productoSeleccionado?.stock) || 0;
+  const enCestaSeleccion = productoSeleccionado
+    ? unidadesEnCesta(productoSeleccionado.id, requiereTalla ? nuevaTalla : null)
+    : 0;
+  const stockDisponibleNuevo = Math.max(0, stockBaseSeleccion - enCestaSeleccion);
 
   const stockSuficiente = (stock, req = cantidadNueva) => (Number(stock) || 0) >= req;
 
   const mismaVariante = (producto, talla) =>
+    cestaCambio.length === 0 &&
     producto.id === lineaCambio?.productoId &&
     String(talla || '').toUpperCase() === String(lineaCambio?.talla || '').toUpperCase() &&
     cantidadEntregada === cantidadNueva;
@@ -236,29 +254,100 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
   const productoPermitido = (prod) => {
     if (prod.activo === false) return false;
     const tieneTallas = (prod.tallas || []).length > 0 || esProductoTextil(prod);
-    if (!tieneTallas && prod.stock != null && (Number(prod.stock) || 0) < 1) return false;
+    if (!tieneTallas && prod.stock != null && (Number(prod.stock) || 0) - unidadesEnCesta(prod.id, null) < 1) {
+      return false;
+    }
     return true;
   };
 
-  const cambioValido = (() => {
+  const seleccionActualValida = (() => {
     if (!nuevoProducto || !productoPermitido(nuevoProducto)) return false;
     if (requiereTalla) {
+      const dispTalla = (Number(tallaElegida?.stock) || 0) - unidadesEnCesta(nuevoProducto.id, tallaElegida?.talla);
       return (
         !!tallaElegida &&
-        stockSuficiente(tallaElegida.stock, cantidadNueva) &&
+        dispTalla >= cantidadNueva &&
         !mismaVariante(nuevoProducto, tallaElegida.talla)
       );
     }
+    const dispProd = (Number(nuevoProducto.stock) || 0) - unidadesEnCesta(nuevoProducto.id, null);
     return (
-      (nuevoProducto.stock == null || stockSuficiente(nuevoProducto.stock, cantidadNueva)) &&
+      (nuevoProducto.stock == null || dispProd >= cantidadNueva) &&
       !mismaVariante(nuevoProducto, null)
     );
   })();
 
-  // Diferencia exacta en céntimos: (precioNuevo * cantidadNueva) - (precioAntiguo * cantidadEntregada)
+  const agregarACestaCambio = () => {
+    if (!seleccionActualValida || !nuevoProducto) return;
+    const tallaFinal = requiereTalla ? nuevaTalla : null;
+    setCestaCambio((prev) => {
+      const idx = prev.findIndex(
+        (item) =>
+          item.productoId === nuevoProducto.id &&
+          String(item.talla || '').toUpperCase() === String(tallaFinal || '').toUpperCase()
+      );
+      if (idx >= 0) {
+        const copia = [...prev];
+        copia[idx] = {
+          ...copia[idx],
+          cantidad: copia[idx].cantidad + cantidadNueva,
+        };
+        return copia;
+      }
+      return [
+        ...prev,
+        {
+          productoId: nuevoProducto.id,
+          nombre: nuevoProducto.nombre,
+          precio: Number(nuevoProducto.precio) || 0,
+          cantidad: cantidadNueva,
+          talla: tallaFinal,
+        },
+      ];
+    });
+    setNuevoProducto(null);
+    setNuevaTalla('');
+    setCantidadNueva(1);
+  };
+
+  const quitarDeCestaCambio = (index) => {
+    setCestaCambio((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Lista efectiva de artículos para el cambio: la cesta + (si hay uno válido seleccionado sin pulsar "Añadir")
+  const articulosEfectivosCambio = useMemo(() => {
+    const lista = [...cestaCambio];
+    if (seleccionActualValida && nuevoProducto) {
+      const tallaFinal = requiereTalla ? nuevaTalla : null;
+      const idx = lista.findIndex(
+        (item) =>
+          item.productoId === nuevoProducto.id &&
+          String(item.talla || '').toUpperCase() === String(tallaFinal || '').toUpperCase()
+      );
+      if (idx >= 0) {
+        lista[idx] = { ...lista[idx], cantidad: lista[idx].cantidad + cantidadNueva };
+      } else {
+        lista.push({
+          productoId: nuevoProducto.id,
+          nombre: nuevoProducto.nombre,
+          precio: Number(nuevoProducto.precio) || 0,
+          cantidad: cantidadNueva,
+          talla: tallaFinal,
+        });
+      }
+    }
+    return lista;
+  }, [cestaCambio, seleccionActualValida, nuevoProducto, requiereTalla, nuevaTalla, cantidadNueva]);
+
+  const cambioValido = articulosEfectivosCambio.length > 0;
+
+  // Diferencia exacta en céntimos: suma(cesta) - (precioAntiguo * cantidadEntregada)
   const totalAntiguoCent = aCentimos(precioAntiguo) * cantidadEntregada;
-  const totalNuevoCent = nuevoProducto ? aCentimos(nuevoProducto.precio) * cantidadNueva : 0;
-  const diferenciaTotalCent = nuevoProducto ? totalNuevoCent - totalAntiguoCent : 0;
+  const totalNuevoCent = articulosEfectivosCambio.reduce(
+    (acc, item) => acc + aCentimos(item.precio) * item.cantidad,
+    0
+  );
+  const diferenciaTotalCent = cambioValido ? totalNuevoCent - totalAntiguoCent : 0;
   const diferenciaTotal = deCentimos(diferenciaTotalCent);
   const totalAntiguo = deCentimos(totalAntiguoCent);
   const totalNuevo = deCentimos(totalNuevoCent);
@@ -272,12 +361,20 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
     setProcesando(true);
     setError(null);
     try {
+      const nuevosArticulos = articulosEfectivosCambio.map((item) => ({
+        productoId: item.productoId,
+        cantidad: item.cantidad,
+        talla: item.talla || null,
+      }));
+      const primerItem = nuevosArticulos[0];
       await cajaService.solicitarCambio(pedidoActivo.id, {
         lineaPedidoId: lineaCambio.id,
         cantidad: cantidadEntregada,
-        cantidadNueva,
-        nuevoProductoId: nuevoProducto.id,
-        nuevaTalla: requiereTalla ? nuevaTalla : null,
+        cantidadEntregada,
+        cantidadNueva: primerItem?.cantidad ?? 1,
+        nuevoProductoId: primerItem?.productoId ?? null,
+        nuevaTalla: primerItem?.talla ?? null,
+        nuevosArticulos,
       });
       alCompletar?.(
         diferenciaTotal > 0
@@ -591,7 +688,8 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
                 <span className="postventa-label">Talla de {nuevoProducto.nombre}:</span>
                 <div className="postventa-tallas-lista">
                   {tallasNuevo.map((t) => {
-                    const sinStock = !stockSuficiente(t.stock, cantidadNueva);
+                    const dispTalla = Math.max(0, (Number(t.stock) || 0) - unidadesEnCesta(nuevoProducto.id, t.talla));
+                    const sinStock = !stockSuficiente(dispTalla, cantidadNueva);
                     const igual = mismaVariante(nuevoProducto, t.talla);
                     return (
                       <button
@@ -601,20 +699,20 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
                         className={`postventa-talla ${nuevaTalla === t.talla ? 'seleccionado' : ''}`}
                         onClick={() => {
                           setNuevaTalla(t.talla);
-                          if ((Number(t.stock) || 0) > 0 && cantidadNueva > Number(t.stock)) {
-                            setCantidadNueva(Number(t.stock));
+                          if (dispTalla > 0 && cantidadNueva > dispTalla) {
+                            setCantidadNueva(dispTalla);
                           }
                         }}
                         title={
                           igual
                             ? 'Es la misma talla y cantidad del artículo original'
                             : sinStock
-                              ? `Stock insuficiente (${t.stock ?? 0} uds.)`
-                              : `${t.stock} uds. disponibles`
+                              ? `Stock insuficiente (${dispTalla} uds.)`
+                              : `${dispTalla} uds. disponibles`
                         }
                       >
                         {t.talla}
-                        <small>{t.stock ?? 0} uds.</small>
+                        <small>{dispTalla} uds.</small>
                       </button>
                     );
                   })}
@@ -622,11 +720,72 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
               </div>
             )}
 
+            {productoSeleccionado && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.6rem' }}>
+                <button
+                  type="button"
+                  className="btn-postventa btn-postventa-cambio"
+                  disabled={!seleccionActualValida}
+                  onClick={agregarACestaCambio}
+                >
+                  ➕ Añadir a la cesta de cambio
+                </button>
+              </div>
+            )}
+
+            {cestaCambio.length > 0 && (
+              <div
+                style={{
+                  background: '#0f172a',
+                  border: '1px solid #334155',
+                  borderRadius: '6px',
+                  padding: '0.6rem',
+                  marginBottom: '0.75rem',
+                }}
+              >
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.4rem', fontWeight: 600 }}>
+                  🛒 Cesta de artículos de cambio ({cestaCambio.length}):
+                </div>
+                {cestaCambio.map((item, idx) => (
+                  <div
+                    key={`${item.productoId}-${item.talla || 'U'}-${idx}`}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '0.85rem',
+                      padding: '0.25rem 0',
+                      borderBottom: idx < cestaCambio.length - 1 ? '1px solid #1e293b' : 'none',
+                    }}
+                  >
+                    <span>
+                      <strong>{item.cantidad}x</strong> {item.nombre}
+                      {item.talla ? ` (Talla ${item.talla})` : ''} · {formatearMoneda(item.precio)}/ud.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => quitarDeCestaCambio(idx)}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                        fontWeight: 'bold',
+                      }}
+                      title="Quitar artículo"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="postventa-diferencia">
-              {!nuevoProducto ? (
-                'Selecciona un producto para ver la diferencia'
-              ) : requiereTalla && !tallaElegida ? (
-                'Selecciona una talla con stock disponible'
+              {!cambioValido ? (
+                nuevoProducto && requiereTalla && !tallaElegida
+                  ? 'Selecciona una talla con stock disponible'
+                  : 'Selecciona uno o varios productos para ver la diferencia'
               ) : diferenciaTotalCent === 0 ? (
                 <strong className="postventa-importe">
                   Cambio sin impacto económico en caja ({formatearMoneda(0)})
@@ -635,8 +794,7 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
                 <>
                   Diferencia a abonar en caja:{' '}
                   <strong className="postventa-importe">{formatearMoneda(diferenciaTotal)}</strong> (
-                  {cantidadNueva}x {formatearMoneda(nuevoProducto.precio)} = {formatearMoneda(totalNuevo)} −{' '}
-                  {cantidadEntregada}x {formatearMoneda(precioAntiguo)} = {formatearMoneda(totalAntiguo)})
+                  Nuevos: {formatearMoneda(totalNuevo)} − Entregados: {formatearMoneda(totalAntiguo)})
                 </>
               ) : (
                 <>
@@ -644,8 +802,7 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
                   <strong className="postventa-importe">
                     -{formatearMoneda(Math.abs(diferenciaTotal))}
                   </strong>{' '}
-                  ({cantidadNueva}x {formatearMoneda(nuevoProducto.precio)} = {formatearMoneda(totalNuevo)} −{' '}
-                  {cantidadEntregada}x {formatearMoneda(precioAntiguo)} = {formatearMoneda(totalAntiguo)})
+                  (Nuevos: {formatearMoneda(totalNuevo)} − Entregados: {formatearMoneda(totalAntiguo)})
                 </>
               )}
             </div>

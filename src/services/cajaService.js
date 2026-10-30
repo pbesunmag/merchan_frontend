@@ -17,19 +17,29 @@ export const cajaService = {
     }),
 
   // POST /api/pedidos/{pedidoId}/cambio-producto
-  // { lineaPedidoId, cantidad, cantidadNueva, nuevoProductoId, nuevaTalla }
+  // { lineaPedidoId, cantidadEntregada, nuevosArticulos } (también admite formato 1 a 1)
   solicitarCambio: (
     pedidoId,
-    { lineaPedidoId, cantidad, cantidadNueva, nuevoProductoId, nuevaTalla }
+    {
+      lineaPedidoId,
+      cantidad,
+      cantidadEntregada,
+      cantidadNueva,
+      nuevoProductoId,
+      nuevaTalla,
+      nuevosArticulos,
+    }
   ) =>
     request(`/pedidos/${pedidoId}/cambio-producto`, {
       method: 'POST',
       body: JSON.stringify({
         lineaPedidoId,
-        cantidad,
-        cantidadNueva: cantidadNueva ?? cantidad,
-        nuevoProductoId,
+        cantidad: cantidad ?? cantidadEntregada,
+        cantidadEntregada: cantidadEntregada ?? cantidad,
+        cantidadNueva: cantidadNueva ?? cantidadEntregada ?? cantidad,
+        nuevoProductoId: nuevoProductoId || null,
         nuevaTalla: nuevaTalla || null,
+        nuevosArticulos: Array.isArray(nuevosArticulos) ? nuevosArticulos : null,
       }),
     }),
 };
