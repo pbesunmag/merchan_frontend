@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import "./DetalleProductoModal.css";
+import { productService } from "../../services/productService";
 import { formatearMoneda, formatearPersonaje } from "../../utils/formatoUtils";
+import { esCamiseta as esProductoCamiseta } from "../../utils/categoriaUtils";
 
-// Diccionario de variantes con soporte de precios específicos
+// Diccionario de variantes visuales (color / modelo / héroe) sin alteración arbitraria del precio oficial
 const catalogoVariantes = {
   1: {
     tipo: "Color",
@@ -91,31 +93,26 @@ const catalogoVariantes = {
         id: "casco_ironman",
         etiqueta: "Casco Iron Man",
         imagen: "/imagenes/tazas/tazas_vengadores/taza_casco_ironman.jpg",
-        precio: 13.5,
       },
       {
         id: "escudo_america",
         etiqueta: "Escudo Capitán",
         imagen: "/imagenes/tazas/tazas_vengadores/taza_escudo_america.jpg",
-        precio: 13.5,
       },
       {
         id: "punyo_hulk",
         etiqueta: "Puño de Hulk",
         imagen: "/imagenes/tazas/tazas_vengadores/taza_punyo_hulk.jpg",
-        precio: 14.5,
       },
       {
         id: "spiderman",
         etiqueta: "Spiderman 3D",
         imagen: "/imagenes/tazas/tazas_vengadores/taza_spiderman.jpg",
-        precio: 15.0,
       },
       {
         id: "thor_martillo",
         etiqueta: "Martillo Mjolnir",
         imagen: "/imagenes/tazas/tazas_vengadores/taza_thor_martillo.jpg",
-        precio: 15.5,
       },
     ],
   },
@@ -123,7 +120,6 @@ const catalogoVariantes = {
 
 const ORDEN_TALLAS = ["XS", "S", "M", "L", "XL", "XXL"];
 
-// La imagen está en public/, así que se sirve directamente desde la raíz.
 const URL_GUIA_TALLAS = "/imagenes/camisetas/tallas.jpg";
 
 const abrirGuiaTallas = (e) => {
@@ -184,12 +180,8 @@ export default function DetalleProductoModal({
   alCerrar,
   alAgregar,
 }) {
-  const esCamiseta = Boolean(
-    producto &&
-      (producto.id <= 5 ||
-        (producto.nombreCategoria || "").toLowerCase().includes("camiseta") ||
-        (producto.nombre || "").toLowerCase().includes("camiseta")),
-  );
+  // Detección de categoría exclusivamente por los campos formales del DTO (nombreCategoria / categoria / tallas)
+  const esCamiseta = Boolean(producto && esProductoCamiseta(producto));
 
   const configVariantes = producto ? catalogoVariantes[producto.id] : null;
 
@@ -212,11 +204,8 @@ export default function DetalleProductoModal({
 
     let cancelado = false;
 
-    fetch(`http://localhost:8080/api/productos/${producto.id}/tallas`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Error al obtener tallas");
-        return res.json();
-      })
+    productService
+      .obtenerTallas(producto.id)
       .then((data) => {
         if (cancelado) return;
         const listaAPI = Array.isArray(data) ? data : [];
@@ -282,16 +271,15 @@ export default function DetalleProductoModal({
     });
   }, [tallasDisponibles, carrito, producto, esCamiseta]);
 
-  // Selección declarativa de la talla sin provocar cascading renders ni useEffect
-  const primeraConStock = tallasSincronizadas.find((t) => t.stockEfectivo > 0)?.talla || null;
+  const primeraConStock =
+    tallasSincronizadas.find((t) => t.stockEfectivo > 0)?.talla || null;
   const tallaValida = tallasSincronizadas.some(
-    (t) => t.talla === tallaSeleccionada && t.stockEfectivo > 0
+    (t) => t.talla === tallaSeleccionada && t.stockEfectivo > 0,
   );
   const tallaEfectiva = tallaValida ? tallaSeleccionada : primeraConStock;
 
   if (!producto) return null;
 
-  // Unidades totales de este producto ya en el carrito (para productos sin talla)
   const unidadesProductoEnCesta = carrito
     .filter((c) => c.id === producto.id)
     .reduce((acc, c) => acc + (Number(c.cantidad) || 0), 0);
@@ -316,7 +304,6 @@ export default function DetalleProductoModal({
       : 0
     : Math.max(0, stockBaseModal - unidadesProductoEnCesta);
 
-  // Configuración del Badge dinámico de disponibilidad sincronizado
   const obtenerInfoBadgeStock = (stock) => {
     if (stock > 3) {
       return {
@@ -348,17 +335,8 @@ export default function DetalleProductoModal({
 
   const badgeStock = obtenerInfoBadgeStock(stockActual);
 
-  const precioBase = Number(producto.precio) || 0;
-  const precioActivo = Number(varianteSeleccionada?.precio ?? precioBase);
-
-  const nombreProd = (producto.nombre || "").trim();
-  const esGroot = nombreProd === "Figura Groot Guardianes";
-  const esThor = nombreProd === "Figura Thor Dios del Trueno";
-  const tieneDescuento = esGroot || esThor;
-
-  let precioFinal = precioActivo;
-  if (esGroot) precioFinal = precioActivo * 0.75;
-  if (esThor) precioFinal = precioActivo * 0.9;
+  // Precio estricto del catálogo (producto.precio)
+  const precioOficial = Number(producto.precio) || 0;
 
   const fotos = configVariantes
     ? configVariantes.opciones.map((o) => o.imagen)
@@ -384,7 +362,7 @@ export default function DetalleProductoModal({
   };
 
   const manejarAgregar = () => {
-    if (stockActual === 0) return;
+    if (stockActual === 0 || producto.activo === false) return;
 
     let nombreFinal = producto.nombre;
     const detallesExtras = [];
@@ -402,8 +380,8 @@ export default function DetalleProductoModal({
 
     const productoParaCarrito = {
       ...producto,
-      precio: precioFinal,
-      subtotal: precioFinal,
+      precio: precioOficial,
+      subtotal: precioOficial,
       nombre: nombreFinal,
       variante: varianteSeleccionada ? varianteSeleccionada.etiqueta : null,
       talla: esCamiseta ? tallaEfectiva : null,
@@ -517,7 +495,7 @@ export default function DetalleProductoModal({
               <div>
                 <div className="cabecera-badges-stark">
                   <span className="categoria-badge">
-                    {producto.nombreCategoria || "EQUIPAMIENTO"}
+                    {producto.nombreCategoria || producto.categoria || "EQUIPAMIENTO"}
                   </span>
                 </div>
                 <h2>{producto.nombre}</h2>
@@ -540,10 +518,6 @@ export default function DetalleProductoModal({
                     {configVariantes.opciones.map((opc) => {
                       const estaSeleccionada =
                         varianteSeleccionada?.id === opc.id;
-                      const sobrecoste =
-                        opc.precio && opc.precio !== precioBase
-                          ? opc.precio - precioBase
-                          : 0;
 
                       return (
                         <button
@@ -553,11 +527,6 @@ export default function DetalleProductoModal({
                           onClick={() => seleccionarOpcion(opc)}
                         >
                           <span>{opc.etiqueta}</span>
-                          {sobrecoste > 0 && (
-                            <span className="chip-sobrecoste">
-                              +{sobrecoste.toFixed(2)}€
-                            </span>
-                          )}
                         </button>
                       );
                     })}
@@ -656,28 +625,12 @@ export default function DetalleProductoModal({
                 </p>
               </div>
 
-              {/* FOOTER PRECIO DINÁMICO Y BOTÓN AÑADIR */}
+              {/* FOOTER PRECIO OFICIAL Y BOTÓN AÑADIR */}
               <div className="footer-compra-detalle">
                 <div className="precio-detalle-bloque">
-                  {tieneDescuento ? (
-                    <div className="contenedor-precio-oferta-modal">
-                      <div className="fila-precios-modal">
-                        <span className="precio-original-tachado">
-                          {formatearMoneda(precioActivo)}
-                        </span>
-                        <span className="precio-destacado-oferta">
-                          {formatearMoneda(precioFinal)}
-                        </span>
-                      </div>
-                      <span className="badge-descuento-modal">
-                        {esGroot ? "-25% DTO" : "-10% DTO"}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="precio-detalle">
-                      {formatearMoneda(precioActivo)}
-                    </div>
-                  )}
+                  <div className="precio-detalle">
+                    {formatearMoneda(precioOficial)}
+                  </div>
                 </div>
 
                 <button

@@ -14,30 +14,32 @@ const obtenerFechaHoy = () => {
   return `${dia}/${mes}/${anio}`;
 };
 
-const filtrarEntregasDeHoy = () => {
-  try {
-    const guardadas = localStorage.getItem("stark_ultimas_entregas");
-    if (!guardadas) return [];
-    const lista = JSON.parse(guardadas);
-    if (!Array.isArray(lista)) return [];
+const esMismoDiaLocal = (fechaIso) => {
+  if (!fechaIso) return true;
+  const fecha = new Date(fechaIso);
+  if (Number.isNaN(fecha.getTime())) return true;
+  const ahora = new Date();
+  return (
+    fecha.getFullYear() === ahora.getFullYear() &&
+    fecha.getMonth() === ahora.getMonth() &&
+    fecha.getDate() === ahora.getDate()
+  );
+};
 
-    const hoy = obtenerFechaHoy();
-    const soloDeHoy = lista.filter((item) => item.fechaEntrega === hoy);
-
-    if (soloDeHoy.length !== lista.length) {
-      localStorage.setItem("stark_ultimas_entregas", JSON.stringify(soloDeHoy));
-    }
-
-    return soloDeHoy.slice(0, 5);
-  } catch (err) {
-    console.warn("Error al procesar entregas recientes:", err);
-    return [];
-  }
+const formatearHoraEntrega = (fechaIso) => {
+  if (!fechaIso) return "";
+  const fecha = new Date(fechaIso);
+  if (Number.isNaN(fecha.getTime())) return "";
+  return fecha.toLocaleTimeString("es-ES", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 export default function PantallaRecogida() {
   const [pedidosEnProceso, setPedidosEnProceso] = useState([]);
   const [pedidosListos, setPedidosListos] = useState([]);
+  const [ultimasEntregas, setUltimasEntregas] = useState([]);
 
   const [filtroCodigo, setFiltroCodigo] = useState("");
   const inputBusquedaRef = useRef(null);
@@ -47,17 +49,7 @@ export default function PantallaRecogida() {
     hora: "",
   });
 
-  const [ultimasEntregas, setUltimasEntregas] = useState(() =>
-    filtrarEntregasDeHoy(),
-  );
-
-  const sincronizarEntregas = useCallback(() => {
-    setUltimasEntregas(filtrarEntregasDeHoy());
-  }, []);
-
   useEffect(() => {
-    let fechaAnterior = obtenerFechaHoy();
-
     const actualizarReloj = () => {
       const ahora = new Date();
       const horas = String(ahora.getHours()).padStart(2, "0");
@@ -69,28 +61,44 @@ export default function PantallaRecogida() {
         fecha: fechaHoy,
         hora: `${horas}:${minutos}:${segundos}`,
       });
-
-      if (fechaHoy !== fechaAnterior) {
-        fechaAnterior = fechaHoy;
-        sincronizarEntregas();
-      }
     };
 
     actualizarReloj();
     const timerReloj = setInterval(actualizarReloj, 1000);
     return () => clearInterval(timerReloj);
-  }, [sincronizarEntregas]);
+  }, []);
 
   const consultarPedidos = useCallback(async () => {
     try {
-      const [procesoRes, listosRes] = await Promise.all([
+      const [procesoRes, listosRes, entregadosRes] = await Promise.all([
         pedidoService.obtenerPorEstado("EN_PREPARACION"),
         pedidoService.obtenerPorEstado("PEDIDO_LISTO"),
+        pedidoService.obtenerPedidosPorEstado("ENTREGADO", 5),
       ]);
 
       setPedidosEnProceso(procesoRes?.content || procesoRes || []);
       setPedidosListos(listosRes?.content || listosRes || []);
-      sincronizarEntregas();
+
+      const listaEntregados = entregadosRes?.content || entregadosRes || [];
+      const entregasHoy = (Array.isArray(listaEntregados) ? listaEntregados : [])
+        .filter((pedido) =>
+          esMismoDiaLocal(pedido.fechaActualizacion || pedido.fechaCreacion),
+        )
+        .sort((a, b) => {
+          const fechaA = new Date(a.fechaActualizacion || a.fechaCreacion || 0).getTime();
+          const fechaB = new Date(b.fechaActualizacion || b.fechaCreacion || 0).getTime();
+          return fechaB - fechaA || (b.id || 0) - (a.id || 0);
+        })
+        .slice(0, 5)
+        .map((pedido) => ({
+          id: pedido.id,
+          codigo: obtenerCodigoPedido(pedido),
+          horaEntrega: formatearHoraEntrega(
+            pedido.fechaActualizacion || pedido.fechaCreacion,
+          ),
+        }));
+
+      setUltimasEntregas(entregasHoy);
     } catch (errConsulta) {
       console.warn(errConsulta);
       throw new Error(
@@ -98,20 +106,10 @@ export default function PantallaRecogida() {
         { cause: errConsulta },
       );
     }
-  }, [sincronizarEntregas]);
+  }, []);
 
-  const { loading, error, recargar } = usePollingPedidos(consultarPedidos);
-
-  useEffect(() => {
-    const manejarStorageChange = (e) => {
-      if (e.key === "stark_ultimas_entregas") {
-        sincronizarEntregas();
-      }
-    };
-
-    window.addEventListener("storage", manejarStorageChange);
-    return () => window.removeEventListener("storage", manejarStorageChange);
-  }, [sincronizarEntregas]);
+  const { loading, error, isOffline, recargar } =
+    usePollingPedidos(consultarPedidos);
 
   useEffect(() => {
     const manejarKeyDown = (e) => {
@@ -232,9 +230,13 @@ export default function PantallaRecogida() {
         </div>
       </header>
 
-      {error && (
+      {(error || isOffline) && (
         <div className="recogida-error-banner">
-          <span>⚠️ {error}</span>
+          <span>
+            📡{" "}
+            {error ||
+              "Enlace HUD sin conexión temporal con el servidor Stark. Reintentando sincronización automática..."}
+          </span>
           <button type="button" onClick={() => recargar(false)}>
             Reintentar
           </button>

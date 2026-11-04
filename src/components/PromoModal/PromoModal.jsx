@@ -9,7 +9,7 @@ export default function PromoModal({ alCerrar }) {
   const manejarEnvio = (e) => {
     e.preventDefault();
     if (!email || email.trim().length === 0) {
-      setErrorEmail('⚠️ Por favor, introduce tu correo electrónico para recibir el descuento.');
+      setErrorEmail('⚠️ Por favor, introduce tu correo electrónico para suscribirte.');
       return;
     }
 
@@ -32,9 +32,9 @@ export default function PromoModal({ alCerrar }) {
         {!suscrito ? (
           <>
             <div className="promo-badge">ÚNETE A LA ALIANZA STARK</div>
-            <h2>⚡ 10% DE DESCUENTO ⚡</h2>
+            <h2>⚡ BOLETÍN STARK DISPATCH ⚡</h2>
             <p className="promo-subtitulo">
-              Suscríbete a nuestra newsletter para recibir ofertas exclusivas y novedades de equipamiento Marvel
+              Suscríbete a nuestra newsletter para recibir alertas de reposición y novedades de equipamiento oficial Marvel
             </p>
 
             <form onSubmit={manejarEnvio} className="newsletter-form" noValidate>
@@ -52,24 +52,26 @@ export default function PromoModal({ alCerrar }) {
               {errorEmail && <div className="newsletter-error-mensaje">{errorEmail}</div>}
 
               <button type="submit" className="btn-newsletter">
-                ¡OBTENER MI DESCUENTO!
+                ¡UNIRME A LA ALIANZA!
               </button>
             </form>
 
             <p className="newsletter-disclaimer">
-              Al suscribirte aceptas recibir novedades sobre nuestros productos. Puedes darte de baja en cualquier momento.
+              Simulación de servicio Stark Dispatch. Al suscribirte aceptas recibir novedades sobre nuestros productos.
             </p>
           </>
         ) : (
           <div className="newsletter-exito">
             <h2>¡BIENVENIDO A LA ALIANZA! 🎉</h2>
-            <p className="promo-subtitulo">Tu código promocional de apertura es:</p>
-            <div className="codigo-promo-destacado">STARK10</div>
+            <p className="promo-subtitulo">
+              [Simulación de servicio Stark Dispatch] Tu correo ha quedado registrado en las comunicaciones prioritarias:
+            </p>
+            <div className="codigo-promo-destacado">{email.trim()}</div>
             <p style={{ color: '#cbd5e1', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-              Aplica este código en tu próxima compra para obtener un 10% de descuento adicional.
+              Explora nuestro catálogo oficial con grabado láser incluido sin sobrecoste en artículos personalizables.
             </p>
             <button className="btn-newsletter" onClick={alCerrar}>
-              ENTENDIDO
+              EXPLORAR CATÁLOGO
             </button>
           </div>
         )}

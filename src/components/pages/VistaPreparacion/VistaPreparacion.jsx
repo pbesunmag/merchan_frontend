@@ -1,19 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { pedidoService } from "../../../services/pedidoService";
 import { obtenerCodigoPedido } from "../../../utils/formatoUtils";
 import { usePollingPedidos } from "../../../hooks/usePollingPedidos";
 import ReactorLoader from "../../ReactorLoader";
 import ModalPostventa from "../../ModalPostventa/ModalPostventa";
+import PanelMetricas from "../../PanelMetricas/PanelMetricas";
 import "./VistaPreparacion.css";
-import { descargarInformeCompleto } from '../../../services/informeService';
-
-const obtenerFechaHoy = () => {
-  const ahora = new Date();
-  const dia = String(ahora.getDate()).padStart(2, "0");
-  const mes = String(ahora.getMonth() + 1).padStart(2, "0");
-  const anio = ahora.getFullYear();
-  return `${dia}/${mes}/${anio}`;
-};
+import { descargarInformeCompleto } from "../../../services/informeService";
 
 export default function VistaPreparacion() {
   const [pedidosCreados, setPedidosCreados] = useState([]);
@@ -23,8 +16,8 @@ export default function VistaPreparacion() {
   const [soloConGrabado, setSoloConGrabado] = useState(false);
   const [pedidoACancelar, setPedidoACancelar] = useState(null);
   const [postventaAbierta, setPostventaAbierta] = useState(false);
+  const [metricasAbiertas, setMetricasAbiertas] = useState(false);
 
-  const [pagosAceptados, setPagosAceptados] = useState({});
   const [pedidoAPagoModal, setPedidoAPagoModal] = useState(null);
   const [toastMensaje, setToastMensaje] = useState(null);
   const [lineasCompletadas, setLineasCompletadas] = useState({});
@@ -48,36 +41,6 @@ export default function VistaPreparacion() {
     }));
   };
 
-  const [ultimasEntregas, setUltimasEntregas] = useState(() => {
-    try {
-      const guardadas = localStorage.getItem("stark_ultimas_entregas");
-      if (!guardadas) return [];
-      const parseadas = JSON.parse(guardadas);
-      const hoy = obtenerFechaHoy();
-      return Array.isArray(parseadas)
-        ? parseadas.filter((item) => item.fechaEntrega === hoy)
-        : [];
-    } catch (errInit) {
-      console.warn(errInit);
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    try {
-      const hoy = obtenerFechaHoy();
-      const vigentesHoy = ultimasEntregas.filter(
-        (item) => item.fechaEntrega === hoy,
-      );
-      localStorage.setItem(
-        "stark_ultimas_entregas",
-        JSON.stringify(vigentesHoy),
-      );
-    } catch (errStorage) {
-      console.warn(errStorage);
-    }
-  }, [ultimasEntregas]);
-
   const consultarPedidos = useCallback(async () => {
     const [creadosRes, pagadosRes, enProcesoRes, listosRes] = await Promise.all(
       [
@@ -95,7 +58,7 @@ export default function VistaPreparacion() {
     setPedidosListos(listosRes?.content || listosRes || []);
   }, []);
 
-  const { loading, error, setError, recargar } =
+  const { loading, error, isOffline, setError, recargar } =
     usePollingPedidos(consultarPedidos);
 
   const cambiarEstado = async (pedidoId, nuevoEstado, mensajeToast = null) => {
@@ -111,28 +74,7 @@ export default function VistaPreparacion() {
   const entregarPedido = async (pedido) => {
     try {
       await pedidoService.actualizarEstado(pedido.id, "ENTREGADO");
-
       const codigoEntregado = obtenerCodigoPedido(pedido);
-      const fechaHoy = obtenerFechaHoy();
-      const horaActual = new Date().toLocaleTimeString("es-ES", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-      const nuevoRegistro = {
-        id: pedido.id,
-        codigo: codigoEntregado,
-        horaEntrega: horaActual,
-        fechaEntrega: fechaHoy,
-      };
-
-      setUltimasEntregas((prev) => {
-        const soloDeHoy = prev.filter(
-          (item) => item.fechaEntrega === fechaHoy && item.id !== pedido.id,
-        );
-        return [nuevoRegistro, ...soloDeHoy].slice(0, 5);
-      });
-
       mostrarToast(`✅ Pedido ${codigoEntregado} registrado como entregado`);
       recargar(false);
     } catch (err) {
@@ -158,10 +100,6 @@ export default function VistaPreparacion() {
     setPedidoAPagoModal(null);
     try {
       await pedidoService.actualizarEstado(pedido.id, "PAGO_ACEPTADO");
-      setPagosAceptados((prev) => ({
-        ...prev,
-        [pedido.id]: true,
-      }));
       mostrarToast(`💳 Pago aceptado para el pedido ${codigo}`);
       recargar(false);
     } catch (err) {
@@ -169,23 +107,30 @@ export default function VistaPreparacion() {
     }
   };
 
-  const estaPagoAceptado = (pedido) =>
-    !!pagosAceptados[pedido.id] ||
-    String(pedido.estado || "")
+  // El estado del botón se deriva exclusivamente del valor persistido en el backend
+  const estaPagoAceptado = (pedido) => {
+    const estadoNormalizado = String(pedido?.estado || "")
       .trim()
       .toUpperCase()
-      .replace(/ /g, "_") === "PAGO_ACEPTADO";
+      .replace(/ /g, "_");
+    return (
+      pedido?.estado === "PAGO_ACEPTADO" ||
+      estadoNormalizado === "PAGO_ACEPTADO"
+    );
+  };
 
   const revertirACreado = async (pedidoId, codigo) => {
-    setPagosAceptados((prev) => ({
-      ...prev,
-      [pedidoId]: true,
-    }));
-    await cambiarEstado(
-      pedidoId,
-      "CREADO",
-      `↩ Pedido ${codigo} devuelto a nuevos`,
-    );
+    try {
+      await pedidoService.actualizarEstado(pedidoId, "PAGO_ACEPTADO");
+      mostrarToast(`↩ Pedido ${codigo} devuelto a nuevos (pago verificado)`);
+      recargar(false);
+    } catch {
+      await cambiarEstado(
+        pedidoId,
+        "CREADO",
+        `↩ Pedido ${codigo} devuelto a nuevos`,
+      );
+    }
   };
 
   const revertirAEnProceso = async (pedidoId, codigo) => {
@@ -194,6 +139,15 @@ export default function VistaPreparacion() {
       "EN_PREPARACION",
       `↩ Pedido ${codigo} devuelto a proceso`,
     );
+  };
+
+  const manejarExportarRegistro = async () => {
+    try {
+      setError(null);
+      await descargarInformeCompleto("dia");
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const normalizarTexto = (texto) => {
@@ -301,10 +255,20 @@ export default function VistaPreparacion() {
           >
             🛠️ Postventa
           </button>
+
+          <button
+            type="button"
+            className="btn-filtro-grabado"
+            onClick={() => setMetricasAbiertas(true)}
+            title="Panel de métricas contables y saldo de caja registradora"
+          >
+            💰 Métricas de Caja
+          </button>
+
           <button
             type="button"
             className="btn-stark-exportar"
-            onClick={() => descargarInformeCompleto("dia")}
+            onClick={manejarExportarRegistro}
             title="Descargar informe de ventas, devoluciones y caja"
           >
             📊 Descargar Registro de Ventas
@@ -312,7 +276,14 @@ export default function VistaPreparacion() {
         </div>
       </div>
 
-      {error && <div className="error-banner">{error}</div>}
+      {(error || isOffline) && (
+        <div className="error-banner">
+          <span>
+            {error ||
+              "📡 Enlace HUD sin conexión con el servidor Stark. Reintentando sincronización en segundo plano..."}
+          </span>
+        </div>
+      )}
 
       <div className="tablero-columnas tres-columnas">
         <section className="columna">
@@ -667,6 +638,10 @@ export default function VistaPreparacion() {
           alCerrar={() => setPostventaAbierta(false)}
           alCompletar={mostrarToast}
         />
+      )}
+
+      {metricasAbiertas && (
+        <PanelMetricas alCerrar={() => setMetricasAbiertas(false)} />
       )}
 
       {pedidoACancelar && (

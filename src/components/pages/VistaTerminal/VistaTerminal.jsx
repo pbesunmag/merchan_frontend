@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { Client } from "@stomp/stompjs";
+import { WS_URL } from "../../../services/api";
 import { productService } from "../../../services/productService";
 import { estadisticaService } from "../../../services/estadisticaService";
 import useCarrito from "../../../hooks/useCarrito";
 import { formatearMoneda } from "../../../utils/formatoUtils";
-import { obtenerCategoriaProducto } from "../../../utils/categoriaUtils";
+import {
+  obtenerCategoriaProducto,
+  esCamiseta,
+} from "../../../utils/categoriaUtils";
 import ReactorLoader from "../../ReactorLoader";
 import PromoModal from "../../PromoModal/PromoModal";
 import DetalleProductoModal from "../../DetalleProductoModal/DetalleProductoModal";
@@ -19,18 +23,12 @@ export default function VistaTerminal() {
     mostrarCarrito,
     setMostrarCarrito,
     avisoStockId,
-    codigoCupon,
-    setCodigoCupon,
-    cuponAplicado,
-    errorCupon,
-    setErrorCupon,
     procesandoPedido,
     pedidoFinalizado,
     errorPedido,
     setErrorPedido,
     totalUnidades,
-    subtotalSinCupon,
-    totalConDescuento,
+    totalFormateado,
     esPersonalizable,
     calcularPrecioUnidad,
     mostrarAlertaTopeStock,
@@ -39,13 +37,11 @@ export default function VistaTerminal() {
     actualizarTextoPersonalizado,
     eliminarDelCarrito,
     vaciarCarrito,
-    aplicarCupon,
-    quitarCupon,
     finalizarPedido,
     limpiarPedidoFinalizado,
   } = useCarrito();
 
-  // Estados para el envío del ticket de compra por correo o teléfono
+  // Estados para el envío del ticket de compra por correo o teléfono (Simulación Stark Dispatch)
   const [deseaTicketCorreo, setDeseaTicketCorreo] = useState(false);
   const [deseaTicketTelefono, setDeseaTicketTelefono] = useState(false);
   const [emailTicket, setEmailTicket] = useState("");
@@ -70,7 +66,7 @@ export default function VistaTerminal() {
       destinos.push(`al número telefónico ${telefonoTicket.trim()}`);
     }
     if (destinos.length === 0) return null;
-    return `📩 Se ha enviado el ticket de compra ${destinos.join(" y ")}.`;
+    return `📩 [Simulación de servicio Stark Dispatch] Se ha enviado el ticket de compra ${destinos.join(" y ")}.`;
   };
 
   const manejarEnvioTicketManual = (e) => {
@@ -145,11 +141,14 @@ export default function VistaTerminal() {
   const LIMITE_INICIAL = 8;
   const [mostrarTodos, setMostrarTodos] = useState(false);
 
+  const filtrarSoloActivos = (lista) =>
+    (Array.isArray(lista) ? lista : []).filter((p) => p && p.activo !== false);
+
   const cargarCatalogo = async () => {
     try {
       setError(null);
       const data = await productService.obtenerProductos();
-      const lista = data?.content || data || [];
+      const lista = filtrarSoloActivos(data?.content || data || []);
       setProductos(lista);
     } catch (err) {
       setError(err.message);
@@ -165,7 +164,7 @@ export default function VistaTerminal() {
       try {
         const data = await productService.obtenerProductos();
         if (montado) {
-          const lista = data?.content || data || [];
+          const lista = filtrarSoloActivos(data?.content || data || []);
           setProductos(lista);
         }
       } catch (err) {
@@ -188,10 +187,9 @@ export default function VistaTerminal() {
 
     initMasVendido();
 
+    const urlWs = import.meta.env.VITE_WS_URL || WS_URL;
     const stompClient = new Client({
-      brokerURL:
-        (window.location.protocol === "https:" ? "wss://" : "ws://") +
-        "localhost:8080/ws",
+      brokerURL: urlWs,
       reconnectDelay: 5000,
       onConnect: () => {
         stompClient.subscribe("/topic/productos-stock", (mensaje) => {
@@ -199,6 +197,12 @@ export default function VistaTerminal() {
           try {
             const productoActualizado = JSON.parse(mensaje.body);
             setProductos((prevProductos) => {
+              // Si un producto pasa a inactivo, se retira del catálogo público
+              if (productoActualizado.activo === false) {
+                return prevProductos.filter(
+                  (p) => p.id !== productoActualizado.id,
+                );
+              }
               const existe = prevProductos.some(
                 (p) => p.id === productoActualizado.id,
               );
@@ -214,7 +218,9 @@ export default function VistaTerminal() {
 
             setProductoSeleccionado((prevSel) =>
               prevSel && prevSel.id === productoActualizado.id
-                ? { ...prevSel, ...productoActualizado }
+                ? productoActualizado.activo === false
+                  ? null
+                  : { ...prevSel, ...productoActualizado }
                 : prevSel,
             );
           } catch (err) {
@@ -227,7 +233,9 @@ export default function VistaTerminal() {
       },
     });
 
-    stompClient.activate();
+    if (urlWs) {
+      stompClient.activate();
+    }
 
     return () => {
       montado = false;
@@ -312,9 +320,11 @@ export default function VistaTerminal() {
       .toLowerCase();
   };
 
+  const productosActivos = productos.filter((p) => p && p.activo !== false);
+
   const categoriasBase = [
     ...new Set(
-      productos.map((p) => {
+      productosActivos.map((p) => {
         const cat = obtenerCategoriaProducto(p);
         return cat.trim().toUpperCase();
       }),
@@ -323,7 +333,7 @@ export default function VistaTerminal() {
 
   const categoriasUnicas = ["TODOS", ...categoriasBase, "PERSONALIZABLES"];
 
-  const productosFiltrados = productos.filter((prod) => {
+  const productosFiltrados = productosActivos.filter((prod) => {
     const categoriaProd = normalizarTexto(obtenerCategoriaProducto(prod));
     const categoriaSeleccionadaNorm = normalizarTexto(categoriaSeleccionada);
 
@@ -429,18 +439,8 @@ export default function VistaTerminal() {
                   : `/${rutaCruda}`
                 : "/imagenes/camisetas/avengers.jpg";
 
-            const nombreProd = (prod.nombre || "").trim();
-            const esGroot = nombreProd === "Figura Groot Guardianes";
-            const esThor = nombreProd === "Figura Thor Dios del Trueno";
             const precioNum = Number(prod.precio) || 0;
-
-            let precioFinalProd = precioNum;
-            if (esGroot) precioFinalProd = precioNum * 0.75;
-            if (esThor) precioFinalProd = precioNum * 0.9;
-
-            const tieneDto = esGroot || esThor;
-            const esCamisetaCatalogo =
-              obtenerCategoriaProducto(prod) === "Camisetas" || prod.id <= 5;
+            const esCamisetaCatalogo = esCamiseta(prod);
 
             const unidadesEnCesta = carrito
               .filter((item) => item.id === prod.id)
@@ -465,11 +465,6 @@ export default function VistaTerminal() {
                       ⭐ TOP VENTAS
                     </span>
                   )}
-                {tieneDto && (
-                  <span className="product-badge gold">
-                    {esGroot ? "-25% DTO" : "-10% DTO"}
-                  </span>
-                )}
                 <div
                   className="producto-img-container"
                   onClick={() => setProductoSeleccionado(prod)}
@@ -493,20 +488,9 @@ export default function VistaTerminal() {
 
                 <div>
                   <div className="producto-precio producto-precios-contenedor">
-                    {tieneDto ? (
-                      <>
-                        <span className="producto-precio-tachado precio-anterior-card">
-                          {formatearMoneda(precioNum)}
-                        </span>
-                        <span className="producto-precio-actual precio-nuevo">
-                          {formatearMoneda(precioFinalProd)}
-                        </span>
-                      </>
-                    ) : (
-                      <span className="producto-precio-actual">
-                        {formatearMoneda(precioNum)}
-                      </span>
-                    )}
+                    <span className="producto-precio-actual">
+                      {formatearMoneda(precioNum)}
+                    </span>
                   </div>
 
                   <div
@@ -646,14 +630,6 @@ export default function VistaTerminal() {
               <>
                 <ul className="comanda-items">
                   {carrito.map((item) => {
-                    const nombreItem = (item.nombre || "").trim();
-                    const esGrootItem = nombreItem.includes(
-                      "Figura Groot Guardianes",
-                    );
-                    const esThorItem = nombreItem.includes(
-                      "Figura Thor Dios del Trueno",
-                    );
-                    const tieneDtoItem = esGrootItem || esThorItem;
                     const cantActual = Number(item.cantidad) || 1;
                     const maxDisponible = Number(
                       item.stockMax ?? item.stock ?? 99,
@@ -674,11 +650,6 @@ export default function VistaTerminal() {
                                 </strong>
                               )}
                             </span>
-                            {tieneDtoItem && (
-                              <span className="comanda-item-badge-pill">
-                                ⚡ {esGrootItem ? "-25% DTO" : "-10% DTO"}
-                              </span>
-                            )}
                           </div>
 
                           <div className="comanda-item-acciones-precio">
@@ -762,28 +733,18 @@ export default function VistaTerminal() {
                         )}
 
                         {esPersonalizable(item) ? (
-                          <>
-                            <input
-                              type="text"
-                              placeholder="Grabado / texto personalizado..."
-                              value={item.textoPersonalizado}
-                              onChange={(e) =>
-                                actualizarTextoPersonalizado(
-                                  item.idUnico,
-                                  e.target.value,
-                                )
-                              }
-                              className="comanda-custom-input"
-                            />
-
-                            {item.textoPersonalizado?.trim().length > 0 && (
-                              <div className="aviso-descuento-grabado">
-                                ⚡ Grabado Especial Apertura:{" "}
-                                <strong>+3.00 € / ud.</strong>{" "}
-                                <span className="precio-tachado">5.00 €</span>
-                              </div>
-                            )}
-                          </>
+                          <input
+                            type="text"
+                            placeholder="Grabado / texto personalizado (incluido)..."
+                            value={item.textoPersonalizado}
+                            onChange={(e) =>
+                              actualizarTextoPersonalizado(
+                                item.idUnico,
+                                e.target.value,
+                              )
+                            }
+                            className="comanda-custom-input"
+                          />
                         ) : (
                           <small className="aviso-no-personalizable">
                             🚫 Este artículo no admite grabado personalizado
@@ -794,43 +755,6 @@ export default function VistaTerminal() {
                   })}
                 </ul>
 
-                <div className="cupon-seccion-contenedor">
-                  {!cuponAplicado ? (
-                    <form onSubmit={aplicarCupon} className="cupon-form">
-                      <input
-                        type="text"
-                        placeholder="Introduce tu código..."
-                        value={codigoCupon}
-                        onChange={(e) => {
-                          setCodigoCupon(e.target.value);
-                          if (errorCupon) setErrorCupon("");
-                        }}
-                        className="comanda-custom-input cupon-input"
-                      />
-                      <button type="submit" className="btn-aplicar-cupon">
-                        Aplicar
-                      </button>
-                    </form>
-                  ) : (
-                    <div className="aviso-descuento-grabado cupon-aplicado-fila">
-                      <span>
-                        🎉 Cupón <strong>{cuponAplicado.codigo}</strong>{" "}
-                        aplicado (-{cuponAplicado.porcentaje}%)
-                      </span>
-                      <button
-                        type="button"
-                        onClick={quitarCupon}
-                        className="btn-quitar-cupon"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  )}
-                  {errorCupon && (
-                    <small className="error-cupon-texto">{errorCupon}</small>
-                  )}
-                </div>
-
                 {/* SECCIÓN DE ENVÍO DE TICKET DIGITAL POR CORREO O TELÉFONO */}
                 <div className="ticket-digital-contenedor">
                   {!ticketConfirmado ? (
@@ -838,6 +762,12 @@ export default function VistaTerminal() {
                       <span className="ticket-digital-titulo">
                         📩 ¿Deseas recibir tu ticket de compra?
                       </span>
+                      <small
+                        className="aviso-no-personalizable"
+                        style={{ display: "block", marginBottom: "0.4rem" }}
+                      >
+                        ⚡ Simulación de servicio Stark Dispatch (sin envío real)
+                      </small>
                       <div className="ticket-digital-checks">
                         <label className="ticket-check-label">
                           <input
@@ -912,7 +842,7 @@ export default function VistaTerminal() {
                     <div className="ticket-confirmado-bloque">
                       <div className="ticket-confirmado-cabecera">
                         <span className="ticket-confirmado-badge">
-                          ✅ Ticket de compra solicitado
+                          ✅ Ticket solicitado (Simulación de servicio Stark Dispatch)
                         </span>
                         <button
                           type="button"
@@ -944,13 +874,8 @@ export default function VistaTerminal() {
                 <div className="comanda-total-container">
                   <span className="comanda-total-label">Total a abonar</span>
                   <div className="comanda-total-valores">
-                    {cuponAplicado && (
-                      <div className="comanda-total-tachado">
-                        {formatearMoneda(subtotalSinCupon)}
-                      </div>
-                    )}
                     <span className="comanda-total-monto">
-                      {totalConDescuento}&nbsp;€
+                      {totalFormateado}&nbsp;€
                     </span>
                   </div>
                 </div>

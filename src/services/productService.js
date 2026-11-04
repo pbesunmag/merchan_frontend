@@ -1,20 +1,11 @@
 import { request } from './api';
 
+// Servicio de catálogo: solo lectura de productos y stock.
+// Las operaciones de pedidos viven en pedidoService.js (sin duplicados).
 export const productService = {
-  // GET /api/productos
-  obtenerProductos: () => request('/productos?size=20'),
+  // GET /api/productos?activos=true&size=100 → solo artículos dados de alta
+  obtenerProductos: () => request('/productos?activos=true&size=100'),
 
-  // POST /api/pedidos
-  crearPedido: (terminalId = 1) =>
-    request('/pedidos', {
-      method: 'POST',
-      body: JSON.stringify({ terminalId }),
-    }),
-
-  // POST /api/pedidos/{pedidoId}/productos
-  agregarProductoAPedido: (pedidoId, datos) =>
-    request(`/pedidos/${pedidoId}/productos`, {
-      method: 'POST',
-      body: JSON.stringify(datos),
-    }),
+  // GET /api/productos/{id}/tallas → stock desglosado por talla
+  obtenerTallas: (productoId) => request(`/productos/${productoId}/tallas`),
 };

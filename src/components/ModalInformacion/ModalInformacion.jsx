@@ -16,21 +16,21 @@ const SECCIONES_INFO = {
       },
       {
         subtitulo: 'Proceso Simplificado:',
-        texto: 'Solicita la recogida a través de nuestro formulario de soporte indicando tu código de suministro (ej. AV-XXXX). Nuestro equipo logístico gestionará la etiqueta prepagada sin costes adicionales.'
+        texto: 'Solicita la gestión en mostrador o a través del área de Postventa indicando tu código de suministro (ej. AV-XXXX).'
       }
     ]
   },
   regalos: {
     etiqueta: 'RECOMPENSAS ACTIVAS',
-    titulo: 'Protocolo de Recompensas y Cupones Activos',
+    titulo: 'Protocolo de Recompensas y Beneficios Stark',
     items: [
       {
-        subtitulo: 'Cupón de Bienvenida:',
-        texto: 'Código STARK10 para un 10% de descuento directo en cualquier pedido de equipamiento inicial.'
+        subtitulo: 'Grabado Láser Incluido:',
+        texto: 'Todos los artículos personalizables del catálogo incluyen grabado láser sin sobrecoste adicional sobre el precio oficial.'
       },
       {
-        subtitulo: 'Incentivo Guardián:',
-        texto: 'Código GROOT5 aplicable para un 5% de descuento en la sección de figuras y réplicas.'
+        subtitulo: 'Sorteos Mensuales:',
+        texto: 'Participa en los sorteos oficiales de merchandising coleccionable desde la sección de Ganadores de Sorteos.'
       },
       {
         subtitulo: 'Obsequio por Apertura:',
@@ -76,7 +76,7 @@ const SECCIONES_INFO = {
     items: [
       {
         subtitulo: 'Formalización del Pedido:',
-        texto: 'La adquisición de equipamiento se formaliza en el momento en que se genera el código de transmisión en terminal (ej. AV-XXXX).'
+        texto: 'La adquisición de equipamiento se formaliza de manera atómica en el momento en que se genera el código de transmisión en terminal (ej. AV-XXXX).'
       },
       {
         subtitulo: 'Métodos de Pago Aceptados:',
@@ -84,7 +84,7 @@ const SECCIONES_INFO = {
       },
       {
         subtitulo: 'Precios e Impuestos:',
-        texto: 'Todos los precios expuestos en el catálogo incluyen el Impuesto sobre el Valor Añadido (IVA) vigente en territorio peninsular.'
+        texto: 'Todos los precios expuestos en el catálogo son oficiales e incluyen el Impuesto sobre el Valor Añadido (IVA) vigente.'
       }
     ]
   },
@@ -112,7 +112,7 @@ const SECCIONES_INFO = {
     items: [
       {
         subtitulo: 'Finalidad Técnica:',
-        texto: 'Empleamos cookies técnicas esenciales y almacenamiento de sesión (sessionStorage) para mantener la memoria del carrito de compras, los cupones introducidos y evitar avisos emergentes repetitivos durante la navegación.'
+        texto: 'Empleamos almacenamiento local esencial para conservar la cesta activa ante recargas accidentales y evitar avisos emergentes repetitivos durante la sesión.'
       },
       {
         subtitulo: 'Analítica Interna:',
@@ -141,7 +141,7 @@ const SECCIONES_INFO = {
     items: [
       {
         subtitulo: 'Cookies Técnicas y de Carrito:',
-        texto: 'Obligatorias para el funcionamiento del terminal, cálculo de descuentos y retención de pedidos en curso.'
+        texto: 'Obligatorias para el funcionamiento del terminal y retención de la cesta en curso.'
       },
       {
         subtitulo: 'Cookies de Personalización:',
@@ -153,11 +153,12 @@ const SECCIONES_INFO = {
 
 export default function ModalInformacion({ seccionId, alCerrar }) {
   const [preferenciasInterfaz, setPreferenciasInterfaz] = useState(true);
-  const [configGuardada, setConfigGuardada] = useState(false);
+  const [seccionGuardadaId, setSeccionGuardadaId] = useState(null);
   const cuerpoRef = useRef(null);
 
+  const configGuardada = Boolean(seccionId && seccionGuardadaId === seccionId);
+
   useEffect(() => {
-    setConfigGuardada(false);
     if (cuerpoRef.current) {
       cuerpoRef.current.scrollTop = 0;
     }
@@ -168,7 +169,7 @@ export default function ModalInformacion({ seccionId, alCerrar }) {
   const info = SECCIONES_INFO[seccionId];
 
   const guardarConfigCookies = () => {
-    setConfigGuardada(true);
+    setSeccionGuardadaId(seccionId);
   };
 
   return (
@@ -225,7 +226,7 @@ export default function ModalInformacion({ seccionId, alCerrar }) {
                   className={`stark-switch ${preferenciasInterfaz ? 'activo' : ''}`}
                   onClick={() => {
                     setPreferenciasInterfaz(!preferenciasInterfaz);
-                    setConfigGuardada(false);
+                    setSeccionGuardadaId(null);
                   }}
                 >
                   <span className="stark-switch-thumb" />

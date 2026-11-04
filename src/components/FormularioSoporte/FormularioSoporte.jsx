@@ -45,9 +45,14 @@ export default function FormularioSoporte() {
     <section id="soporte" className="soporte-section formulario-soporte-container">
       <div className="soporte-box-hud">
         <div className="soporte-header">
-          <span className="soporte-tag">CANAL DIRECTO J.A.R.V.I.S.</span>
+          <span className="soporte-tag">
+            CANAL DIRECTO J.A.R.V.I.S. • SIMULACIÓN DE SERVICIO STARK DISPATCH
+          </span>
           <h2>Centro de Soporte y Consultas</h2>
-          <p>Envía tu consulta o incidencia directamente a nuestra central sin salir de la terminal.</p>
+          <p>
+            Envía tu consulta o incidencia directamente a nuestra central sin salir de la terminal
+            (Simulación de servicio Stark Dispatch).
+          </p>
         </div>
 
         {enviado ? (
@@ -55,7 +60,8 @@ export default function FormularioSoporte() {
             <div className="soporte-check-icono">✅</div>
             <h3>¡Transmisión recibida en la central Stark!</h3>
             <p>
-              Hemos registrado tu consulta correctamente{numeroTicket.trim() ? ` asociada al ticket ${numeroTicket.trim()}` : ''}. Nuestro equipo de soporte te responderá a la mayor brevedad.
+              [Simulación de servicio Stark Dispatch] Hemos registrado tu consulta correctamente
+              {numeroTicket.trim() ? ` asociada al ticket ${numeroTicket.trim()}` : ''}. Nuestro equipo de soporte te responderá a la mayor brevedad.
             </p>
             <button
               type="button"

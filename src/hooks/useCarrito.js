@@ -1,17 +1,17 @@
 import { useState, useEffect, useMemo } from "react";
-import { productService } from "../services/productService";
-import { obtenerCategoriaProducto } from "../utils/categoriaUtils";
+import { pedidoService } from "../services/pedidoService";
+import { perteneceACategoria } from "../utils/categoriaUtils";
 
-const PRECIO_GRABADO_REBAJADO = 3.0;
 const CLAVE_STORAGE_CARRITO = "stark_carrito_activo";
 
-// Comprueba si un artículo admite grabado personalizado.
+// Comprueba si un artículo admite grabado personalizado según el DTO del backend.
 export const esPersonalizable = (item) => {
   if (!item) return false;
   if (
     item.personalizable === true ||
     item.personalizable === 1 ||
     item.personalizable === "Sí" ||
+    item.personalizable === "Si" ||
     item.personalizable === "true"
   ) {
     return true;
@@ -24,32 +24,15 @@ export const esPersonalizable = (item) => {
     return false;
   }
 
-  const categoria = obtenerCategoriaProducto(item);
-  if (categoria.toLowerCase().includes("figura")) {
+  if (perteneceACategoria(item, "figuras")) {
     return false;
   }
   return true;
 };
 
-// Precio de una unidad: descuentos de figuras + grabado personalizado.
+// Precio unitario estricto: coincide exactamente con producto.precio del catálogo oficial.
 export const calcularPrecioUnidad = (item) => {
-  const precioBase = Number(item.precio) || 0;
-  const nombre = (item.nombre || "").trim();
-
-  let precioConDescuentoFigura = precioBase;
-  if (nombre.includes("Figura Groot Guardianes")) {
-    if (precioBase > 30) {
-      precioConDescuentoFigura = precioBase * 0.75;
-    }
-  } else if (nombre.includes("Figura Thor Dios del Trueno")) {
-    if (precioBase > 40) {
-      precioConDescuentoFigura = precioBase * 0.9;
-    }
-  }
-
-  const tieneGrabado =
-    esPersonalizable(item) && item.textoPersonalizado?.trim().length > 0;
-  return precioConDescuentoFigura + (tieneGrabado ? PRECIO_GRABADO_REBAJADO : 0);
+  return Number(item?.precio) || 0;
 };
 
 export default function useCarrito() {
@@ -58,7 +41,9 @@ export default function useCarrito() {
     try {
       const guardado = localStorage.getItem(CLAVE_STORAGE_CARRITO);
       const parseado = guardado ? JSON.parse(guardado) : [];
-      return Array.isArray(parseado) ? parseado : [];
+      return Array.isArray(parseado)
+        ? parseado.filter((item) => item && item.activo !== false)
+        : [];
     } catch (err) {
       console.warn("Error al leer el carrito de localStorage:", err);
       return [];
@@ -67,10 +52,6 @@ export default function useCarrito() {
 
   const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [avisoStockId, setAvisoStockId] = useState(null);
-
-  const [codigoCupon, setCodigoCupon] = useState("");
-  const [cuponAplicado, setCuponAplicado] = useState(null);
-  const [errorCupon, setErrorCupon] = useState("");
 
   const [procesandoPedido, setProcesandoPedido] = useState(false);
   const [pedidoFinalizado, setPedidoFinalizado] = useState(null);
@@ -89,13 +70,13 @@ export default function useCarrito() {
     }
   }, [carrito]);
 
-  // ---- Totales ----
+  // ---- Totales exactos (suma de precioUnitario * cantidad) ----
   const totalUnidades = useMemo(
     () => carrito.reduce((acc, item) => acc + (Number(item.cantidad) || 1), 0),
     [carrito],
   );
 
-  const subtotalSinCupon = useMemo(
+  const totalPedido = useMemo(
     () =>
       carrito.reduce(
         (acc, item) =>
@@ -105,10 +86,7 @@ export default function useCarrito() {
     [carrito],
   );
 
-  const montoDescuento = cuponAplicado
-    ? subtotalSinCupon * (cuponAplicado.porcentaje / 100)
-    : 0;
-  const totalConDescuento = (subtotalSinCupon - montoDescuento).toFixed(2);
+  const totalFormateado = totalPedido.toFixed(2);
 
   // ---- Operaciones del carrito ----
   const mostrarAlertaTopeStock = (idUnico) => {
@@ -116,6 +94,8 @@ export default function useCarrito() {
   };
 
   const agregarAlCarrito = (producto) => {
+    if (!producto || producto.activo === false) return;
+
     const topeStock = Number(producto.stockMax ?? producto.stock ?? 99);
     if (topeStock <= 0) return;
 
@@ -149,7 +129,12 @@ export default function useCarrito() {
         }
         return prev.map((item) =>
           item.idUnico === claveArticulo
-            ? { ...item, cantidad: cantActual + 1, stockMax: maxPermitido }
+            ? {
+                ...item,
+                precio: Number(producto.precio) || item.precio,
+                cantidad: cantActual + 1,
+                stockMax: maxPermitido,
+              }
             : item,
         );
       }
@@ -157,6 +142,7 @@ export default function useCarrito() {
         ...prev,
         {
           ...producto,
+          precio: Number(producto.precio) || 0,
           idUnico: claveArticulo,
           talla: producto.talla || null,
           cantidad: 1,
@@ -210,42 +196,10 @@ export default function useCarrito() {
   const vaciarCarrito = () => {
     setCarrito([]);
     localStorage.removeItem(CLAVE_STORAGE_CARRITO);
-    setCuponAplicado(null);
-    setCodigoCupon("");
     setAvisoStockId(null);
   };
 
-  // ---- Cupones ----
-  const aplicarCupon = (e) => {
-    e.preventDefault();
-    const codigoLimpio = codigoCupon.trim().toUpperCase();
-
-    const cuponesUsadosSesion = JSON.parse(
-      sessionStorage.getItem("cupones_usados_sesion") || "[]",
-    );
-    if (cuponesUsadosSesion.includes(codigoLimpio)) {
-      setErrorCupon(
-        "✨ Este código ya fue utilizado anteriormente en esta sesión.",
-      );
-      return;
-    }
-
-    if (codigoLimpio === "STARK10") {
-      setCuponAplicado({ codigo: "STARK10", porcentaje: 10 });
-      setErrorCupon("");
-    } else if (codigoLimpio === "GROOT5") {
-      setCuponAplicado({ codigo: "GROOT5", porcentaje: 5 });
-      setErrorCupon("");
-    } else {
-      setErrorCupon("⚠️ Código no válido o caducado");
-    }
-  };
-
-  const quitarCupon = () => {
-    setCuponAplicado(null);
-  };
-
-  // ---- Pedido ----
+  // ---- Checkout atómico en una sola llamada HTTP ----
   const finalizarPedido = async (onSuccessCallback) => {
     if (carrito.length === 0 || procesandoPedido) return;
 
@@ -253,43 +207,22 @@ export default function useCarrito() {
       setErrorPedido(null);
       setProcesandoPedido(true);
 
-      const itemsAProcesar = [...carrito];
-      const cuponActual = cuponAplicado;
-
-      // POST /api/pedidos
-      const nuevoPedido = await productService.crearPedido(1);
-
-      // POST /api/pedidos/{pedidoId}/productos
-      for (const item of itemsAProcesar) {
-        await productService.agregarProductoAPedido(nuevoPedido.id, {
-          productoId: item.id,
-          cantidad: Number(item.cantidad) || 1,
-          textoPersonalizado: esPersonalizable(item)
-            ? item.textoPersonalizado
+      const lineas = carrito.map((item) => ({
+        productoId: item.id,
+        cantidad: Number(item.cantidad) || 1,
+        talla: item.talla || null,
+        textoPersonalizado:
+          esPersonalizable(item) && item.textoPersonalizado?.trim()
+            ? item.textoPersonalizado.trim()
             : null,
-          talla: item.talla || null,
-        });
-      }
+      }));
 
-      if (cuponActual) {
-        const cuponesUsadosSesion = JSON.parse(
-          sessionStorage.getItem("cupones_usados_sesion") || "[]",
-        );
-        if (!cuponesUsadosSesion.includes(cuponActual.codigo)) {
-          cuponesUsadosSesion.push(cuponActual.codigo);
-          sessionStorage.setItem(
-            "cupones_usados_sesion",
-            JSON.stringify(cuponesUsadosSesion),
-          );
-        }
-      }
+      // Única llamada transaccional: POST /api/pedidos/checkout
+      const nuevoPedido = await pedidoService.checkout(1, lineas);
 
-      // Solo vaciamos el carrito una vez confirmado con éxito en el backend
       setMostrarCarrito(false);
       setCarrito([]);
       localStorage.removeItem(CLAVE_STORAGE_CARRITO);
-      setCuponAplicado(null);
-      setCodigoCupon("");
       setPedidoFinalizado(nuevoPedido?.codigo || `AV-${nuevoPedido?.id || 1}`);
       if (typeof onSuccessCallback === "function") {
         await onSuccessCallback();
@@ -310,19 +243,13 @@ export default function useCarrito() {
     mostrarCarrito,
     setMostrarCarrito,
     avisoStockId,
-    codigoCupon,
-    setCodigoCupon,
-    cuponAplicado,
-    setCuponAplicado,
-    errorCupon,
-    setErrorCupon,
     procesandoPedido,
     pedidoFinalizado,
     errorPedido,
     setErrorPedido,
     totalUnidades,
-    subtotalSinCupon,
-    totalConDescuento,
+    totalPedido,
+    totalFormateado,
     esPersonalizable,
     calcularPrecioUnidad,
     mostrarAlertaTopeStock,
@@ -331,8 +258,6 @@ export default function useCarrito() {
     actualizarTextoPersonalizado,
     eliminarDelCarrito,
     vaciarCarrito,
-    aplicarCupon,
-    quitarCupon,
     finalizarPedido,
     limpiarPedidoFinalizado,
   };
