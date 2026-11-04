@@ -32,7 +32,7 @@ export default function PromoModal({ alCerrar }) {
         {!suscrito ? (
           <>
             <div className="promo-badge">ÚNETE A LA ALIANZA STARK</div>
-            <h2>⚡ BOLETÍN STARK DISPATCH ⚡</h2>
+            <h2 className="promo-titulo"><span>⚡</span><span>BOLETÍN STARK DISPATCH</span><span>⚡</span></h2>
             <p className="promo-subtitulo">
               Suscríbete a nuestra newsletter para recibir alertas de reposición y novedades de equipamiento oficial Marvel
             </p>
