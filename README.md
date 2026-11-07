@@ -7,6 +7,10 @@
 
 Frontend de **Avengers Shop** (*Stark Logistics HUD*): interfaz React para el backend `merchan_backend` (Spring Boot 3). Cubre la terminal de venta, la preparación de comandas, la pantalla de recogida y la postventa.
 
+### 📺 Demostración en Vídeo
+Puedes ver la demostración completa del funcionamiento del sistema y flujo operativo en el siguiente enlace:  
+👉 **[Ver Demostración en Google Drive](https://drive.google.com/file/d/1WPxUktuc9ovxIFpQScT5KjU1H2rgbBwV/view?usp=sharing)**
+
 ---
 
 ## 📋 1. Vistas
