@@ -4,8 +4,6 @@ import { descargarInformeCompleto } from '../../services/informeService';
 import { formatearMoneda } from '../../utils/formatoUtils';
 import './PanelMetricas.css';
 
-const SALDO_INICIAL_CAJA = 500;
-
 const PERIODOS = [
   { id: 'HOY', etiqueta: 'HOY', informe: 'dia' },
   { id: 'MES', etiqueta: 'ESTE MES', informe: 'mes' },
@@ -52,11 +50,8 @@ export default function PanelMetricas({ alCerrar }) {
   const ingresos = Number(metricas?.totalIngresosVentas ?? metricas?.ingresos ?? metricas?.ingresosVentas) || 0;
   const reembolsos = Number(metricas?.totalReembolsos ?? metricas?.reembolsos) || 0;
   const beneficio = Number(metricas?.beneficioNeto ?? metricas?.beneficio ?? ingresos - reembolsos);
-  const balance = Number(metricas?.balance ?? metricas?.balanceCaja ?? beneficio);
-  const saldoCaja =
-    metricas?.saldoActualCaja != null
-      ? Number(metricas.saldoActualCaja)
-      : SALDO_INICIAL_CAJA + balance;
+  // El saldo de caja lo calcula y devuelve el backend (GET /api/caja/metricas)
+  const saldoCaja = Number(metricas?.saldoActualCaja) || 0;
 
   const tarjetas = [
     { icono: '💰', titulo: 'Saldo de Caja', valor: saldoCaja, clase: 'saldo' },
@@ -106,7 +101,7 @@ export default function PanelMetricas({ alCerrar }) {
         </div>
 
         <p className="metricas-nota">
-          Saldo = {formatearMoneda(SALDO_INICIAL_CAJA)} iniciales + balance del periodo.
+          El saldo de caja se obtiene del libro contable del servidor (fondo inicial + movimientos).
         </p>
 
         <button

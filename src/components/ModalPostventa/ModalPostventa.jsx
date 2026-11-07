@@ -3,38 +3,13 @@ import { pedidoService } from '../../services/pedidoService';
 import { productService } from '../../services/productService';
 import { cajaService } from '../../services/cajaService';
 import { formatearMoneda, obtenerCodigoPedido } from '../../utils/formatoUtils';
+import DesgloseComanda from './DesgloseComanda';
+import CestaCambio from './CestaCambio';
+import ResumenContableCambio from './ResumenContableCambio';
+import SelectorTallaCambio from './SelectorTallaCambio';
+import ConfirmarDevolucion from './ConfirmarDevolucion';
+import { obtenerLineas, aCentimos, deCentimos } from './postventaUtils';
 import './ModalPostventa.css';
-
-const obtenerLineas = (pedido) => pedido?.lineas || pedido?.productos || [];
-
-// Los importes se comparan y multiplican en céntimos para evitar errores de coma flotante
-const aCentimos = (importe) => Math.round((Number(importe) || 0) * 100);
-const deCentimos = (centimos) => centimos / 100;
-
-const rutaImagen = (producto) => {
-  const cruda = producto?.imagenUrl || producto?.imagen_url;
-  if (!cruda || cruda.trim() === '') return null;
-  return cruda.startsWith('/') || cruda.startsWith('http') ? cruda : `/${cruda}`;
-};
-
-function Miniatura({ src, alt }) {
-  const [fallo, setFallo] = useState(false);
-  if (!src || fallo) {
-    return (
-      <span className="postventa-miniatura postventa-miniatura-icono" aria-hidden="true">
-        🛍️
-      </span>
-    );
-  }
-  return (
-    <img
-      className="postventa-miniatura"
-      src={src}
-      alt={alt}
-      onError={() => setFallo(true)}
-    />
-  );
-}
 
 export default function ModalPostventa({ alCerrar, alCompletar }) {
   const [pedidos, setPedidos] = useState([]);
@@ -458,150 +433,39 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
 
       {/* PASO 1: desglose de la comanda */}
       {pedidoActivo && (
-        <div className="modal-overlay postventa-overlay-interno" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-content postventa-modal">
-            <div className="postventa-header">
-              <h3 className="postventa-titulo-cambio">
-                📦 Comanda {obtenerCodigoPedido(pedidoActivo)}
-                <span className="postventa-importe">{formatearMoneda(importePedido(pedidoActivo))}</span>
-              </h3>
-              <button type="button" className="postventa-cerrar" onClick={cerrarComanda} title="Cerrar">
-                ✕
-              </button>
-            </div>
-
-            {!cambio && bannerError}
-
-            <div className="postventa-lineas-detalle">
-              {obtenerLineas(pedidoActivo).map((linea) => {
-                const total = Number(linea.cantidad) || 1;
-                const seleccionadas = cantidadSeleccionada(linea);
-                const nombre = linea.productoNombre || `Producto #${linea.productoId}`;
-                const imagen = rutaImagen(linea) || rutaImagen(productoCatalogo(linea.productoId));
-                return (
-                  <article key={linea.id} className="postventa-linea">
-                    <Miniatura src={imagen} alt={nombre} />
-                    <div className="postventa-linea-info">
-                      <strong>{nombre}</strong>
-                      <span className="postventa-linea-detalle">
-                        {linea.talla ? `Talla ${linea.talla}` : 'Sin talla'}
-                        {linea.textoPersonalizado ? ` · Grabado: "${linea.textoPersonalizado}"` : ''}
-                      </span>
-                      <span className="postventa-linea-detalle">
-                        {total} uds. · {formatearMoneda(precioUnitarioLinea(linea))}/ud.
-                      </span>
-                    </div>
-
-                    <div className="postventa-linea-controles contenedor-acciones-linea acciones-postventa-articulo">
-                      <div
-                        className="postventa-cantidad selector-cantidad-postventa"
-                        aria-label="Unidades a gestionar"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => cambiarCantidad(linea, seleccionadas - 1)}
-                          disabled={seleccionadas <= 1}
-                          title="Menos"
-                        >
-                          −
-                        </button>
-                        <input
-                          type="number"
-                          min={1}
-                          max={total}
-                          value={seleccionadas}
-                          onChange={(e) => cambiarCantidad(linea, e.target.value)}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => cambiarCantidad(linea, seleccionadas + 1)}
-                          disabled={seleccionadas >= total}
-                          title="Más"
-                        >
-                          +
-                        </button>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn-postventa btn-postventa-devolucion btn-devolver-linea"
-                        onClick={() =>
-                          setDevolucion({ pedido: pedidoActivo, linea, cantidad: seleccionadas })
-                        }
-                        disabled={procesando}
-                      >
-                        ↩️ Devolver {seleccionadas} uds.
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-postventa btn-postventa-cambio btn-cambiar-linea"
-                        onClick={() => abrirCambio(linea)}
-                        disabled={procesando}
-                      >
-                        🔄 Cambiar {seleccionadas} uds.
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-
-            <div className="modal-acciones">
-              <button type="button" className="btn-modal btn-modal-secundario" onClick={cerrarComanda}>
-                Volver
-              </button>
-            </div>
-          </div>
-        </div>
+        <DesgloseComanda
+          pedido={pedidoActivo}
+          importe={importePedido(pedidoActivo)}
+          bannerError={bannerError}
+          hayCambioAbierto={!!cambio}
+          procesando={procesando}
+          productoCatalogo={productoCatalogo}
+          precioUnitarioLinea={precioUnitarioLinea}
+          cantidadSeleccionada={cantidadSeleccionada}
+          cambiarCantidad={cambiarCantidad}
+          alDevolverLinea={(linea, cantidad) =>
+            setDevolucion({ pedido: pedidoActivo, linea, cantidad })
+          }
+          alCambiarLinea={abrirCambio}
+          alCerrar={cerrarComanda}
+        />
       )}
 
       {/* Confirmación de devolución */}
       {devolucion && (
-        <div className="modal-overlay postventa-overlay-confirmar" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-content">
-            <h3>↩️ Confirmar Devolución</h3>
-            <p>
-              Pedido <strong>{obtenerCodigoPedido(devolucion.pedido)}</strong>.
-              <br />
-              {devolucion.linea ? (
-                <>
-                  Devolver {devolucion.cantidad}x{' '}
-                  {devolucion.linea.productoNombre || `Producto #${devolucion.linea.productoId}`}
-                  {devolucion.linea.talla ? ` (Talla ${devolucion.linea.talla})` : ''}.
-                  <br />
-                </>
-              ) : null}
-              Importe a reintegrar al cliente:{' '}
-              <strong className="postventa-importe">
-                {formatearMoneda(
-                  devolucion.linea
-                    ? deCentimos(
-                        aCentimos(precioUnitarioLinea(devolucion.linea)) * devolucion.cantidad
-                      )
-                    : importePedido(devolucion.pedido)
-                )}
-              </strong>
-            </p>
-            <div className="modal-acciones">
-              <button
-                type="button"
-                className="btn-modal btn-modal-secundario"
-                onClick={() => setDevolucion(null)}
-                disabled={procesando}
-              >
-                Volver
-              </button>
-              <button
-                type="button"
-                className="btn-modal btn-modal-peligro"
-                onClick={confirmarDevolucion}
-                disabled={procesando}
-              >
-                {procesando ? 'Procesando...' : 'Confirmar reembolso'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmarDevolucion
+          devolucion={devolucion}
+          importe={
+            devolucion.linea
+              ? deCentimos(aCentimos(precioUnitarioLinea(devolucion.linea)) * devolucion.cantidad)
+              : importePedido(devolucion.pedido)
+          }
+          procesando={procesando}
+          alVolver={() => setDevolucion(null)}
+          alConfirmar={confirmarDevolucion}
+        />
       )}
+
 
       {/* PASO 2: selección del nuevo producto */}
       {cambio && lineaCambio && (
@@ -684,40 +548,21 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
             )}
 
             {nuevoProducto && requiereTalla && (
-              <div className="postventa-tallas">
-                <span className="postventa-label">Talla de {nuevoProducto.nombre}:</span>
-                <div className="postventa-tallas-lista">
-                  {tallasNuevo.map((t) => {
-                    const dispTalla = Math.max(0, (Number(t.stock) || 0) - unidadesEnCesta(nuevoProducto.id, t.talla));
-                    const sinStock = !stockSuficiente(dispTalla, cantidadNueva);
-                    const igual = mismaVariante(nuevoProducto, t.talla);
-                    return (
-                      <button
-                        key={t.talla}
-                        type="button"
-                        disabled={sinStock || igual}
-                        className={`postventa-talla ${nuevaTalla === t.talla ? 'seleccionado' : ''}`}
-                        onClick={() => {
-                          setNuevaTalla(t.talla);
-                          if (dispTalla > 0 && cantidadNueva > dispTalla) {
-                            setCantidadNueva(dispTalla);
-                          }
-                        }}
-                        title={
-                          igual
-                            ? 'Es la misma talla y cantidad del artículo original'
-                            : sinStock
-                              ? `Stock insuficiente (${dispTalla} uds.)`
-                              : `${dispTalla} uds. disponibles`
-                        }
-                      >
-                        {t.talla}
-                        <small>{dispTalla} uds.</small>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              <SelectorTallaCambio
+                nuevoProducto={nuevoProducto}
+                tallasNuevo={tallasNuevo}
+                nuevaTalla={nuevaTalla}
+                cantidadNueva={cantidadNueva}
+                unidadesEnCesta={unidadesEnCesta}
+                stockSuficiente={stockSuficiente}
+                mismaVariante={mismaVariante}
+                alElegirTalla={(talla, dispTalla) => {
+                  setNuevaTalla(talla);
+                  if (dispTalla > 0 && cantidadNueva > dispTalla) {
+                    setCantidadNueva(dispTalla);
+                  }
+                }}
+              />
             )}
 
             {productoSeleccionado && (
@@ -733,79 +578,19 @@ export default function ModalPostventa({ alCerrar, alCompletar }) {
               </div>
             )}
 
-            {cestaCambio.length > 0 && (
-              <div
-                style={{
-                  background: '#0f172a',
-                  border: '1px solid #334155',
-                  borderRadius: '6px',
-                  padding: '0.6rem',
-                  marginBottom: '0.75rem',
-                }}
-              >
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.4rem', fontWeight: 600 }}>
-                  🛒 Cesta de artículos de cambio ({cestaCambio.length}):
-                </div>
-                {cestaCambio.map((item, idx) => (
-                  <div
-                    key={`${item.productoId}-${item.talla || 'U'}-${idx}`}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      fontSize: '0.85rem',
-                      padding: '0.25rem 0',
-                      borderBottom: idx < cestaCambio.length - 1 ? '1px solid #1e293b' : 'none',
-                    }}
-                  >
-                    <span>
-                      <strong>{item.cantidad}x</strong> {item.nombre}
-                      {item.talla ? ` (Talla ${item.talla})` : ''} · {formatearMoneda(item.precio)}/ud.
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => quitarDeCestaCambio(idx)}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                      }}
-                      title="Quitar artículo"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <CestaCambio cestaCambio={cestaCambio} alQuitar={quitarDeCestaCambio} />
 
-            <div className="postventa-diferencia">
-              {!cambioValido ? (
-                nuevoProducto && requiereTalla && !tallaElegida
-                  ? 'Selecciona una talla con stock disponible'
-                  : 'Selecciona uno o varios productos para ver la diferencia'
-              ) : diferenciaTotalCent === 0 ? (
-                <strong className="postventa-importe">
-                  Cambio sin impacto económico en caja ({formatearMoneda(0)})
-                </strong>
-              ) : diferenciaTotalCent > 0 ? (
-                <>
-                  Diferencia a abonar en caja:{' '}
-                  <strong className="postventa-importe">{formatearMoneda(diferenciaTotal)}</strong> (
-                  Nuevos: {formatearMoneda(totalNuevo)} − Entregados: {formatearMoneda(totalAntiguo)})
-                </>
-              ) : (
-                <>
-                  Diferencia a reembolsar al cliente:{' '}
-                  <strong className="postventa-importe">
-                    -{formatearMoneda(Math.abs(diferenciaTotal))}
-                  </strong>{' '}
-                  (Nuevos: {formatearMoneda(totalNuevo)} − Entregados: {formatearMoneda(totalAntiguo)})
-                </>
-              )}
-            </div>
+            <ResumenContableCambio
+              cambioValido={cambioValido}
+              nuevoProducto={nuevoProducto}
+              requiereTalla={requiereTalla}
+              tallaElegida={tallaElegida}
+              diferenciaTotalCent={diferenciaTotalCent}
+              diferenciaTotal={diferenciaTotal}
+              totalNuevo={totalNuevo}
+              totalAntiguo={totalAntiguo}
+            />
+
 
             <div className="modal-acciones">
               <button

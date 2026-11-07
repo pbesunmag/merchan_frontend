@@ -4,6 +4,9 @@ import { perteneceACategoria } from "../utils/categoriaUtils";
 
 const CLAVE_STORAGE_CARRITO = "stark_carrito_activo";
 
+// Terminal TPV usada en el checkout (configurable por entorno)
+const terminalId = Number(import.meta.env.VITE_DEFAULT_TERMINAL_ID) || 1;
+
 // Comprueba si un artículo admite grabado personalizado según el DTO del backend.
 export const esPersonalizable = (item) => {
   if (!item) return false;
@@ -100,7 +103,7 @@ export default function useCarrito() {
     if (topeStock <= 0) return;
 
     const tallaArticulo = producto.talla || "";
-    const claveArticulo = `${producto.id}_${producto.nombre || ""}_${tallaArticulo}`;
+    const claveArticulo = `${producto.id}_${producto.nombre || ""}_${producto.variante || ""}_${tallaArticulo}`;
 
     setCarrito((prev) => {
       const unidadesYaEnCesta = prev
@@ -148,6 +151,7 @@ export default function useCarrito() {
           cantidad: 1,
           stockMax: topeStock,
           textoPersonalizado: "",
+          variante: producto.variante || null,
         },
       ];
     });
@@ -211,6 +215,7 @@ export default function useCarrito() {
         productoId: item.id,
         cantidad: Number(item.cantidad) || 1,
         talla: item.talla || null,
+        variante: item.variante || null,
         textoPersonalizado:
           esPersonalizable(item) && item.textoPersonalizado?.trim()
             ? item.textoPersonalizado.trim()
@@ -218,7 +223,7 @@ export default function useCarrito() {
       }));
 
       // Única llamada transaccional: POST /api/pedidos/checkout
-      const nuevoPedido = await pedidoService.checkout(1, lineas);
+      const nuevoPedido = await pedidoService.checkout(terminalId, lineas);
 
       setMostrarCarrito(false);
       setCarrito([]);

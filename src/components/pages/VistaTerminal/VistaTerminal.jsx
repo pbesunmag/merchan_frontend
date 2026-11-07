@@ -4,14 +4,12 @@ import { WS_URL } from "../../../services/api";
 import { productService } from "../../../services/productService";
 import { estadisticaService } from "../../../services/estadisticaService";
 import useCarrito from "../../../hooks/useCarrito";
-import { formatearMoneda } from "../../../utils/formatoUtils";
-import {
-  obtenerCategoriaProducto,
-  esCamiseta,
-} from "../../../utils/categoriaUtils";
+import { obtenerCategoriaProducto } from "../../../utils/categoriaUtils";
 import ReactorLoader from "../../ReactorLoader";
 import PromoModal from "../../PromoModal/PromoModal";
 import DetalleProductoModal from "../../DetalleProductoModal/DetalleProductoModal";
+import CatalogoGrid from "./CatalogoGrid";
+import ComandaSidebar from "./ComandaSidebar";
 import BannerSuperior from "../../BannerSuperior/BannerSuperior";
 import "./VistaTerminal.css";
 import BannerSlider from "../../BannerSlider/BannerSlider";
@@ -429,467 +427,54 @@ export default function VistaTerminal() {
           </div>
         )}
 
-        <div className="productos-grid">
-          {productosVisibles.map((prod) => {
-            const rutaCruda = prod.imagenUrl || prod.imagen_url;
-            const rutaFoto =
-              rutaCruda && rutaCruda.trim() !== ""
-                ? rutaCruda.startsWith("/")
-                  ? rutaCruda
-                  : `/${rutaCruda}`
-                : "/imagenes/camisetas/avengers.jpg";
+        <CatalogoGrid
+          productosVisibles={productosVisibles}
+          productosFiltrados={productosFiltrados}
+          carrito={carrito}
+          productoMasVendido={productoMasVendido}
+          mostrarTodos={mostrarTodos}
+          limiteInicial={LIMITE_INICIAL}
+          alSeleccionar={setProductoSeleccionado}
+          alAgregar={agregarAlCarrito}
+          alAlternarMostrarTodos={() => setMostrarTodos(!mostrarTodos)}
+        />
 
-            const precioNum = Number(prod.precio) || 0;
-            const esCamisetaCatalogo = esCamiseta(prod);
-
-            const unidadesEnCesta = carrito
-              .filter((item) => item.id === prod.id)
-              .reduce((total, item) => total + (Number(item.cantidad) || 0), 0);
-
-            const stockBaseProd = Number(
-              prod.stockMax ?? prod.stock ?? (prod.activo === false ? 0 : 10),
-            );
-            const stockEfectivo = Math.max(0, stockBaseProd - unidadesEnCesta);
-
-            const estaAgotado = stockEfectivo === 0;
-            const pocoStock = stockEfectivo > 0 && stockEfectivo <= 3;
-
-            return (
-              <article key={prod.id} className="producto-card">
-                {productoMasVendido &&
-                  productoMasVendido.productoId === prod.id && (
-                    <span
-                      className="badge-top-ventas"
-                      title={`Producto estrella: ${productoMasVendido.totalUnidadesVendidas} unidades vendidas`}
-                    >
-                      ⭐ TOP VENTAS
-                    </span>
-                  )}
-                <div
-                  className="producto-img-container"
-                  onClick={() => setProductoSeleccionado(prod)}
-                  title="Haz clic para ver la galería completa"
-                >
-                  <img
-                    src={rutaFoto}
-                    alt={prod.nombre}
-                    className="producto-img"
-                    onError={(e) => {
-                      e.currentTarget.onerror = null;
-                      e.currentTarget.src = "/imagenes/camisetas/avengers.jpg";
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <h3>{prod.nombre}</h3>
-                  <p>{prod.descripcion}</p>
-                </div>
-
-                <div>
-                  <div className="producto-precio producto-precios-contenedor">
-                    <span className="producto-precio-actual">
-                      {formatearMoneda(precioNum)}
-                    </span>
-                  </div>
-
-                  <div
-                    className={`producto-stock-estado ${
-                      estaAgotado
-                        ? "stock-agotado"
-                        : pocoStock
-                          ? "stock-bajo"
-                          : "stock-disponible"
-                    }`}
-                  >
-                    {estaAgotado ? (
-                      <>
-                        <span>🚫 Agotado</span>
-                        <span className="producto-stock-unidades">
-                          en almacén
-                        </span>
-                      </>
-                    ) : pocoStock ? (
-                      <>
-                        <span>⚠️¡Últimas unidades!</span>
-                        <span className="producto-stock-unidades">
-                          {stockEfectivo === 1
-                            ? "(Solo queda 1 ud)"
-                            : `(Solo quedan ${stockEfectivo} ud)`}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <span>✓ En stock</span>
-                        <span className="producto-stock-unidades">
-                          ({stockEfectivo}&nbsp;disponibles)
-                        </span>
-                      </>
-                    )}
-                  </div>
-
-                  <button
-                    className={`btn-agregar ${
-                      !esCamisetaCatalogo && estaAgotado
-                        ? "btn-agregar-agotado"
-                        : ""
-                    }`}
-                    disabled={!esCamisetaCatalogo && estaAgotado}
-                    onClick={() => {
-                      if (esCamisetaCatalogo) {
-                        setProductoSeleccionado(prod);
-                      } else {
-                        agregarAlCarrito({
-                          ...prod,
-                          stockMax: stockBaseProd,
-                        });
-                      }
-                    }}
-                  >
-                    {esCamisetaCatalogo
-                      ? "Elegir Talla"
-                      : estaAgotado
-                        ? "🚫 Agotado"
-                        : "Añadir a la Cesta"}
-                  </button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-
-        {productosFiltrados.length > LIMITE_INICIAL && (
-          <div className="ver-mas-container">
-            <button
-              className="btn-ver-todo-stark"
-              onClick={() => setMostrarTodos(!mostrarTodos)}
-            >
-              {mostrarTodos ? (
-                <>▲ Reducir Catálogo</>
-              ) : (
-                <>
-                  ▼ Desplegar Catálogo Completo (
-                  {productosFiltrados.length - LIMITE_INICIAL} restantes)
-                </>
-              )}
-            </button>
-          </div>
-        )}
       </section>
 
       <FormularioSoporte />
 
       {mostrarCarrito && (
-        <div
-          className="carrito-overlay"
-          onClick={() => setMostrarCarrito(false)}
-        >
-          <aside
-            className="carrito-drawer"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="carrito-header">
-              <h2>Comanda Activa</h2>
-              <div className="carrito-header-acciones">
-                {carrito.length > 0 && (
-                  <button
-                    type="button"
-                    className="btn-vaciar-carrito"
-                    onClick={() => {
-                      vaciarCarrito();
-                      cancelarTicketConfirmado();
-                    }}
-                    title="Vaciar todos los artículos"
-                  >
-                    🗑️ Vaciar
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="btn-cerrar"
-                  onClick={() => setMostrarCarrito(false)}
-                  title="Cerrar carrito"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-
-            {errorVisible && (
-              <div className="terminal-error-banner">
-                <span>⚠️ {errorVisible}</span>
-                <button type="button" onClick={cerrarError}>
-                  ✕
-                </button>
-              </div>
-            )}
-
-            {carrito.length === 0 ? (
-              <p className="carrito-vacio">No has seleccionado suministros.</p>
-            ) : (
-              <>
-                <ul className="comanda-items">
-                  {carrito.map((item) => {
-                    const cantActual = Number(item.cantidad) || 1;
-                    const maxDisponible = Number(
-                      item.stockMax ?? item.stock ?? 99,
-                    );
-                    const enTopeStock = cantActual >= maxDisponible;
-                    const subtotalItem =
-                      calcularPrecioUnidad(item) * cantActual;
-
-                    return (
-                      <li key={item.idUnico} className="comanda-item">
-                        <div className="comanda-item-header">
-                          <div className="comanda-item-info">
-                            <span className="comanda-item-titulo">
-                              {item.nombre}
-                              {item.talla && (
-                                <strong className="comanda-talla-tag">
-                                  ({item.talla})
-                                </strong>
-                              )}
-                            </span>
-                          </div>
-
-                          <div className="comanda-item-acciones-precio">
-                            <span className="comanda-item-subtotal">
-                              {formatearMoneda(subtotalItem)}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => eliminarDelCarrito(item.idUnico)}
-                              className="btn-eliminar-item-comanda"
-                              title="Eliminar este artículo"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="comanda-cantidad-fila">
-                          <span className="comanda-cantidad-label">
-                            Unidades{" "}
-                            <small className="texto-max-stock">
-                              (máx. {maxDisponible})
-                            </small>
-                            :
-                          </span>
-                          <div className="selector-cantidad-stark">
-                            <button
-                              type="button"
-                              className="btn-cant-control"
-                              onClick={() =>
-                                actualizarCantidad(item.idUnico, cantActual - 1)
-                              }
-                              disabled={cantActual <= 1}
-                              aria-label="Disminuir cantidad"
-                            >
-                              -
-                            </button>
-                            <input
-                              type="number"
-                              min="1"
-                              max={maxDisponible}
-                              value={cantActual}
-                              onChange={(e) =>
-                                actualizarCantidad(item.idUnico, e.target.value)
-                              }
-                              className="input-cant-numero"
-                              aria-label="Cantidad de unidades"
-                            />
-                            <button
-                              type="button"
-                              className="btn-cant-control"
-                              onClick={() => {
-                                if (enTopeStock) {
-                                  mostrarAlertaTopeStock(item.idUnico);
-                                } else {
-                                  actualizarCantidad(
-                                    item.idUnico,
-                                    cantActual + 1,
-                                  );
-                                }
-                              }}
-                              disabled={enTopeStock}
-                              title={
-                                enTopeStock
-                                  ? `Límite de stock alcanzado (${maxDisponible} ud.)`
-                                  : "Aumentar cantidad"
-                              }
-                              aria-label="Aumentar cantidad"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-
-                        {(enTopeStock || avisoStockId === item.idUnico) && (
-                          <small className="aviso-tope-stock">
-                            ⚠️ Límite de stock disponible alcanzado (
-                            {maxDisponible}{" "}
-                            {maxDisponible === 1 ? "unidad" : "unidades"}).
-                          </small>
-                        )}
-
-                        {esPersonalizable(item) ? (
-                          <input
-                            type="text"
-                            placeholder="Grabado / texto personalizado (incluido)..."
-                            value={item.textoPersonalizado}
-                            onChange={(e) =>
-                              actualizarTextoPersonalizado(
-                                item.idUnico,
-                                e.target.value,
-                              )
-                            }
-                            className="comanda-custom-input"
-                          />
-                        ) : (
-                          <small className="aviso-no-personalizable">
-                            🚫 Este artículo no admite grabado personalizado
-                          </small>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-
-                {/* SECCIÓN DE ENVÍO DE TICKET DIGITAL POR CORREO O TELÉFONO */}
-                <div className="ticket-digital-contenedor">
-                  {!ticketConfirmado ? (
-                    <>
-                      <span className="ticket-digital-titulo">
-                        📩 ¿Deseas recibir tu ticket de compra?
-                      </span>
-                      <small
-                        className="aviso-no-personalizable"
-                        style={{ display: "block", marginBottom: "0.4rem" }}
-                      >
-                        ⚡ Simulación de servicio Stark Dispatch (sin envío real)
-                      </small>
-                      <div className="ticket-digital-checks">
-                        <label className="ticket-check-label">
-                          <input
-                            type="checkbox"
-                            checked={deseaTicketCorreo}
-                            onChange={(e) => {
-                              setDeseaTicketCorreo(e.target.checked);
-                              setErrorTicket("");
-                            }}
-                          />
-                          <span>📧 Correo electrónico</span>
-                        </label>
-
-                        <label className="ticket-check-label">
-                          <input
-                            type="checkbox"
-                            checked={deseaTicketTelefono}
-                            onChange={(e) => {
-                              setDeseaTicketTelefono(e.target.checked);
-                              setErrorTicket("");
-                            }}
-                          />
-                          <span>📱 Número telefónico</span>
-                        </label>
-                      </div>
-
-                      {(deseaTicketCorreo || deseaTicketTelefono) && (
-                        <form
-                          onSubmit={manejarEnvioTicketManual}
-                          noValidate
-                          className="ticket-digital-inputs"
-                        >
-                          {deseaTicketCorreo && (
-                            <input
-                              type="text"
-                              placeholder="ejemplo@starkindustries.com"
-                              value={emailTicket}
-                              onChange={(e) => {
-                                setEmailTicket(e.target.value);
-                                if (errorTicket) setErrorTicket("");
-                              }}
-                              className="comanda-custom-input ticket-input-field"
-                            />
-                          )}
-
-                          {deseaTicketTelefono && (
-                            <input
-                              type="text"
-                              placeholder="Ej: +34 600 123 456"
-                              value={telefonoTicket}
-                              onChange={(e) => {
-                                setTelefonoTicket(e.target.value);
-                                if (errorTicket) setErrorTicket("");
-                              }}
-                              className="comanda-custom-input ticket-input-field"
-                            />
-                          )}
-
-                          <button type="submit" className="btn-enviar-ticket">
-                            📨 Solicitar envío de ticket
-                          </button>
-                        </form>
-                      )}
-
-                      {errorTicket && (
-                        <div className="stark-error-ticket-hud">
-                          <span>⚠️ {errorTicket}</span>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <div className="ticket-confirmado-bloque">
-                      <div className="ticket-confirmado-cabecera">
-                        <span className="ticket-confirmado-badge">
-                          ✅ Ticket solicitado (Simulación de servicio Stark Dispatch)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={cancelarTicketConfirmado}
-                          className="btn-quitar-cupon"
-                          title="Modificar datos de envío"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      <div className="ticket-confirmado-datos">
-                        {deseaTicketCorreo && emailTicket.trim() && (
-                          <div className="ticket-dato-fijo">
-                            <span>📧 Correo:</span>{" "}
-                            <strong>{emailTicket.trim()}</strong>
-                          </div>
-                        )}
-                        {deseaTicketTelefono && telefonoTicket.trim() && (
-                          <div className="ticket-dato-fijo">
-                            <span>📱 Teléfono:</span>{" "}
-                            <strong>{telefonoTicket.trim()}</strong>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="comanda-total-container">
-                  <span className="comanda-total-label">Total a abonar</span>
-                  <div className="comanda-total-valores">
-                    <span className="comanda-total-monto">
-                      {totalFormateado}&nbsp;€
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  className="btn-finalizar"
-                  onClick={finalizarPedidoYRecargar}
-                >
-                  ⚡ Confirmar Suministros
-                </button>
-              </>
-            )}
-          </aside>
-        </div>
+        <ComandaSidebar
+          carrito={carrito}
+          avisoStockId={avisoStockId}
+          errorVisible={errorVisible}
+          totalFormateado={totalFormateado}
+          esPersonalizable={esPersonalizable}
+          calcularPrecioUnidad={calcularPrecioUnidad}
+          mostrarAlertaTopeStock={mostrarAlertaTopeStock}
+          actualizarCantidad={actualizarCantidad}
+          actualizarTextoPersonalizado={actualizarTextoPersonalizado}
+          eliminarDelCarrito={eliminarDelCarrito}
+          vaciarCarrito={vaciarCarrito}
+          cerrarError={cerrarError}
+          alCerrar={() => setMostrarCarrito(false)}
+          alFinalizar={finalizarPedidoYRecargar}
+          ticket={{
+            deseaTicketCorreo,
+            setDeseaTicketCorreo,
+            deseaTicketTelefono,
+            setDeseaTicketTelefono,
+            emailTicket,
+            setEmailTicket,
+            telefonoTicket,
+            setTelefonoTicket,
+            ticketConfirmado,
+            errorTicket,
+            setErrorTicket,
+            manejarEnvioTicketManual,
+            cancelarTicketConfirmado,
+          }}
+        />
       )}
 
       {notificacionTicket && (

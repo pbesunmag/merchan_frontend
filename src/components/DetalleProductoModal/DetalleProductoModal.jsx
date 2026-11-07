@@ -3,120 +3,9 @@ import "./DetalleProductoModal.css";
 import { productService } from "../../services/productService";
 import { formatearMoneda, formatearPersonaje } from "../../utils/formatoUtils";
 import { esCamiseta as esProductoCamiseta } from "../../utils/categoriaUtils";
-
-// Diccionario de variantes visuales (color / modelo / héroe) sin alteración arbitraria del precio oficial
-const catalogoVariantes = {
-  1: {
-    tipo: "Color",
-    opciones: [
-      {
-        id: "roja",
-        etiqueta: "Rojo Carmesí",
-        imagen: "/imagenes/camisetas/spiderman/roja.jpg",
-      },
-      {
-        id: "azul",
-        etiqueta: "Azul Oscuro",
-        imagen: "/imagenes/camisetas/spiderman/azul.jpg",
-      },
-    ],
-  },
-  13: {
-    tipo: "Color",
-    opciones: [
-      {
-        id: "negra",
-        etiqueta: "Negra Clásica",
-        imagen: "/imagenes/gorras/personalizable/negra.jpg",
-      },
-      {
-        id: "azul",
-        etiqueta: "Azul Marino",
-        imagen: "/imagenes/gorras/personalizable/azul.jpg",
-      },
-      {
-        id: "naranja",
-        etiqueta: "Naranja Flash",
-        imagen: "/imagenes/gorras/personalizable/naranja.jpg",
-      },
-      {
-        id: "roja",
-        etiqueta: "Roja Escarlata",
-        imagen: "/imagenes/gorras/personalizable/roja.jpg",
-      },
-      {
-        id: "negra_amarilla",
-        etiqueta: "Negro / Amarillo",
-        imagen: "/imagenes/gorras/personalizable/negra_amarilla.jpg",
-      },
-      {
-        id: "negra_verde",
-        etiqueta: "Negro / Verde",
-        imagen: "/imagenes/gorras/personalizable/negra_verde.jpg",
-      },
-    ],
-  },
-  16: {
-    tipo: "Modelo",
-    opciones: [
-      {
-        id: "ironman",
-        etiqueta: "Iron Man",
-        imagen: "/imagenes/tazas/taza_personalizable/ironman.jpg",
-      },
-      {
-        id: "america",
-        etiqueta: "Capitán América",
-        imagen: "/imagenes/tazas/taza_personalizable/america.jpg",
-      },
-      {
-        id: "spiderman",
-        etiqueta: "Spiderman",
-        imagen: "/imagenes/tazas/taza_personalizable/spiderman.jpg",
-      },
-      {
-        id: "thor",
-        etiqueta: "Thor",
-        imagen: "/imagenes/tazas/taza_personalizable/thor.jpg",
-      },
-      {
-        id: "lobezno",
-        etiqueta: "Lobezno",
-        imagen: "/imagenes/tazas/taza_personalizable/lobezno.jpg",
-      },
-    ],
-  },
-  17: {
-    tipo: "Héroe",
-    opciones: [
-      {
-        id: "casco_ironman",
-        etiqueta: "Casco Iron Man",
-        imagen: "/imagenes/tazas/tazas_vengadores/taza_casco_ironman.jpg",
-      },
-      {
-        id: "escudo_america",
-        etiqueta: "Escudo Capitán",
-        imagen: "/imagenes/tazas/tazas_vengadores/taza_escudo_america.jpg",
-      },
-      {
-        id: "punyo_hulk",
-        etiqueta: "Puño de Hulk",
-        imagen: "/imagenes/tazas/tazas_vengadores/taza_punyo_hulk.jpg",
-      },
-      {
-        id: "spiderman",
-        etiqueta: "Spiderman 3D",
-        imagen: "/imagenes/tazas/tazas_vengadores/taza_spiderman.jpg",
-      },
-      {
-        id: "thor_martillo",
-        etiqueta: "Martillo Mjolnir",
-        imagen: "/imagenes/tazas/tazas_vengadores/taza_thor_martillo.jpg",
-      },
-    ],
-  },
-};
+import GaleriaImagenes, { LightboxImagen } from "./GaleriaImagenes";
+import SelectorTallaGrabado from "./SelectorTallaGrabado";
+import { resolverVariantes, resolverFotos } from "./variantesCatalogo";
 
 const ORDEN_TALLAS = ["XS", "S", "M", "L", "XL", "XXL"];
 
@@ -130,50 +19,6 @@ const abrirGuiaTallas = (e) => {
   window.open(URL_GUIA_TALLAS, "_blank", "noopener,noreferrer");
 };
 
-const fotosEstandar = {
-  2: ["/imagenes/camisetas/america.jpg"],
-  3: ["/imagenes/camisetas/avengers.jpg"],
-  4: ["/imagenes/camisetas/marvel.jpg"],
-  5: ["/imagenes/camisetas/miles_morales.jpg"],
-  6: [
-    "/imagenes/figuras/doctor_doom/61Gy23BhwmL._AC_SL1000_.jpg",
-    "/imagenes/figuras/doctor_doom/61kAKKpwpDL._AC_SL1000_.jpg",
-    "/imagenes/figuras/doctor_doom/61ZKb6-jedL._AC_SL1000_.jpg",
-    "/imagenes/figuras/doctor_doom/71CUw2Z4AVL._AC_SL1000_.jpg",
-  ],
-  7: [
-    "/imagenes/figuras/groot/primera.jpg",
-    "/imagenes/figuras/groot/segunda.jpg",
-    "/imagenes/figuras/groot/tercera.jpg",
-  ],
-  8: [
-    "/imagenes/figuras/guantelete_ironman/51BLOHXicCL._AC_SL1200_.jpg",
-    "/imagenes/figuras/guantelete_ironman/51N4WF5GklL._AC_SL1200_.jpg",
-    "/imagenes/figuras/guantelete_ironman/518SeJZNTkL._AC_SL1200_.jpg",
-  ],
-  9: [
-    "/imagenes/figuras/thanos/61Y3kjH7xNL._AC_SL1500_.jpg",
-    "/imagenes/figuras/thanos/714Sgxx1Y7L._AC_SL1500_.jpg",
-  ],
-  10: ["/imagenes/figuras/thor/61eOx6gTxCL._AC_SL1000_.jpg"],
-  11: [
-    "/imagenes/gorras/america/delante.jpg",
-    "/imagenes/gorras/america/detras.jpg",
-  ],
-  12: [
-    "/imagenes/gorras/marvel/delante.jpg",
-    "/imagenes/gorras/marvel/detras.jpg",
-  ],
-  14: [
-    "/imagenes/gorras/punisher/delante.jpg",
-    "/imagenes/gorras/punisher/detras.jpg",
-  ],
-  15: ["/imagenes/gorras/set_gorra_gafas/delante.jpg"],
-  18: ["/imagenes/tazas/taza_deadpool.jpg"],
-  19: ["/imagenes/tazas/taza_loki.jpg"],
-  20: ["/imagenes/tazas/taza_marvel_695.jpg"],
-};
-
 export default function DetalleProductoModal({
   producto,
   carrito = [],
@@ -183,7 +28,7 @@ export default function DetalleProductoModal({
   // Detección de categoría exclusivamente por los campos formales del DTO (nombreCategoria / categoria / tallas)
   const esCamiseta = Boolean(producto && esProductoCamiseta(producto));
 
-  const configVariantes = producto ? catalogoVariantes[producto.id] : null;
+  const configVariantes = producto ? resolverVariantes(producto) : null;
 
   const [opcionElegida, setOpcionElegida] = useState(null);
   const varianteSeleccionada =
@@ -340,7 +185,7 @@ export default function DetalleProductoModal({
 
   const fotos = configVariantes
     ? configVariantes.opciones.map((o) => o.imagen)
-    : fotosEstandar[producto.id] || [
+    : resolverFotos(producto) || [
         producto.imagenUrl || producto.imagen_url || "",
       ];
 
@@ -414,81 +259,19 @@ export default function DetalleProductoModal({
           <div className="modal-grid-detalle">
             {/* COLUMNA IZQUIERDA: GALERÍA VERTICAL */}
             <div className="galeria-amazon modal-col-imagen">
-              <div
-                className="visor-principal modal-imagen-principal-caja"
-                onClick={() => {
-                  if (!imagenRota) setPantallaCompleta(true);
-                }}
-                title={
-                  imagenRota
-                    ? "Imagen no disponible"
-                    : "Haz clic para ver en pantalla completa"
-                }
-              >
-                {!imagenRota ? (
-                  <img
-                    src={imagenActiva}
-                    alt={producto.nombre}
-                    className="imagen-destacada"
-                    onError={() => setImagenRota(true)}
-                  />
-                ) : (
-                  <div className="placeholder-sin-imagen">
-                    <span className="icono-sin-foto">🛡️</span>
-                    <p className="texto-sin-foto">Vista previa no disponible</p>
-                    <span className="subtexto-sin-foto">{producto.nombre}</span>
-                  </div>
-                )}
-              </div>
-
-              {!imagenRota && (
-                <button
-                  type="button"
-                  className="btn-ver-vista-completa"
-                  onClick={() => setPantallaCompleta(true)}
-                >
-                  Haz clic para ver la vista completa
-                </button>
-              )}
-
-              <div className="miniaturas-fila">
-                {configVariantes
-                  ? configVariantes.opciones.map((opc, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        className={`miniatura-btn ${imagenActiva === opc.imagen ? "activa" : ""}`}
-                        onClick={() => seleccionarOpcion(opc)}
-                        title={opc.etiqueta}
-                      >
-                        <img
-                          src={opc.imagen}
-                          alt={opc.etiqueta}
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                          }}
-                        />
-                      </button>
-                    ))
-                  : fotos.map((img, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        className={`miniatura-btn ${imagenActiva === img ? "activa" : ""}`}
-                        onClick={() => seleccionarFotoManual(img)}
-                      >
-                        <img
-                          src={img}
-                          alt={`${producto.nombre} ${idx + 1}`}
-                          onError={(e) => {
-                            e.currentTarget.parentElement.style.opacity =
-                              "0.35";
-                          }}
-                        />
-                      </button>
-                    ))}
-              </div>
+              <GaleriaImagenes
+                producto={producto}
+                imagenActiva={imagenActiva}
+                imagenRota={imagenRota}
+                setImagenRota={setImagenRota}
+                setPantallaCompleta={setPantallaCompleta}
+                configVariantes={configVariantes}
+                fotos={fotos}
+                alSeleccionarOpcion={seleccionarOpcion}
+                alSeleccionarFoto={seleccionarFotoManual}
+              />
             </div>
+
 
             {/* COLUMNA DERECHA: INFORMACIÓN DEL PRODUCTO */}
             <div className="info-producto-detalle">
@@ -502,90 +285,19 @@ export default function DetalleProductoModal({
                 <p className="descripcion-detalle">{producto.descripcion}</p>
               </div>
 
-              {/* VARIANTES (COLOR / MODELO / HÉROE) */}
-              {configVariantes && (
-                <div className="selector-variantes-bloque">
-                  <span className="label-variante">
-                    Seleccionar {configVariantes.tipo}:{" "}
-                    <strong className="valor-variante-activo">
-                      {varianteSeleccionada
-                        ? varianteSeleccionada.etiqueta
-                        : ""}
-                    </strong>
-                  </span>
+              <SelectorTallaGrabado
+                configVariantes={configVariantes}
+                varianteSeleccionada={varianteSeleccionada}
+                alSeleccionarOpcion={seleccionarOpcion}
+                esCamiseta={esCamiseta}
+                cargandoTallas={cargandoTallas}
+                tallaEfectiva={tallaEfectiva}
+                stockActual={stockActual}
+                tallasSincronizadas={tallasSincronizadas}
+                alElegirTalla={setTallaSeleccionada}
+                alAbrirGuiaTallas={abrirGuiaTallas}
+              />
 
-                  <div className="botones-variantes-grid">
-                    {configVariantes.opciones.map((opc) => {
-                      const estaSeleccionada =
-                        varianteSeleccionada?.id === opc.id;
-
-                      return (
-                        <button
-                          key={opc.id}
-                          type="button"
-                          className={`btn-variante-chip ${estaSeleccionada ? "seleccionado" : ""}`}
-                          onClick={() => seleccionarOpcion(opc)}
-                        >
-                          <span>{opc.etiqueta}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* TALLAS SI ES CAMISETA */}
-              {esCamiseta && (
-                <div className="selector-variantes-bloque selector-tallas-bloque">
-                  <div className="header-selector-tallas">
-                    <span className="label-variante">
-                      Talla seleccionada:{" "}
-                      <strong className="valor-variante-activo">
-                        {cargandoTallas
-                          ? "Escaneando inventario..."
-                          : tallaEfectiva
-                            ? `${tallaEfectiva} (${stockActual} disp.)`
-                            : "Sin stock disponible"}
-                      </strong>
-                    </span>
-                    <button
-                      type="button"
-                      className="guia-tallas-stark"
-                      onClick={abrirGuiaTallas}
-                      title="Abrir guía de tallas en una pestaña nueva"
-                    >
-                      📏 Guía Stark
-                    </button>
-                  </div>
-
-                  <div className="botones-tallas-grid">
-                    {tallasSincronizadas.map((item) => {
-                      const stockTalla = item.stockEfectivo;
-                      const agotada = stockTalla === 0;
-                      const activa =
-                        tallaEfectiva === item.talla && !agotada;
-
-                      return (
-                        <button
-                          key={item.talla}
-                          type="button"
-                          className={`btn-talla btn-talla-chip ${activa ? "activa seleccionado" : ""} ${agotada ? "agotada sin-stock" : ""}`}
-                          disabled={agotada}
-                          onClick={() => setTallaSeleccionada(item.talla)}
-                          title={
-                            agotada
-                              ? `Talla ${item.talla} agotada`
-                              : `${stockTalla} unidades disponibles${item.enCesta > 0 ? ` (${item.enCesta} en cesta)` : ""}`
-                          }
-                        >
-                          {item.talla}
-                          {agotada && <span className="linea-agotado"></span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
 
               {/* ESPECIFICACIONES */}
               <div className="especificaciones-stark modal-specs-grid">
@@ -651,37 +363,12 @@ export default function DetalleProductoModal({
 
       {/* LIGHTBOX DE PANTALLA COMPLETA */}
       {pantallaCompleta && !imagenRota && (
-        <div
-          className="lightbox-overlay"
-          onClick={() => setPantallaCompleta(false)}
-        >
-          <button
-            type="button"
-            className="lightbox-btn-cerrar"
-            onClick={() => setPantallaCompleta(false)}
-            title="Cerrar pantalla completa (Esc)"
-          >
-            ✕
-          </button>
-          <div
-            className="lightbox-contenedor"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={imagenActiva}
-              alt={`${producto.nombre} pantalla completa`}
-              className="lightbox-imagen"
-            />
-            <div className="lightbox-pie">
-              <span>{producto.nombre}</span>
-              {varianteSeleccionada && (
-                <span className="lightbox-variante">
-                  ◈ {varianteSeleccionada.etiqueta}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+        <LightboxImagen
+          producto={producto}
+          imagenActiva={imagenActiva}
+          varianteSeleccionada={varianteSeleccionada}
+          alCerrar={() => setPantallaCompleta(false)}
+        />
       )}
     </>
   );

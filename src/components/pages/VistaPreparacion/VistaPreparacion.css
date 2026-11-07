@@ -604,3 +604,15 @@ html, body {
     grid-template-columns: auto 1fr;
   }
 }
+/* Variante elegida (modelo / diseño) visible para el operario de preparación */
+.badge-variante-prep {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(250, 204, 21, 0.15);
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+}
