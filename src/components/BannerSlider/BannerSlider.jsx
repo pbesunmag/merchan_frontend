@@ -1,10 +1,50 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './BannerSlider.css';
 import funkoLogo from '../../assets/funko_logo.jpg';
 import imagenSorteo from '../../assets/sorteo.jpg';
+import reactorArc from '../../assets/loader7.svg';
+import usePromocion from '../../hooks/usePromocion';
+import blackFridayBanner from '../../assets/images/banners/black_friday.png';
+import halloweenBanner from '../../assets/images/banners/halloween.png';
+import navidadBanner from '../../assets/images/banners/navidad.png';
+import sanValentinBanner from '../../assets/images/banners/san_valentin.png';
+import sorteoBanner from '../../assets/images/banners/sorteo.png';
 
-const slides = [
+const BANNERS_FESTIVIDADES = {
+  BLACK_FRIDAY: blackFridayBanner,
+  HALLOWEEN: halloweenBanner,
+  NAVIDAD: navidadBanner,
+  SAN_VALENTIN: sanValentinBanner,
+  SORTEO: sorteoBanner
+};
+
+const resolverBannerFestividad = (codigo, nombre) => {
+  if (!codigo && !nombre) return null;
+  const codigoUpper = String(codigo || '').trim().toUpperCase();
+  if (BANNERS_FESTIVIDADES[codigoUpper]) {
+    return BANNERS_FESTIVIDADES[codigoUpper];
+  }
+  const clave = `${codigo || ''} ${nombre || ''}`.toUpperCase();
+  if (clave.includes('BLACK_FRIDAY') || clave.includes('BLACK FRIDAY') || clave.includes('BLACKFRIDAY')) {
+    return BANNERS_FESTIVIDADES.BLACK_FRIDAY;
+  }
+  if (clave.includes('HALLOWEEN')) {
+    return BANNERS_FESTIVIDADES.HALLOWEEN;
+  }
+  if (clave.includes('NAVIDAD') || clave.includes('HOLIDAY') || clave.includes('CHRISTMAS')) {
+    return BANNERS_FESTIVIDADES.NAVIDAD;
+  }
+  if (clave.includes('VALENTIN') || clave.includes('LOVE')) {
+    return BANNERS_FESTIVIDADES.SAN_VALENTIN;
+  }
+  if (clave.includes('SORTEO')) {
+    return BANNERS_FESTIVIDADES.SORTEO;
+  }
+  return null;
+};
+
+const slidesBase = [
   {
     id: 1,
     tagline: 'EQUIPAMIENTO TÁCTICO',
@@ -64,7 +104,8 @@ const slides = [
   }
 ];
 
-export default function BannerSlider({ onSeleccionarCategoria }) {
+export default function BannerSlider({ onSeleccionarCategoria, promocion: promocionProp }) {
+  const { promocion, tieneDescuento } = usePromocion(promocionProp);
   const [slideActual, setSlideActual] = useState(0);
   const [estaPausado, setEstaPausado] = useState(false);
   const [mostrarModalFunko, setMostrarModalFunko] = useState(false);
@@ -74,7 +115,26 @@ export default function BannerSlider({ onSeleccionarCategoria }) {
   const timerRef = useRef(null);
   const navigate = useNavigate();
 
+  const slides = useMemo(() => {
+    if (tieneDescuento && promocion) {
+      const imgFestividad =
+        BANNERS_FESTIVIDADES[promocion.codigo] ||
+        resolverBannerFestividad(promocion.codigo, promocion.nombre);
+      const slidePromocion = {
+        id: `promo-${promocion.id || promocion.codigo || 'activa'}`,
+        categoriaDestino: 'TODOS',
+        imagenFondo: imgFestividad,
+        esHudStark: !imgFestividad,
+        colorAcento: '#fbbf24',
+        esPromocionActiva: true,
+      };
+      return [slidePromocion, ...slidesBase];
+    }
+    return slidesBase;
+  }, [tieneDescuento, promocion]);
+
   const totalSlides = slides.length;
+  const indiceSlideSeguro = slideActual < totalSlides ? slideActual : 0;
 
   // Auto-avance cada 5.5 s; se pausa si el puntero está dentro del slider o el modal está abierto
   useEffect(() => {
@@ -129,33 +189,54 @@ export default function BannerSlider({ onSeleccionarCategoria }) {
     setMostrarModalFunko(false);
   };
 
-  const slide = slides[slideActual];
+  const slide = slides[indiceSlideSeguro] || slides[0];
 
   return (
     <>
       <div
-        className="hero-slider-contenedor seccion-proximo-suministro"
+        className={`hero-slider-contenedor seccion-proximo-suministro ${slide.esPromocionActiva ? 'hero-slider-promo-stark hero-slider-promo-limpio' : ''}`}
         onMouseEnter={() => setEstaPausado(true)}
         onMouseLeave={() => setEstaPausado(false)}
+        onClick={() => {
+          if (slide.esPromocionActiva) {
+            manejarAccionSlide(slide);
+          }
+        }}
       >
         {/* Fondos en capas superpuestas con transición suave */}
         {slides.map((item, index) => (
           <div
             key={item.id}
-            className={`hero-slide-bg ${index === slideActual ? 'activo' : ''}`}
+            className={`hero-slide-bg ${index === indiceSlideSeguro ? 'activo' : ''} ${item.esHudStark ? 'hero-slide-hud-stark' : ''}`}
             style={{
               backgroundImage: item.imagenFondo
-                ? `linear-gradient(90deg, rgba(7, 10, 18, 0.94) 0%, rgba(10, 15, 26, 0.8) 50%, rgba(7, 10, 18, 0.88) 100%), url(${item.imagenFondo})`
-                : 'radial-gradient(circle at center, #111827 0%, #060911 100%)'
+                ? item.esPromocionActiva
+                  ? `url(${item.imagenFondo})`
+                  : `linear-gradient(90deg, rgba(7, 10, 18, 0.94) 0%, rgba(10, 15, 26, 0.78) 50%, rgba(7, 10, 18, 0.9) 100%), url(${item.imagenFondo})`
+                : 'radial-gradient(circle at center, rgba(0, 229, 255, 0.16) 0%, rgba(251, 191, 36, 0.08) 38%, #070a12 85%)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
             }}
-          />
+          >
+            {item.esHudStark && (
+              <img
+                src={reactorArc}
+                alt=""
+                aria-hidden="true"
+                className="hero-hud-reactor-bg"
+              />
+            )}
+          </div>
         ))}
 
         {/* Flechas de navegación */}
         <button
           type="button"
           className="slider-flecha flecha-izq"
-          onClick={irAAnterior}
+          onClick={(e) => {
+            e.stopPropagation();
+            irAAnterior();
+          }}
           aria-label="Diapositiva anterior"
         >
           ❮
@@ -164,57 +245,65 @@ export default function BannerSlider({ onSeleccionarCategoria }) {
         <button
           type="button"
           className="slider-flecha flecha-der"
-          onClick={irASiguiente}
+          onClick={(e) => {
+            e.stopPropagation();
+            irASiguiente();
+          }}
           aria-label="Siguiente diapositiva"
         >
           ❯
         </button>
 
-        {/* Contenido central del banner */}
-        <div className="hero-slider-contenido">
-          <div className="hero-badge-tag" style={{ borderColor: slide.colorAcento, color: slide.colorAcento }}>
-            <span className="dot-radar" style={{ backgroundColor: slide.colorAcento }}></span>
-            {slide.tagline}
-            <span className="badge-promo-flotante">{slide.insignia}</span>
-          </div>
-
-          {/* LOGO PROMOCIONAL FUNKO (Aparece únicamente si el slide lo define) */}
-          {slide.logoPromocional && (
-            <div className="hero-logo-promocional-contenedor">
-              <img
-                src={slide.logoPromocional}
-                alt="Logo Promocional Funko Pop"
-                className="hero-logo-promocional"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = '/funko_logo.jpg';
-                }}
-              />
+        {/* Contenido central del banner (únicamente para diapositivas estándar) */}
+        {!slide.esPromocionActiva && (
+          <div className="hero-slider-contenido">
+            <div className="hero-badge-tag" style={{ borderColor: slide.colorAcento, color: slide.colorAcento }}>
+              <span className="dot-radar" style={{ backgroundColor: slide.colorAcento }}></span>
+              {slide.tagline}
+              <span className="badge-promo-flotante">{slide.insignia}</span>
             </div>
-          )}
 
-          <h1 className="hero-titulo">{slide.titulo}</h1>
-          <p className="hero-subtitulo">{slide.descripcion}</p>
+            {/* LOGO PROMOCIONAL FUNKO (Aparece únicamente si el slide lo define) */}
+            {slide.logoPromocional && (
+              <div className="hero-logo-promocional-contenedor">
+                <img
+                  src={slide.logoPromocional}
+                  alt="Logo Promocional Funko Pop"
+                  className="hero-logo-promocional"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/funko_logo.jpg';
+                  }}
+                />
+              </div>
+            )}
 
-          <div className="hero-acciones">
-            <button
-              type="button"
-              className="btn-hero-cta"
-              onClick={() => manejarAccionSlide(slide)}
-            >
-              {slide.textoBoton}
-            </button>
+            <h1 className="hero-titulo">{slide.titulo}</h1>
+            <p className="hero-subtitulo">{slide.descripcion}</p>
+
+            <div className="hero-acciones">
+              <button
+                type="button"
+                className="btn-hero-cta"
+                onClick={() => manejarAccionSlide(slide)}
+              >
+                {slide.textoBoton}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Indicadores inferiores */}
-        <div className="slider-indicadores">
+        <div className="slider-indicadores" onClick={(e) => e.stopPropagation()}>
           {slides.map((item, index) => (
             <button
               key={item.id}
               type="button"
-              className={`slider-dot ${index === slideActual ? 'activo' : ''}`}
-              onClick={() => setSlideActual(index)}
+              className={`slider-dot ${index === indiceSlideSeguro ? 'activo' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSlideActual(index);
+              }}
               aria-label={`Ir a diapositiva ${index + 1}`}
             />
           ))}

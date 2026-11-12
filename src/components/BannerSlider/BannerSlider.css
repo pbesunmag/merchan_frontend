@@ -62,6 +62,33 @@
   transform: scale(1);
 }
 
+.hero-slider-promo-stark {
+  border-top: 2px solid #00e5ff !important;
+  border-bottom: 3px solid #fbbf24 !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 35px rgba(251, 191, 36, 0.25) !important;
+}
+
+.hero-slider-promo-limpio {
+  cursor: pointer;
+}
+
+.hero-slide-hud-stark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-hud-reactor-bg {
+  width: 440px;
+  height: 440px;
+  max-width: 75vw;
+  max-height: 75vw;
+  opacity: 0.14;
+  filter: drop-shadow(0 0 28px rgba(0, 229, 255, 0.65));
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Flechas laterales de navegación en los extremos del banner amplio */
 .slider-flecha {
   position: absolute;

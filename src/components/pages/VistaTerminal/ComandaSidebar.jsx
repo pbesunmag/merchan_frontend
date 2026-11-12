@@ -1,13 +1,24 @@
+import { useState } from "react";
 import { formatearMoneda } from "../../../utils/formatoUtils";
 
-// Cesta lateral de la comanda: líneas, ticket digital opcional, total y botón de checkout.
+// Cesta lateral de la comanda: líneas, cupón promocional, ticket digital opcional, desglose y botón de checkout.
 export default function ComandaSidebar({
   carrito,
   avisoStockId,
   errorVisible,
+  subtotalFormateado,
+  descuentoCuponMonto,
+  descuentoCuponFormateado,
   totalFormateado,
+  cuponActivo,
+  validandoCupon,
+  errorCupon,
+  setErrorCupon,
+  aplicarCupon,
+  removerCupon,
   esPersonalizable,
   calcularPrecioUnidad,
+  calcularPrecioUnidadConCupon,
   mostrarAlertaTopeStock,
   actualizarCantidad,
   actualizarTextoPersonalizado,
@@ -33,6 +44,24 @@ export default function ComandaSidebar({
     manejarEnvioTicketManual,
     cancelarTicketConfirmado,
   } = ticket;
+
+  const [codigoInput, setCodigoInput] = useState("");
+
+  const manejarSubmitCupon = async (e) => {
+    e.preventDefault();
+    if (!aplicarCupon) return;
+    const exito = await aplicarCupon(codigoInput);
+    if (exito) {
+      setCodigoInput("");
+    }
+  };
+
+  const obtenerPrecioItem = (item) => {
+    if (typeof calcularPrecioUnidadConCupon === "function") {
+      return calcularPrecioUnidadConCupon(item, cuponActivo);
+    }
+    return calcularPrecioUnidad(item);
+  };
 
   return (
     <div
@@ -90,8 +119,8 @@ export default function ComandaSidebar({
                   item.stockMax ?? item.stock ?? 99,
                 );
                 const enTopeStock = cantActual >= maxDisponible;
-                const subtotalItem =
-                  calcularPrecioUnidad(item) * cantActual;
+                const precioEfectivo = obtenerPrecioItem(item);
+                const subtotalItem = precioEfectivo * cantActual;
 
                 return (
                   <li key={item.idUnico} className="comanda-item">
@@ -210,6 +239,60 @@ export default function ComandaSidebar({
               })}
             </ul>
 
+            {/* SECCIÓN DE CUPÓN PROMOCIONAL HUD STARK */}
+            <div className="cupon-promocional-contenedor">
+              <span className="ticket-digital-titulo">
+                🎟️ Cupón Promocional Stark
+              </span>
+
+              {!cuponActivo ? (
+                <form
+                  onSubmit={manejarSubmitCupon}
+                  className="cupon-input-fila"
+                  noValidate
+                >
+                  <input
+                    type="text"
+                    placeholder="Ej: STARK10, AVENGERS15..."
+                    value={codigoInput}
+                    onChange={(e) => {
+                      setCodigoInput(e.target.value.toUpperCase());
+                      if (errorCupon && setErrorCupon) setErrorCupon(null);
+                    }}
+                    className="comanda-custom-input cupon-input-field"
+                  />
+                  <button
+                    type="submit"
+                    className="btn-aplicar-cupon-stark"
+                    disabled={validandoCupon || !codigoInput.trim()}
+                  >
+                    {validandoCupon ? "..." : "APLICAR"}
+                  </button>
+                </form>
+              ) : (
+                <div className="cupon-activo-chip">
+                  <span>
+                    ✅ CUPÓN APLICADO: <strong>{cuponActivo.codigo}</strong> (-
+                    {cuponActivo.porcentajeDescuento}%)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={removerCupon}
+                    className="btn-quitar-cupon"
+                    title="Quitar cupón"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {errorCupon && (
+                <div className="stark-error-ticket-hud">
+                  <span>⚠️ {errorCupon}</span>
+                </div>
+              )}
+            </div>
+
             {/* SECCIÓN DE ENVÍO DE TICKET DIGITAL POR CORREO O TELÉFONO */}
             <div className="ticket-digital-contenedor">
               {!ticketConfirmado ? (
@@ -327,11 +410,30 @@ export default function ComandaSidebar({
             </div>
 
             <div className="comanda-total-container">
-              <span className="comanda-total-label">Total a abonar</span>
-              <div className="comanda-total-valores">
-                <span className="comanda-total-monto">
-                  {totalFormateado}&nbsp;€
-                </span>
+              {cuponActivo && (
+                <div className="comanda-desglose-cupon">
+                  <div className="comanda-desglose-fila">
+                    <span>Subtotal:</span>
+                    <span>{subtotalFormateado}&nbsp;€</span>
+                  </div>
+                  <div className="comanda-desglose-fila comanda-desglose-ahorro">
+                    <span>
+                      Descuento cupón ({cuponActivo.codigo} -
+                      {cuponActivo.porcentajeDescuento}%):
+                    </span>
+                    <span>
+                      -{descuentoCuponMonto > 0 ? descuentoCuponFormateado : "0.00"}&nbsp;€
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div className="comanda-total-principal">
+                <span className="comanda-total-label">Total a abonar</span>
+                <div className="comanda-total-valores">
+                  <span className="comanda-total-monto">
+                    {totalFormateado}&nbsp;€
+                  </span>
+                </div>
               </div>
             </div>
 

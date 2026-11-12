@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import "./DetalleProductoModal.css";
 import { productService } from "../../services/productService";
+import { aplicarPorcentaje } from "../../services/promocionService";
 import { formatearMoneda, formatearPersonaje } from "../../utils/formatoUtils";
 import { esCamiseta as esProductoCamiseta } from "../../utils/categoriaUtils";
 import GaleriaImagenes, { LightboxImagen } from "./GaleriaImagenes";
@@ -180,8 +181,18 @@ export default function DetalleProductoModal({
 
   const badgeStock = obtenerInfoBadgeStock(stockActual);
 
-  // Precio estricto del catálogo (producto.precio)
-  const precioOficial = Number(producto.precio) || 0;
+  // Descuento directo ÚNICAMENTE para productos marcados individualmente con descuento fijo (Groot y Thor)
+  const tieneDescuentoFijo = Boolean(
+    producto?.tieneDescuentoFijo && Number(producto?.porcentajeDescuento) > 0
+  );
+  const porcentajePromo = tieneDescuentoFijo
+    ? Number(producto.porcentajeDescuento)
+    : 0;
+  const precioBase = Number(producto?.precioOriginal ?? producto?.precio) || 0;
+  const precioOficial = tieneDescuentoFijo
+    ? aplicarPorcentaje(precioBase, porcentajePromo)
+    : precioBase;
+  const esDescuentoFijo = tieneDescuentoFijo;
 
   const fotos = configVariantes
     ? configVariantes.opciones.map((o) => o.imagen)
@@ -225,7 +236,10 @@ export default function DetalleProductoModal({
 
     const productoParaCarrito = {
       ...producto,
+      precioOriginal: precioBase,
       precio: precioOficial,
+      porcentajeCatalogo: porcentajePromo,
+      esDescuentoFijo,
       subtotal: precioOficial,
       nombre: nombreFinal,
       variante: varianteSeleccionada ? varianteSeleccionada.etiqueta : null,
@@ -340,6 +354,16 @@ export default function DetalleProductoModal({
               {/* FOOTER PRECIO OFICIAL Y BOTÓN AÑADIR */}
               <div className="footer-compra-detalle">
                 <div className="precio-detalle-bloque">
+                  {tieneDescuentoFijo && (
+                    <div className="producto-precio-promo-fila">
+                      <span className="producto-precio-tachado">
+                        {formatearMoneda(precioBase)}
+                      </span>
+                      <span className="chip-descuento-precio">
+                        -{porcentajePromo}% OFF
+                      </span>
+                    </div>
+                  )}
                   <div className="precio-detalle">
                     {formatearMoneda(precioOficial)}
                   </div>

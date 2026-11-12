@@ -1,0 +1,262 @@
+.descuentos-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 7, 18, 0.82);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2200;
+  padding: 1rem;
+}
+
+.descuentos-panel {
+  background: #0f172a;
+  border: 1.5px solid #00e5ff;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 860px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.35rem;
+  color: #f1f5f9;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 25px rgba(0, 229, 255, 0.25);
+  overflow: hidden;
+}
+
+.descuentos-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.descuentos-header h3 {
+  margin: 0;
+  color: #00e5ff;
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+}
+
+.descuentos-cerrar {
+  background: transparent;
+  border: 1px solid #475569;
+  color: #cbd5e1;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.descuentos-cerrar:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.descuentos-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.descuentos-tab {
+  background: #1e293b;
+  color: #cbd5e1;
+  border: 1px solid #334155;
+  padding: 0.5rem 0.95rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.82rem;
+  transition: all 0.2s;
+}
+
+.descuentos-tab.activo {
+  background: rgba(0, 229, 255, 0.16);
+  color: #00e5ff;
+  border-color: #00e5ff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+}
+
+.descuentos-error {
+  background: rgba(239, 68, 68, 0.16);
+  border: 1px solid #ef4444;
+  color: #fca5a5;
+  padding: 0.6rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.descuentos-cargando {
+  text-align: center;
+  color: #94a3b8;
+  padding: 2rem 0;
+}
+
+.descuentos-seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.descuentos-form-inline {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: #1e293b;
+  border: 1px solid #334155;
+  padding: 0.85rem;
+  border-radius: 8px;
+}
+
+.descuentos-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 190px;
+}
+
+.descuentos-campo-corto {
+  flex: 0 0 130px;
+  min-width: 110px;
+}
+
+.descuentos-campo label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.descuentos-select,
+.descuentos-input,
+.descuentos-buscador {
+  background: #090d16;
+  color: #f8fafc;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.88rem;
+  outline: none;
+}
+
+.descuentos-select:focus,
+.descuentos-input:focus,
+.descuentos-buscador:focus {
+  border-color: #00e5ff;
+}
+
+.descuentos-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+  color: #e2e8f0;
+  cursor: pointer;
+  padding-bottom: 0.45rem;
+}
+
+.btn-descuentos-guardar {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  color: #090d16;
+  border: none;
+  padding: 0.6rem 1.1rem;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.84rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-descuentos-guardar:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.descuentos-lista-productos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 44vh;
+  overflow-y: auto;
+}
+
+.descuentos-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 0.65rem 0.9rem;
+  flex-wrap: wrap;
+}
+
+.descuentos-item-row.con-descuento {
+  border-left: 4px solid #fbbf24;
+  background: rgba(251, 191, 36, 0.06);
+}
+
+.descuentos-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.descuentos-item-meta {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  font-family: 'Consolas', monospace;
+}
+
+.texto-precio-bonificado {
+  color: #fbbf24;
+}
+
+.badge-pct-mini {
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid #fbbf24;
+  color: #fbbf24;
+  font-size: 0.72rem;
+  padding: 0.08rem 0.4rem;
+  border-radius: 4px;
+  margin-left: 0.35rem;
+}
+
+.descuentos-item-acciones {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.btn-descuento-rapido {
+  background: rgba(0, 229, 255, 0.14);
+  border: 1px solid #00e5ff;
+  color: #00e5ff;
+  padding: 0.35rem 0.7rem;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-descuento-quitar {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid #ef4444;
+  color: #f87171;
+  padding: 0.35rem 0.7rem;
+  border-radius: 5px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}

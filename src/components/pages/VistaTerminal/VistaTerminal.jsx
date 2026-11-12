@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Client } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 import { WS_URL } from "../../../services/api";
 import { productService } from "../../../services/productService";
 import { estadisticaService } from "../../../services/estadisticaService";
 import useCarrito from "../../../hooks/useCarrito";
+import usePromocion from "../../../hooks/usePromocion";
 import { obtenerCategoriaProducto } from "../../../utils/categoriaUtils";
 import ReactorLoader from "../../ReactorLoader";
 import PromoModal from "../../PromoModal/PromoModal";
@@ -26,9 +28,19 @@ export default function VistaTerminal() {
     errorPedido,
     setErrorPedido,
     totalUnidades,
+    subtotalFormateado,
+    descuentoCuponMonto,
+    descuentoCuponFormateado,
     totalFormateado,
+    cuponActivo,
+    validandoCupon,
+    errorCupon,
+    setErrorCupon,
+    aplicarCupon,
+    removerCupon,
     esPersonalizable,
     calcularPrecioUnidad,
+    calcularPrecioUnidadConCupon,
     mostrarAlertaTopeStock,
     agregarAlCarrito,
     actualizarCantidad,
@@ -38,6 +50,8 @@ export default function VistaTerminal() {
     finalizarPedido,
     limpiarPedidoFinalizado,
   } = useCarrito();
+
+  const { promocion } = usePromocion();
 
   // Estados para el envío del ticket de compra por correo o teléfono (Simulación Stark Dispatch)
   const [deseaTicketCorreo, setDeseaTicketCorreo] = useState(false);
@@ -185,10 +199,18 @@ export default function VistaTerminal() {
 
     initMasVendido();
 
-    const urlWs = import.meta.env.VITE_WS_URL || WS_URL;
+    const urlWs = import.meta.env.VITE_WS_URL || WS_URL || "ws://localhost:8080/ws";
+    const urlSockJs = urlWs.replace(/^ws(s?):/, "http$1:");
+
     const stompClient = new Client({
-      brokerURL: urlWs,
+      webSocketFactory: () => new SockJS(urlSockJs),
       reconnectDelay: 5000,
+      heartbeatIncoming: 4000,
+      heartbeatOutgoing: 4000,
+      debug: () => {}, // Silencioso para evitar inundar la consola si el backend está arrancando
+      onStompError: () => {},
+      onWebSocketError: () => {},
+      onWebSocketClose: () => {},
       onConnect: () => {
         stompClient.subscribe("/topic/productos-stock", (mensaje) => {
           if (!montado || !mensaje.body) return;
@@ -221,19 +243,14 @@ export default function VistaTerminal() {
                   : { ...prevSel, ...productoActualizado }
                 : prevSel,
             );
-          } catch (err) {
-            console.error(
-              "Error al procesar actualización de stock por WebSocket:",
-              err,
-            );
+          } catch {
+            // Silencioso al parsear mensaje
           }
         });
       },
     });
 
-    if (urlWs) {
-      stompClient.activate();
-    }
+    stompClient.activate();
 
     return () => {
       montado = false;
@@ -373,6 +390,7 @@ export default function VistaTerminal() {
       {mostrarPromo && <PromoModal alCerrar={cerrarPromo} />}
 
       <BannerSlider
+        promocion={promocion}
         alFiltrarCategoria={handleFiltroDesdeBanner}
         onSeleccionarCategoria={handleFiltroDesdeBanner}
       />
@@ -448,9 +466,19 @@ export default function VistaTerminal() {
           carrito={carrito}
           avisoStockId={avisoStockId}
           errorVisible={errorVisible}
+          subtotalFormateado={subtotalFormateado}
+          descuentoCuponMonto={descuentoCuponMonto}
+          descuentoCuponFormateado={descuentoCuponFormateado}
           totalFormateado={totalFormateado}
+          cuponActivo={cuponActivo}
+          validandoCupon={validandoCupon}
+          errorCupon={errorCupon}
+          setErrorCupon={setErrorCupon}
+          aplicarCupon={aplicarCupon}
+          removerCupon={removerCupon}
           esPersonalizable={esPersonalizable}
           calcularPrecioUnidad={calcularPrecioUnidad}
+          calcularPrecioUnidadConCupon={calcularPrecioUnidadConCupon}
           mostrarAlertaTopeStock={mostrarAlertaTopeStock}
           actualizarCantidad={actualizarCantidad}
           actualizarTextoPersonalizado={actualizarTextoPersonalizado}

@@ -1,5 +1,6 @@
 import { formatearMoneda } from "../../../utils/formatoUtils";
 import { esCamiseta } from "../../../utils/categoriaUtils";
+import { aplicarPorcentaje } from "../../../services/promocionService";
 
 // Rejilla de tarjetas del catálogo con su botón de "ver más/reducir".
 export default function CatalogoGrid({
@@ -25,7 +26,18 @@ export default function CatalogoGrid({
                 : `/${rutaCruda}`
               : "/imagenes/camisetas/avengers.jpg";
 
-          const precioNum = Number(prod.precio) || 0;
+          // Descuento directo ÚNICAMENTE para productos marcados individualmente con descuento fijo (Groot y Thor)
+          const tieneDescuentoFijo = Boolean(
+            prod?.tieneDescuentoFijo && Number(prod?.porcentajeDescuento) > 0
+          );
+          const porcentajeDescuento = tieneDescuentoFijo
+            ? Number(prod.porcentajeDescuento)
+            : 0;
+          const precioBase = Number(prod?.precioOriginal ?? prod?.precio) || 0;
+          const precioFinal = tieneDescuentoFijo
+            ? aplicarPorcentaje(precioBase, porcentajeDescuento)
+            : precioBase;
+
           const esCamisetaCatalogo = esCamiseta(prod);
 
           const unidadesEnCesta = carrito
@@ -56,6 +68,11 @@ export default function CatalogoGrid({
                 onClick={() => alSeleccionar(prod)}
                 title="Haz clic para ver la galería completa"
               >
+                {tieneDescuentoFijo && (
+                  <span className="badge-descuento-card">
+                    -{porcentajeDescuento}% OFF
+                  </span>
+                )}
                 <img
                   src={rutaFoto}
                   alt={prod.nombre}
@@ -74,9 +91,25 @@ export default function CatalogoGrid({
 
               <div>
                 <div className="producto-precio producto-precios-contenedor">
-                  <span className="producto-precio-actual">
-                    {formatearMoneda(precioNum)}
-                  </span>
+                  {tieneDescuentoFijo ? (
+                    <>
+                      <div className="producto-precio-promo-fila">
+                        <span className="producto-precio-tachado">
+                          {formatearMoneda(precioBase)}
+                        </span>
+                        <span className="chip-descuento-precio">
+                          -{porcentajeDescuento}% OFF
+                        </span>
+                      </div>
+                      <span className="producto-precio-actual">
+                        {formatearMoneda(precioFinal)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="producto-precio-actual">
+                      {formatearMoneda(precioBase)}
+                    </span>
+                  )}
                 </div>
 
                 <div
@@ -127,6 +160,10 @@ export default function CatalogoGrid({
                     } else {
                       agregarAlCarrito({
                         ...prod,
+                        precioOriginal: precioBase,
+                        precio: precioFinal,
+                        porcentajeCatalogo: porcentajeDescuento,
+                        esDescuentoFijo: tieneDescuentoFijo,
                         stockMax: stockBaseProd,
                       });
                     }

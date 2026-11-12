@@ -5,6 +5,7 @@ import { usePollingPedidos } from "../../../hooks/usePollingPedidos";
 import ReactorLoader from "../../ReactorLoader";
 import ModalPostventa from "../../ModalPostventa/ModalPostventa";
 import PanelMetricas from "../../PanelMetricas/PanelMetricas";
+import PanelDescuentos from "../../PanelDescuentos/PanelDescuentos";
 import ColumnaKanban from "./ColumnaKanban";
 import {
   obtenerLineasPedido,
@@ -23,6 +24,7 @@ export default function VistaPreparacion() {
   const [pedidoACancelar, setPedidoACancelar] = useState(null);
   const [postventaAbierta, setPostventaAbierta] = useState(false);
   const [metricasAbiertas, setMetricasAbiertas] = useState(false);
+  const [descuentosAbiertos, setDescuentosAbiertos] = useState(false);
 
   const [pedidoAPagoModal, setPedidoAPagoModal] = useState(null);
   const [toastMensaje, setToastMensaje] = useState(null);
@@ -223,6 +225,15 @@ export default function VistaPreparacion() {
           <button
             type="button"
             className="btn-filtro-grabado"
+            onClick={() => setDescuentosAbiertos(true)}
+            title="Control de Descuentos y Promociones"
+          >
+            🏷️ Control de Descuentos y Promociones
+          </button>
+
+          <button
+            type="button"
+            className="btn-filtro-grabado"
             onClick={() => setMetricasAbiertas(true)}
             title="Panel de métricas contables y saldo de caja registradora"
           >
@@ -300,6 +311,13 @@ export default function VistaPreparacion() {
 
       {metricasAbiertas && (
         <PanelMetricas alCerrar={() => setMetricasAbiertas(false)} />
+      )}
+
+      {descuentosAbiertos && (
+        <PanelDescuentos
+          alCerrar={() => setDescuentosAbiertos(false)}
+          alNotificar={mostrarToast}
+        />
       )}
 
       {pedidoACancelar && (

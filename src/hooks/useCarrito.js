@@ -1,8 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { pedidoService } from "../services/pedidoService";
+import { cuponService } from "../services/cuponService";
+import { aplicarPorcentaje } from "../services/promocionService";
 import { perteneceACategoria } from "../utils/categoriaUtils";
 
 const CLAVE_STORAGE_CARRITO = "stark_carrito_activo";
+const CLAVE_STORAGE_CUPON = "stark_cupon_activo";
 
 // Terminal TPV usada en el checkout (configurable por entorno)
 const terminalId = Number(import.meta.env.VITE_DEFAULT_TERMINAL_ID) || 1;
@@ -33,9 +36,28 @@ export const esPersonalizable = (item) => {
   return true;
 };
 
-// Precio unitario estricto: coincide exactamente con producto.precio del catálogo oficial.
+// Precio unitario de catálogo (con descuento fijo o promo si ya viene aplicado)
 export const calcularPrecioUnidad = (item) => {
   return Number(item?.precio) || 0;
+};
+
+// Precio unitario final teniendo en cuenta si hay un cupón con descuento superior al del producto
+export const calcularPrecioUnidadConCupon = (item, cuponActivo) => {
+  const precioCatalogo = Number(item?.precio) || 0;
+  if (!cuponActivo || !cuponActivo.porcentajeDescuento) {
+    return precioCatalogo;
+  }
+  const pctCupon = Number(cuponActivo.porcentajeDescuento) || 0;
+  const pctItem = Number(
+    item?.porcentajeCatalogo ??
+      (item?.tieneDescuentoFijo ? item?.porcentajeDescuento : 0),
+  ) || 0;
+  const precioBaseOriginal = Number(item?.precioOriginal ?? item?.precio) || 0;
+
+  if (pctCupon > pctItem && precioBaseOriginal > 0) {
+    return aplicarPorcentaje(precioBaseOriginal, pctCupon);
+  }
+  return precioCatalogo;
 };
 
 export default function useCarrito() {
@@ -52,6 +74,17 @@ export default function useCarrito() {
       return [];
     }
   });
+
+  const [cuponActivo, setCuponActivo] = useState(() => {
+    try {
+      const guardado = localStorage.getItem(CLAVE_STORAGE_CUPON);
+      return guardado ? JSON.parse(guardado) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [validandoCupon, setValidandoCupon] = useState(false);
+  const [errorCupon, setErrorCupon] = useState(null);
 
   const [mostrarCarrito, setMostrarCarrito] = useState(false);
   const [avisoStockId, setAvisoStockId] = useState(null);
@@ -73,13 +106,25 @@ export default function useCarrito() {
     }
   }, [carrito]);
 
-  // ---- Totales exactos (suma de precioUnitario * cantidad) ----
+  useEffect(() => {
+    try {
+      if (cuponActivo) {
+        localStorage.setItem(CLAVE_STORAGE_CUPON, JSON.stringify(cuponActivo));
+      } else {
+        localStorage.removeItem(CLAVE_STORAGE_CUPON);
+      }
+    } catch {
+      // Ignorar errores de almacenamiento
+    }
+  }, [cuponActivo]);
+
+  // ---- Totales exactos (Subtotal, Descuento Cupón y Total a pagar) ----
   const totalUnidades = useMemo(
     () => carrito.reduce((acc, item) => acc + (Number(item.cantidad) || 1), 0),
     [carrito],
   );
 
-  const totalPedido = useMemo(
+  const subtotalPedido = useMemo(
     () =>
       carrito.reduce(
         (acc, item) =>
@@ -89,7 +134,54 @@ export default function useCarrito() {
     [carrito],
   );
 
+  const totalPedido = useMemo(
+    () =>
+      carrito.reduce(
+        (acc, item) =>
+          acc +
+          calcularPrecioUnidadConCupon(item, cuponActivo) *
+            (Number(item.cantidad) || 1),
+        0,
+      ),
+    [carrito, cuponActivo],
+  );
+
+  const descuentoCuponMonto = useMemo(
+    () => Math.max(0, Number((subtotalPedido - totalPedido).toFixed(2))),
+    [subtotalPedido, totalPedido],
+  );
+
+  const subtotalFormateado = subtotalPedido.toFixed(2);
+  const descuentoCuponFormateado = descuentoCuponMonto.toFixed(2);
   const totalFormateado = totalPedido.toFixed(2);
+
+  // ---- Gestión de cupones promocionales ----
+  const aplicarCupon = async (codigoInput) => {
+    const codigoLimpio = String(codigoInput || "").trim().toUpperCase();
+    if (!codigoLimpio) {
+      setErrorCupon("Introduce un código promocional.");
+      return false;
+    }
+
+    try {
+      setValidandoCupon(true);
+      setErrorCupon(null);
+      const cuponValido = await cuponService.validarCupon(codigoLimpio);
+      setCuponActivo(cuponValido);
+      return true;
+    } catch (err) {
+      setCuponActivo(null);
+      setErrorCupon(err.message || "Código inválido o expirado");
+      return false;
+    } finally {
+      setValidandoCupon(false);
+    }
+  };
+
+  const removerCupon = () => {
+    setCuponActivo(null);
+    setErrorCupon(null);
+  };
 
   // ---- Operaciones del carrito ----
   const mostrarAlertaTopeStock = (idUnico) => {
@@ -134,7 +226,14 @@ export default function useCarrito() {
           item.idUnico === claveArticulo
             ? {
                 ...item,
+                precioOriginal:
+                  Number(producto.precioOriginal) ||
+                  item.precioOriginal ||
+                  Number(producto.precio) ||
+                  item.precio,
                 precio: Number(producto.precio) || item.precio,
+                porcentajeCatalogo:
+                  producto.porcentajeCatalogo ?? item.porcentajeCatalogo ?? 0,
                 cantidad: cantActual + 1,
                 stockMax: maxPermitido,
               }
@@ -145,7 +244,10 @@ export default function useCarrito() {
         ...prev,
         {
           ...producto,
+          precioOriginal:
+            Number(producto.precioOriginal) || Number(producto.precio) || 0,
           precio: Number(producto.precio) || 0,
+          porcentajeCatalogo: producto.porcentajeCatalogo ?? 0,
           idUnico: claveArticulo,
           talla: producto.talla || null,
           cantidad: 1,
@@ -199,7 +301,10 @@ export default function useCarrito() {
 
   const vaciarCarrito = () => {
     setCarrito([]);
+    setCuponActivo(null);
+    setErrorCupon(null);
     localStorage.removeItem(CLAVE_STORAGE_CARRITO);
+    localStorage.removeItem(CLAVE_STORAGE_CUPON);
     setAvisoStockId(null);
   };
 
@@ -222,12 +327,19 @@ export default function useCarrito() {
             : null,
       }));
 
-      // Única llamada transaccional: POST /api/pedidos/checkout
-      const nuevoPedido = await pedidoService.checkout(terminalId, lineas);
+      // Única llamada transaccional: POST /api/pedidos/checkout (incluyendo codigoCupon si procede)
+      const nuevoPedido = await pedidoService.checkout(
+        terminalId,
+        lineas,
+        cuponActivo?.codigo || null,
+      );
 
       setMostrarCarrito(false);
       setCarrito([]);
+      setCuponActivo(null);
+      setErrorCupon(null);
       localStorage.removeItem(CLAVE_STORAGE_CARRITO);
+      localStorage.removeItem(CLAVE_STORAGE_CUPON);
       setPedidoFinalizado(nuevoPedido?.codigo || `AV-${nuevoPedido?.id || 1}`);
       if (typeof onSuccessCallback === "function") {
         await onSuccessCallback();
@@ -253,10 +365,21 @@ export default function useCarrito() {
     errorPedido,
     setErrorPedido,
     totalUnidades,
+    subtotalPedido,
+    subtotalFormateado,
+    descuentoCuponMonto,
+    descuentoCuponFormateado,
     totalPedido,
     totalFormateado,
+    cuponActivo,
+    validandoCupon,
+    errorCupon,
+    setErrorCupon,
+    aplicarCupon,
+    removerCupon,
     esPersonalizable,
     calcularPrecioUnidad,
+    calcularPrecioUnidadConCupon,
     mostrarAlertaTopeStock,
     agregarAlCarrito,
     actualizarCantidad,

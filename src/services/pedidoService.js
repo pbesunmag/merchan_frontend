@@ -11,10 +11,14 @@ export const pedidoService = {
 
   // POST /api/pedidos/checkout → creación atómica del pedido completo
   // lineas: [{ productoId, cantidad, talla, textoPersonalizado, variante }]
-  checkout: (terminalId, lineas) =>
+  checkout: (terminalId, lineas, codigoCupon = null) =>
     request('/pedidos/checkout', {
       method: 'POST',
-      body: JSON.stringify({ terminalId, lineas }),
+      body: JSON.stringify({
+        terminalId,
+        lineas,
+        ...(codigoCupon ? { codigoCupon } : {}),
+      }),
     }),
 
   // PATCH /api/pedidos/{pedidoId}/estado
